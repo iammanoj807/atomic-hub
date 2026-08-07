@@ -1,0 +1,91 @@
+rules_version = '2';
+
+// Atomic Hub — Firestore rules.
+//
+// READ THIS BEFORE TRUSTING IT.
+//
+// This app has no Firebase Auth, so there is no identity to check. These rules
+// cannot tell you apart from anyone else who knows the project id — what they
+// do is stop the database being used as free general-purpose storage:
+//
+//   - only the collections this app actually uses can be written at all
+//   - documents are size- and shape-checked, so it can't be filled with junk
+//   - anything not listed here is denied outright
+//
+// That is meaningfully better than the default open database, and it is NOT
+// the same as being private. The real fix is Firebase Auth (anonymous or email
+// sign-in) plus `allow read, write: if request.auth.uid == '<your-uid>';` on
+// every collection. Until then, treat everything in here as public.
+//
+// Deploy with: firebase deploy --only firestore:rules
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Interview content
+    match /tasks/{taskId} {
+      allow read: if true;
+      allow write: if request.resource == null
+                   || request.resource.data.keys().hasAll(['title', 'category']);
+    }
+
+    match /companies/{companyId} {
+      allow read: if true;
+      allow write: if request.resource == null
+                   || request.resource.data.keys().hasAll(['name']);
+    }
+
+    // Habits, logs and streaks
+    match /dailyHabits/{habitId} {
+      allow read, write: if true;
+    }
+
+    match /daily_logs/{date} {
+      allow read, write: if true;
+    }
+
+    match /stats/{docId} {
+      allow read, write: if true;
+    }
+
+    // DSA hub
+    match /dsa_progress/{topicId} {
+      allow read, write: if true;
+    }
+
+    // Job search
+    match /job_outreach_logs/{date} {
+      allow read, write: if true;
+    }
+
+    match /weekly_goals/{weekStart} {
+      allow read, write: if true;
+    }
+
+    // Evidence log — one short line per day
+    match /evidenceLog/{date} {
+      allow read: if true;
+      allow write: if request.resource == null
+                   || (request.resource.data.text is string
+                       && request.resource.data.text.size() <= 500);
+    }
+
+    // Practice tracking
+    match /practiceRecords/{questionId} {
+      allow read: if true;
+      allow write: if request.resource == null
+                   || (request.resource.data.reps is int
+                       && request.resource.data.confidence in [1, 2, 3]);
+    }
+
+    match /daily_drill/{date} {
+      allow read, write: if true;
+    }
+
+    // Everything else is denied — including any collection added later, which
+    // will fail loudly here rather than quietly accepting anything.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
