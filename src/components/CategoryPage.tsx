@@ -1,6 +1,7 @@
 import { useParams } from 'react-router-dom';
 import { Box, Typography, Stack, LinearProgress, Fab, Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, Grid, Card, CardActionArea, IconButton, Tooltip } from '@mui/material';
 import { useTaskContext, type Category } from '../context/TaskContext';
+import { getCoreStory } from '../data/coreStories';
 import { computeReadiness } from '../utils/practice';
 import { getLondonDateString } from '../utils/date';
 
@@ -116,9 +117,11 @@ const CategoryPage = () => {
     let categoryIndex = ['Personal Background', 'Career Decisions', 'Tech Achievements', 'Problem Solving', 'Leadership', 'Collaboration', 'Failure & Learning', 'Closing Strategy'].indexOf(category) + 1;
     if (isCompanyCategory) categoryIndex = 1;
 
-    /** One bullet per line, blanks dropped. */
+    /** One bullet per line, blanks dropped. Strips leading bullets (-, *, •) so they don't double-render. */
     const parseMemoryPoints = (raw: string): string[] =>
-        raw.split('\n').map(line => line.trim()).filter(Boolean);
+        raw.split('\n')
+           .map(line => line.replace(/^[\s•\-*]+/, '').trim())
+           .filter(Boolean);
 
     // Handlers
     const toggleExpand = (taskId: string) => {
@@ -180,7 +183,15 @@ const CategoryPage = () => {
         setEditTaskTitle(task.title);
         setEditTaskAnswer(task.description || '');
         setEditTaskTag(task.tag || null);
-        setEditTaskMemory((task.memoryPoints || []).join('\n'));
+        
+        // Load the effective memory points (including inherited core story points) so the form isn't empty
+        const directMemoryPoints = task.memoryPoints ?? [];
+        const coreStory = task.coreStoryId ? getCoreStory(task.coreStoryId) : undefined;
+        const coreStoryMemoryPoints = coreStory?.memoryPoints ?? [];
+        const effectiveMemoryPoints = directMemoryPoints.length > 0 ? directMemoryPoints : coreStoryMemoryPoints;
+        
+        // Prepend bullets for easy editing
+        setEditTaskMemory(effectiveMemoryPoints.map((p: string) => `• ${p}`).join('\n'));
         setIsEditExpanded(false);
         setIsEditDialogOpen(true);
     };
