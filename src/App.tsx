@@ -212,26 +212,26 @@ function MainLayout() {
             )}
             <ReactPlayer
                 ref={audioRef}
-                src="https://www.youtube.com/watch?v=dxGU80Ny0JQ"
+                src="https://www.youtube.com/watch?v=-TTWmeR0eHc"
                 playing={!isMuted}
                 volume={1}
                 width="1px"
                 height="1px"
                 style={{ position: 'fixed', bottom: 0, left: 0, opacity: 0, pointerEvents: 'none', zIndex: -1 }}
                 onReady={() => {
-                    if (audioRef.current && audioRef.current.currentTime < 6) {
-                        audioRef.current.currentTime = 6;
+                    if (audioRef.current && audioRef.current.currentTime < 0) {
+                        audioRef.current.currentTime = 0;
                     }
                 }}
                 onEnded={() => {
                     if (audioRef.current) {
-                        audioRef.current.currentTime = 6;
+                        audioRef.current.currentTime = 0;
                         audioRef.current.play().catch(() => {});
                     }
                 }}
                 config={{
                     youtube: {
-                        start: 6,
+                        start: 0,
                         rel: 0,
                     },
                 }}
