@@ -79,7 +79,9 @@ const Sidebar = () => {
         verifyAdmin, 
         logoutAdmin, 
         isSidebarCollapsed, 
-        toggleSidebar
+        toggleSidebar,
+        isMuted,
+        setIsMuted
     } = useTaskContext();
 
     // Use isSidebarCollapsed from context instead of local state
@@ -103,6 +105,11 @@ const Sidebar = () => {
 
     const handleAdminLogout = () => {
         logoutAdmin();
+    };
+
+    const toggleMute = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setIsMuted(!isMuted);
     };
 
     const handleDrawerToggle = () => {
@@ -594,7 +601,37 @@ const Sidebar = () => {
                         </Box>
 
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-
+                            <Tooltip title={isMuted ? "Unmute" : "Mute"}>
+                                <IconButton
+                                    size="small"
+                                    onClick={toggleMute}
+                                    sx={{
+                                        mr: 1,
+                                        bgcolor: 'transparent',
+                                        outline: 'none !important',
+                                        '&:hover': {
+                                            bgcolor: 'rgba(255,255,255,0.05)',
+                                            transform: 'scale(1.1)'
+                                        },
+                                    }}
+                                >
+                                    <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: '3px', height: 20 }}>
+                                        {[0.3, 0.5, 0.2, 0.7, 0.4].map((delay, i) => (
+                                            <Box
+                                                key={i}
+                                                sx={{
+                                                    width: 3,
+                                                    borderRadius: '2px',
+                                                    bgcolor: isMuted ? 'text.disabled' : 'primary.main',
+                                                    animation: `audioBar${i} ${0.8 + delay}s ease-in-out infinite`,
+                                                    animationPlayState: isMuted ? 'paused' : 'running',
+                                                    height: isMuted ? '4px' : undefined
+                                                }}
+                                            />
+                                        ))}
+                                    </Box>
+                                </IconButton>
+                            </Tooltip>
                             <Tooltip title={isAdmin ? "Lock App" : "Unlock App"}>
                                 <IconButton
                                     onClick={() => isAdmin ? handleAdminLogout() : setIsAdminDialogOpen(true)}

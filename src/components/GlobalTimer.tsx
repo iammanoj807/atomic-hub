@@ -33,7 +33,7 @@ const GlobalTimer: React.FC = () => {
                     onClick={toggleTimerVisibility}
                     sx={{
                         position: 'fixed',
-                        top: { xs: 24, md: 32 },
+                        top: { xs: 88, md: 32 },
                         right: 0, // flush against the right edge
                         width: 24,
                         height: 48,
@@ -116,7 +116,7 @@ const GlobalTimer: React.FC = () => {
         <Box
             sx={{
                 position: 'fixed',
-                top: { xs: 24, md: 32 },
+                top: { xs: 88, md: 32 },
                 right: { xs: 24, md: 32 },
                 zIndex: 9999,
                 display: 'flex',
