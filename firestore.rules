@@ -70,6 +70,25 @@ service cloud.firestore {
                        && request.resource.data.text.size() <= 500);
     }
 
+    // Study plan — the 26 weeks. The plan itself ships in the bundle; only
+    // what changes week to week is stored.
+    match /study_weeks/{weekId} {
+      allow read: if true;
+      allow write: if request.resource == null
+                   || request.resource.data.week is int;
+    }
+
+    match /study_papers/{paperId} {
+      allow read: if true;
+      allow write: if request.resource == null
+                   || (request.resource.data.title is string
+                       && request.resource.data.pass in [1, 2, 3]);
+    }
+
+    match /study_progress/{docId} {
+      allow read, write: if true;
+    }
+
     // Practice tracking
     match /practiceRecords/{questionId} {
       allow read: if true;
