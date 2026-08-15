@@ -48,19 +48,30 @@ const StatTile = ({
     value,
     hint,
     color,
+    onClick,
 }: {
     label: string;
     value: string;
     hint: string;
     color?: string;
+    onClick?: () => void;
 }) => (
     <Box
+        onClick={onClick}
         sx={{
             p: 2.5,
             borderRadius: 3,
             bgcolor: 'background.paper',
             border: '1px solid',
             borderColor: 'rgba(255,255,255,0.08)',
+            ...(onClick && {
+                cursor: 'pointer',
+                transition: 'border-color 0.15s, background-color 0.15s',
+                '&:hover': {
+                    borderColor: 'primary.main',
+                    bgcolor: 'rgba(41, 121, 255, 0.04)',
+                },
+            }),
         }}
     >
         <Typography
@@ -159,22 +170,26 @@ const StudyPlanPage = () => {
                     label="WEEKS DONE"
                     value={`${weeksDone}/${PLAN_WEEKS}`}
                     hint={phase === 'before' ? 'Not started yet' : `${PLAN_WEEKS - weeksDone} to go`}
+                    onClick={() => navigate('/study/weeks')}
                 />
                 <StatTile
                     label="HOURS LOGGED"
                     value={`${hours.actualTotal}`}
                     hint={`${hours.targetToDate}h asked for so far`}
                     color={hours.diffToDate < 0 ? '#ff8a65' : '#66bb6a'}
+                    onClick={() => navigate('/study/hours')}
                 />
                 <StatTile
                     label="PAPERS READ"
                     value={`${studyPapers.length}`}
                     hint="~60 over six months"
+                    onClick={() => navigate('/study/papers')}
                 />
                 <StatTile
                     label="PROJECTS"
                     value={`${completedProjectIds.length}/${projects.length}`}
                     hint="Public artifacts by February"
+                    onClick={() => navigate('/study/projects')}
                 />
             </Box>
 

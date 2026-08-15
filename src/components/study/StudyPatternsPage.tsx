@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Box, Typography, Stack, Chip, LinearProgress, Tooltip } from '@mui/material';
 import ChevronRightRoundedIcon from '@mui/icons-material/ChevronRightRounded';
 import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
-import { dsaPatterns, dsaMethod, dsaMethodNote, dsaWeakSpotNote, dsaResourceNote } from '../../data/studyPlan';
+import { dsaPatterns, dsaMethod, dsaMethodNote, dsaWeakSpotNote } from '../../data/studyPlan';
 import { dsaCurriculum } from '../../data/dsaCurriculum';
 import { subscribeToDSAProgress, type DSATopicProgress } from '../../services/firebaseService';
 import StudyPageHeader from './StudyPageHeader';
@@ -212,9 +212,6 @@ const StudyPatternsPage = () => {
                 </Typography>
             </Box>
 
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 3, pb: 2, lineHeight: 1.7 }}>
-                {dsaResourceNote}
-            </Typography>
         </Box>
     );
 };
