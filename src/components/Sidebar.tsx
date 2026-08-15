@@ -43,6 +43,13 @@ import DashboardRoundedIcon from '@mui/icons-material/DashboardRounded';
 import CodeRoundedIcon from '@mui/icons-material/CodeRounded';
 import ReceiptLongRoundedIcon from '@mui/icons-material/ReceiptLongRounded';
 import AutoStoriesRoundedIcon from '@mui/icons-material/AutoStoriesRounded';
+import MapRoundedIcon from '@mui/icons-material/MapRounded';
+import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded';
+import ScheduleRoundedIcon from '@mui/icons-material/ScheduleRounded';
+import MenuBookRoundedIcon from '@mui/icons-material/MenuBookRounded';
+import RocketLaunchRoundedIcon from '@mui/icons-material/RocketLaunchRounded';
+import TimelineRoundedIcon from '@mui/icons-material/TimelineRounded';
+import ArticleRoundedIcon from '@mui/icons-material/ArticleRounded';
 import ChevronLeftRoundedIcon from '@mui/icons-material/ChevronLeftRounded';
 import ChevronRightRoundedIcon from '@mui/icons-material/ChevronRightRounded';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
@@ -66,9 +73,22 @@ const categoryIcons: Record<Category, React.ReactNode> = {
     'Company Questions': <BusinessRoundedIcon />,
 };
 
+/** The eight pages of the 26-week plan, in the order the plan itself uses them. */
+const studyPages: { label: string; path: string; icon: React.ReactNode }[] = [
+    { label: 'Overview', path: '/study', icon: <DashboardRoundedIcon fontSize="small" /> },
+    { label: '26 Weeks', path: '/study/weeks', icon: <CalendarMonthRoundedIcon fontSize="small" /> },
+    { label: 'Daily Routine', path: '/study/routine', icon: <ScheduleRoundedIcon fontSize="small" /> },
+    { label: 'DSA Patterns', path: '/study/patterns', icon: <CodeRoundedIcon fontSize="small" /> },
+    { label: 'Resources', path: '/study/resources', icon: <MenuBookRoundedIcon fontSize="small" /> },
+    { label: 'Projects', path: '/study/projects', icon: <RocketLaunchRoundedIcon fontSize="small" /> },
+    { label: 'Hours Log', path: '/study/hours', icon: <TimelineRoundedIcon fontSize="small" /> },
+    { label: 'Papers Log', path: '/study/papers', icon: <ArticleRoundedIcon fontSize="small" /> },
+];
+
 const Sidebar = () => {
     const [mobileOpen, setMobileOpen] = useState(false);
     const [interviewOpen, setInterviewOpen] = useState(false);
+    const [studyOpen, setStudyOpen] = useState(false);
     // const [isCollapsed, setIsCollapsed] = useState(false); // Removed local state //
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -133,6 +153,18 @@ const Sidebar = () => {
         setInterviewOpen(!interviewOpen);
     };
 
+    const handleStudyToggle = () => {
+        if (isCollapsed) {
+            navigate('/study');
+            return;
+        }
+
+        if (!studyOpen) {
+            navigate('/study');
+        }
+        setStudyOpen(!studyOpen);
+    };
+
     const categories: Category[] = [
         'Personal Background',
         'Career Decisions',
@@ -151,6 +183,10 @@ const Sidebar = () => {
         if (!path.startsWith('/interview-prep') && !path.startsWith('/category') && !path.startsWith('/core-stories')) {
             setInterviewOpen(false);
         }
+        // Same for the Study Plan group — leaving the section closes it.
+        if (!path.startsWith('/study')) {
+            setStudyOpen(false);
+        }
         if (isMobile) {
             setMobileOpen(false);
         }
@@ -164,6 +200,7 @@ const Sidebar = () => {
         || location.pathname.startsWith('/category')
         || location.pathname.startsWith('/core-stories');
     const isDSAActive = location.pathname.startsWith('/dsa');
+    const isStudyActive = location.pathname.startsWith('/study');
 
     const currentDrawerWidth = isCollapsed ? DRAWER_WIDTH_COLLAPSED : DRAWER_WIDTH_EXPANDED;
 
@@ -350,7 +387,66 @@ const Sidebar = () => {
                     </Tooltip>
                 </ListItem>
 
-                {/* 4. DSA HUB */}
+                {/* 4. STUDY PLAN (Collapsible) — the 26 weeks */}
+                <ListItem disablePadding>
+                    <Tooltip title="Study Plan" placement="right" disableHoverListener={!isCollapsed}>
+                        <ListItemButton
+                            onClick={handleStudyToggle}
+                            selected={isStudyActive || studyOpen}
+                            sx={{
+                                borderRadius: 2,
+                                mb: 0.5,
+                                mx: isCollapsed ? 0 : 2,
+                                justifyContent: isCollapsed ? 'center' : 'flex-start',
+                                px: isCollapsed ? 2 : 2,
+                                '&.Mui-selected': {
+                                    bgcolor: 'rgba(41, 121, 255, 0.1)',
+                                    color: 'primary.main',
+                                    '&:hover': { bgcolor: 'rgba(41, 121, 255, 0.15)' },
+                                    '& .MuiListItemIcon-root': {
+                                        color: 'primary.main',
+                                    },
+                                },
+                            }}
+                        >
+                            <ListItemIcon sx={{ minWidth: isCollapsed ? 0 : 40, mr: isCollapsed ? 0 : 0, justifyContent: 'center' }}>
+                                <MapRoundedIcon />
+                            </ListItemIcon>
+                            {!isCollapsed && <ListItemText primary="Study Plan" />}
+                            {!isCollapsed && (studyOpen ? <ExpandLess /> : <ExpandMore />)}
+                        </ListItemButton>
+                    </Tooltip>
+                </ListItem>
+
+                <Collapse in={studyOpen && !isCollapsed} timeout="auto" unmountOnExit>
+                    <List component="div" disablePadding sx={{ pl: 2 }}>
+                        {studyPages.map((page) => (
+                            <ListItemButton
+                                key={page.path}
+                                onClick={() => handleNavigation(page.path)}
+                                selected={location.pathname === page.path}
+                                sx={{
+                                    borderRadius: 2,
+                                    pl: 4,
+                                    mb: 0.5,
+                                    mx: 2,
+                                    '&.Mui-selected': {
+                                        bgcolor: 'rgba(41, 121, 255, 0.1)',
+                                        color: 'primary.main',
+                                        '& .MuiListItemIcon-root': { color: 'primary.main' }
+                                    },
+                                }}
+                            >
+                                <ListItemIcon sx={{ minWidth: 40, color: 'text.secondary' }}>
+                                    {page.icon}
+                                </ListItemIcon>
+                                <ListItemText primary={page.label} />
+                            </ListItemButton>
+                        ))}
+                    </List>
+                </Collapse>
+
+                {/* 5. DSA HUB */}
                 <ListItem disablePadding>
                     <Tooltip title="NeetCode 150" placement="right" disableHoverListener={!isCollapsed}>
                         <ListItemButton
@@ -380,7 +476,7 @@ const Sidebar = () => {
                     </Tooltip>
                 </ListItem>
 
-                {/* 5. INTERVIEW HUB (Collapsible) */}
+                {/* 6. INTERVIEW HUB (Collapsible) */}
                 <ListItem disablePadding>
                     <Tooltip title="Interview Hub" placement="right" disableHoverListener={!isCollapsed}>
                         <ListItemButton

@@ -26,12 +26,15 @@ import type {
     EvidenceEntry,
     EvidenceTag,
     PracticeRecord,
+    StudyWeekLog,
+    StudyPaper,
 } from '../services/firebaseService';
 import { usePomodoro, type PomodoroState } from '../hooks/usePomodoro';
 // Re-exported so existing imports of PomodoroState from this file keep working.
 export type { PomodoroState };
 import { useEvidenceLog } from '../hooks/useEvidenceLog';
 import { usePractice } from '../hooks/usePractice';
+import { useStudyPlan } from '../hooks/useStudyPlan';
 import { deleteField } from 'firebase/firestore';
 import { subDays } from 'date-fns';
 import { defaultTasks } from '../data/defaultTasks';
@@ -125,6 +128,16 @@ interface TaskContextType {
     practiceRecords: Record<string, PracticeRecord>;
     recordPractice: (questionId: string, confidence: 1 | 2 | 3) => Promise<void>;
 
+    // Study Plan — the 26 weeks
+    studyWeekLogs: Record<number, StudyWeekLog>;
+    currentWeekNumber: number | null;
+    saveWeekLog: (week: number, updates: Partial<Omit<StudyWeekLog, 'week' | 'updatedAt'>>) => Promise<void>;
+    studyPapers: StudyPaper[];
+    savePaper: (paper: Omit<StudyPaper, 'id' | 'createdAt'> & { id?: string }) => Promise<void>;
+    deletePaper: (id: string) => Promise<void>;
+    completedProjectIds: string[];
+    toggleProject: (projectId: string) => Promise<void>;
+
     isMuted: boolean;
     setIsMuted: (muted: boolean) => void;
 
@@ -193,6 +206,16 @@ export const TaskProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         practiceRecords,
         recordPractice,
     } = usePractice();
+    const {
+        studyWeekLogs,
+        currentWeekNumber,
+        saveWeekLog,
+        studyPapers,
+        savePaper,
+        deletePaper,
+        completedProjectIds,
+        toggleProject,
+    } = useStudyPlan();
 
     // History State
     const [selectedDate, setSelectedDate] = useState(() => getLondonDateString());
@@ -698,6 +721,14 @@ export const TaskProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 deleteEvidence,
                 practiceRecords,
                 recordPractice,
+                studyWeekLogs,
+                currentWeekNumber,
+                saveWeekLog,
+                studyPapers,
+                savePaper,
+                deletePaper,
+                completedProjectIds,
+                toggleProject,
                 isMuted,
                 setIsMuted,
                 pomodoroState,
