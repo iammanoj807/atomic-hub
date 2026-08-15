@@ -731,6 +731,131 @@ export const deleteEvidenceEntry = async (date: string) => {
     }
 };
 
+// ============ STUDY PLAN ============
+//
+// The 26-week plan itself is static content (data/studyPlan.ts). What lives
+// here is only what changes: the Sunday hours entry, the papers read, and
+// which of the nine projects are finished.
+
+const STUDY_WEEKS_COLLECTION = 'study_weeks';
+const STUDY_PAPERS_COLLECTION = 'study_papers';
+const STUDY_PROGRESS_COLLECTION = 'study_progress';
+const STUDY_PROJECTS_DOC = 'projects';
+
+export interface StudyWeekLog {
+    week: number;             // 1-26
+    actualHours: number | null;
+    dsaProblems: number | null;
+    finished: string;         // "What I finished"
+    learned: string;          // "One thing I understand now that I didn't last week"
+    updatedAt: Timestamp;
+}
+
+/** Zero-padded so document ids sort the same way the weeks run. */
+const studyWeekDocId = (week: number) => `week-${String(week).padStart(2, '0')}`;
+
+/** Keyed by week number — every screen looks weeks up by number, never by id. */
+export const subscribeToStudyWeeks = (
+    callback: (logs: Record<number, StudyWeekLog>) => void
+) => {
+    return onSnapshot(collection(db, STUDY_WEEKS_COLLECTION), (snapshot: QuerySnapshot<DocumentData>) => {
+        const logs: Record<number, StudyWeekLog> = {};
+        snapshot.docs.forEach(doc => {
+            const data = doc.data() as StudyWeekLog;
+            if (typeof data.week === 'number') logs[data.week] = data;
+        });
+        callback(logs);
+    }, (error) => {
+        console.error('❌ Study weeks subscription error:', error.code, error.message);
+    });
+};
+
+export const saveStudyWeekLog = async (
+    week: number,
+    updates: Partial<Omit<StudyWeekLog, 'week' | 'updatedAt'>>
+) => {
+    try {
+        const docRef = doc(db, STUDY_WEEKS_COLLECTION, studyWeekDocId(week));
+        await setDoc(docRef, {
+            week,
+            ...updates,
+            updatedAt: Timestamp.now(),
+        }, { merge: true });
+    } catch (error) {
+        console.error('❌ Failed to save study week:', error);
+        throw error;
+    }
+};
+
+export interface StudyPaper {
+    id: string;          // also the document id
+    date: string;        // YYYY-MM-DD
+    title: string;
+    venue: string;       // "NeurIPS 2017"
+    pass: 1 | 2 | 3;     // the three-pass method
+    mainIdea: string;    // in my own words — the point of the whole log
+    weakness: string;    // weakness + the next experiment I would run
+    createdAt: string;   // ISO, set once
+}
+
+export const subscribeToStudyPapers = (
+    callback: (papers: StudyPaper[]) => void
+) => {
+    return onSnapshot(collection(db, STUDY_PAPERS_COLLECTION), (snapshot: QuerySnapshot<DocumentData>) => {
+        const papers = snapshot.docs.map(doc => ({
+            ...(doc.data() as StudyPaper),
+            id: doc.id,
+        }));
+
+        // Newest read first.
+        papers.sort((a, b) => b.date.localeCompare(a.date));
+
+        callback(papers);
+    }, (error) => {
+        console.error('❌ Study papers subscription error:', error.code, error.message);
+    });
+};
+
+export const saveStudyPaper = async (paper: StudyPaper) => {
+    try {
+        const docRef = doc(db, STUDY_PAPERS_COLLECTION, paper.id);
+        await setDoc(docRef, paper, { merge: true });
+    } catch (error) {
+        console.error('❌ Failed to save paper:', error);
+        throw error;
+    }
+};
+
+export const deleteStudyPaper = async (id: string) => {
+    try {
+        await deleteDoc(doc(db, STUDY_PAPERS_COLLECTION, id));
+    } catch (error) {
+        console.error('❌ Failed to delete paper:', error);
+        throw error;
+    }
+};
+
+/** Which of the nine portfolio projects are done. One tiny document. */
+export const subscribeToStudyProjects = (
+    callback: (completedIds: string[]) => void
+) => {
+    return onSnapshot(doc(db, STUDY_PROGRESS_COLLECTION, STUDY_PROJECTS_DOC), (docSnap) => {
+        callback(docSnap.exists() ? (docSnap.data().completedIds ?? []) : []);
+    }, (error) => {
+        console.error('❌ Study projects subscription error:', error.code, error.message);
+    });
+};
+
+export const saveStudyProjects = async (completedIds: string[]) => {
+    try {
+        const docRef = doc(db, STUDY_PROGRESS_COLLECTION, STUDY_PROJECTS_DOC);
+        await setDoc(docRef, { completedIds, updatedAt: Timestamp.now() }, { merge: true });
+    } catch (error) {
+        console.error('❌ Failed to save study projects:', error);
+        throw error;
+    }
+};
+
 // ============ WEEKLY GOALS ============
 
 const WEEKLY_GOALS_COLLECTION = 'weekly_goals';
