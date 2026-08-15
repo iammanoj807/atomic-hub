@@ -13,6 +13,14 @@ import DSAHubPage from './components/DSAHubPage';
 import DSATopicDetailPage from './components/DSATopicDetailPage';
 import EvidenceLogPage from './components/EvidenceLogPage';
 import CoreStoriesPage from './components/CoreStoriesPage';
+import StudyPlanPage from './components/study/StudyPlanPage';
+import StudyWeeksPage from './components/study/StudyWeeksPage';
+import StudyRoutinePage from './components/study/StudyRoutinePage';
+import StudyPatternsPage from './components/study/StudyPatternsPage';
+import StudyResourcesPage from './components/study/StudyResourcesPage';
+import StudyProjectsPage from './components/study/StudyProjectsPage';
+import StudyHoursPage from './components/study/StudyHoursPage';
+import StudyPapersPage from './components/study/StudyPapersPage';
 import IdentityBanner from './components/IdentityBanner';
 import GlobalTimer from './components/GlobalTimer';
 import ReactPlayer from 'react-player';
@@ -199,6 +207,14 @@ function MainLayout() {
                                 <Route path="/evidence" element={<EvidenceLogPage />} />
                                 <Route path="/dsa" element={<DSAHubPage />} />
                                 <Route path="/dsa/:topicId" element={<DSATopicDetailPage />} />
+                                <Route path="/study" element={<StudyPlanPage />} />
+                                <Route path="/study/weeks" element={<StudyWeeksPage />} />
+                                <Route path="/study/routine" element={<StudyRoutinePage />} />
+                                <Route path="/study/patterns" element={<StudyPatternsPage />} />
+                                <Route path="/study/resources" element={<StudyResourcesPage />} />
+                                <Route path="/study/projects" element={<StudyProjectsPage />} />
+                                <Route path="/study/hours" element={<StudyHoursPage />} />
+                                <Route path="/study/papers" element={<StudyPapersPage />} />
                                 <Route path="/interview-prep" element={<InterviewDashboard />} />
                                 <Route path="/core-stories" element={<CoreStoriesPage />} />
                                 <Route path="/category/:categoryName" element={<CategoryPage />} />
