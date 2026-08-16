@@ -167,13 +167,46 @@ const ThisWeekPage = () => {
 
                 <WeekStrip currentWeek={currentWeekNumber} loggedWeeks={loggedWeeks} />
 
+                {/* Every number opens the page that explains it — a count you
+                    cannot click is a dead end. */}
                 <Stack direction="row" spacing={3} sx={{ mt: 3 }} flexWrap="wrap" useFlexGap>
                     {[
-                        { label: 'HOURS', value: `${hours.actualTotal}`, of: `/ ${hours.targetToDate || 0} so far` },
-                        { label: 'PAPERS', value: `${studyPapers.length}`, of: '/ ~60' },
-                        { label: 'PROJECTS', value: `${completedProjectIds.length}`, of: '/ 9' },
+                        {
+                            label: 'HOURS',
+                            value: `${hours.actualTotal}`,
+                            of: `/ ${hours.targetToDate || 0} so far`,
+                            to: '/study/logbook',
+                        },
+                        {
+                            label: 'PAPERS',
+                            value: `${studyPapers.length}`,
+                            of: '/ ~60',
+                            to: '/study/logbook?tab=papers',
+                        },
+                        {
+                            label: 'PROJECTS',
+                            value: `${completedProjectIds.length}`,
+                            of: '/ 9',
+                            to: '/study/journey?tab=projects',
+                        },
                     ].map(stat => (
-                        <Box key={stat.label}>
+                        <Box
+                            key={stat.label}
+                            onClick={() => navigate(stat.to)}
+                            role="link"
+                            aria-label={`${stat.label}: ${stat.value} ${stat.of}`}
+                            sx={{
+                                cursor: 'pointer',
+                                px: 1,
+                                mx: -1,
+                                borderRadius: 2,
+                                transition: 'background-color 0.15s',
+                                '&:hover': {
+                                    bgcolor: 'rgba(41, 121, 255, 0.08)',
+                                    '& .stat-value': { color: 'primary.main' },
+                                },
+                            }}
+                        >
                             <Typography
                                 variant="caption"
                                 color="text.secondary"
@@ -184,7 +217,13 @@ const ThisWeekPage = () => {
                             <Stack direction="row" spacing={0.75} alignItems="baseline">
                                 <Typography
                                     variant="h5"
-                                    sx={{ fontWeight: 800, color: 'text.primary', fontVariantNumeric: 'tabular-nums' }}
+                                    className="stat-value"
+                                    sx={{
+                                        fontWeight: 800,
+                                        color: 'text.primary',
+                                        fontVariantNumeric: 'tabular-nums',
+                                        transition: 'color 0.15s',
+                                    }}
                                 >
                                     {stat.value}
                                 </Typography>

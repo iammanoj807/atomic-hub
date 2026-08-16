@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
     Box,
     Typography,
@@ -47,6 +47,8 @@ for (const phase of dsaCurriculum) {
     }
 }
 
+const TAB_ORDER = ['weeks', 'projects', 'dsa'];
+
 /** Groups consecutive weeks that share a phase, preserving order. */
 const groupByPhase = (weeks: PlanWeek[]): { phase: string; weeks: PlanWeek[] }[] => {
     const groups: { phase: string; weeks: PlanWeek[] }[] = [];
@@ -67,7 +69,15 @@ const JourneyPage = () => {
     const navigate = useNavigate();
     const { currentWeekNumber, studyWeekLogs, completedProjectIds, toggleProject } = useTaskContext();
 
-    const [tab, setTab] = useState(0);
+    // ?tab=projects / ?tab=dsa, so a number elsewhere in the app can link
+    // straight to the view that explains it. An unrecognised value falls back
+    // to the first tab rather than leaving the page with nothing rendered.
+    const [searchParams, setSearchParams] = useSearchParams();
+    const requestedTab = TAB_ORDER.indexOf(searchParams.get('tab') ?? 'weeks');
+    const tab = requestedTab === -1 ? 0 : requestedTab;
+    const setTab = (value: number) =>
+        setSearchParams(value === 0 ? {} : { tab: TAB_ORDER[value] }, { replace: true });
+
     const [openWeek, setOpenWeek] = useState<number | null>(currentWeekNumber);
     const [dsaProgress, setDsaProgress] = useState<Record<string, DSATopicProgress>>({});
     const currentWeekRef = useRef<HTMLDivElement>(null);
