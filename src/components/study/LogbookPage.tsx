@@ -22,6 +22,7 @@ import {
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import EditRoundedIcon from '@mui/icons-material/EditRounded';
+import { useSearchParams } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
 import { useTaskContext } from '../../context/TaskContext';
 import { getLondonDateString } from '../../utils/date';
@@ -51,7 +52,12 @@ const emptyPaperForm = () => ({
 const LogbookPage = () => {
     const { studyWeekLogs, currentWeekNumber, studyPapers, savePaper, deletePaper } = useTaskContext();
 
-    const [tab, setTab] = useState(0);
+    // ?tab=papers, so "PAPERS 3" elsewhere can open the papers half directly.
+    const [searchParams, setSearchParams] = useSearchParams();
+    const tab = searchParams.get('tab') === 'papers' ? 1 : 0;
+    const setTab = (value: number) =>
+        setSearchParams(value === 1 ? { tab: 'papers' } : {}, { replace: true });
+
     const [editingWeek, setEditingWeek] = useState<number | null>(null);
 
     const [paperForm, setPaperForm] = useState(emptyPaperForm());

@@ -569,10 +569,6 @@ export const resources: Resource[] = [
     { track: 'Both', topic: 'Community', watch: '-', read: '-', build: 'Fast.ai Discord | EleutherAI Discord | Leeds/Manchester ML meetups', url: 'https://www.fast.ai/' },
 ];
 
-export const dsaResourceNote =
-    'RESOURCES: neetcode.io/practice (roadmap + video for every problem) | NeetCode YouTube channel | ' +
-    'Grind75.com (schedule generator) | Tech Interview Handbook (techinterviewhandbook.org)';
-
 // ============ PROJECTS — what you will actually have to show in February ============
 
 /** The sheet colour-codes these: orange = matters most for a PhD, yellow = matters most for a job. */
