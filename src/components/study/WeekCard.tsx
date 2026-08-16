@@ -92,9 +92,9 @@ const WeekCard = ({
             </Stack>
 
             <Stack spacing={1.75}>
-                <WeekLine icon={<WbTwilightRoundedIcon sx={{ fontSize: 18 }} />} label="MORNINGS · TRACK A" text={week.mornings} />
-                <WeekLine icon={<ConstructionRoundedIcon sx={{ fontSize: 18 }} />} label="FRIDAY 5H · BUILD" text={week.friday} />
-                <WeekLine icon={<HubRoundedIcon sx={{ fontSize: 18 }} />} label="SATURDAY 3.5H · TRACK B" text={week.saturday} />
+                <WeekLine icon={<WbTwilightRoundedIcon sx={{ fontSize: 18 }} />} label="MORNINGS · THEORY" text={week.theory} />
+                <WeekLine icon={<ConstructionRoundedIcon sx={{ fontSize: 18 }} />} label="DEEP WORK 5H · YOUR DAY OFF" text={week.deepWork} />
+                <WeekLine icon={<HubRoundedIcon sx={{ fontSize: 18 }} />} label="AI ENGINEERING 3.5H" text={week.aiEng} />
                 <WeekLine icon={<CodeRoundedIcon sx={{ fontSize: 18 }} />} label="DAILY DSA" text={week.dsa} />
             </Stack>
 

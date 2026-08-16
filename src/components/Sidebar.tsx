@@ -44,10 +44,8 @@ import CodeRoundedIcon from '@mui/icons-material/CodeRounded';
 import ReceiptLongRoundedIcon from '@mui/icons-material/ReceiptLongRounded';
 import AutoStoriesRoundedIcon from '@mui/icons-material/AutoStoriesRounded';
 import MapRoundedIcon from '@mui/icons-material/MapRounded';
-import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded';
-import ScheduleRoundedIcon from '@mui/icons-material/ScheduleRounded';
+import TodayRoundedIcon from '@mui/icons-material/TodayRounded';
 import MenuBookRoundedIcon from '@mui/icons-material/MenuBookRounded';
-import RocketLaunchRoundedIcon from '@mui/icons-material/RocketLaunchRounded';
 import TimelineRoundedIcon from '@mui/icons-material/TimelineRounded';
 import ArticleRoundedIcon from '@mui/icons-material/ArticleRounded';
 import ChevronLeftRoundedIcon from '@mui/icons-material/ChevronLeftRounded';
@@ -73,16 +71,16 @@ const categoryIcons: Record<Category, React.ReactNode> = {
     'Company Questions': <BusinessRoundedIcon />,
 };
 
-/** The eight pages of the 26-week plan, in the order the plan itself uses them. */
+/**
+ * Four pages, not eight: what to do now, where it all leads, what you have
+ * done, and what to learn from. Everything the spreadsheet had is inside one
+ * of these — nothing was dropped, it stopped being scattered.
+ */
 const studyPages: { label: string; path: string; icon: React.ReactNode }[] = [
-    { label: 'Overview', path: '/study', icon: <DashboardRoundedIcon fontSize="small" /> },
-    { label: '26 Weeks', path: '/study/weeks', icon: <CalendarMonthRoundedIcon fontSize="small" /> },
-    { label: 'Daily Routine', path: '/study/routine', icon: <ScheduleRoundedIcon fontSize="small" /> },
-    { label: 'DSA Patterns', path: '/study/patterns', icon: <CodeRoundedIcon fontSize="small" /> },
-    { label: 'Resources', path: '/study/resources', icon: <MenuBookRoundedIcon fontSize="small" /> },
-    { label: 'Projects', path: '/study/projects', icon: <RocketLaunchRoundedIcon fontSize="small" /> },
-    { label: 'Hours Log', path: '/study/hours', icon: <TimelineRoundedIcon fontSize="small" /> },
-    { label: 'Papers Log', path: '/study/papers', icon: <ArticleRoundedIcon fontSize="small" /> },
+    { label: 'This Week', path: '/study', icon: <TodayRoundedIcon fontSize="small" /> },
+    { label: 'The Journey', path: '/study/journey', icon: <TimelineRoundedIcon fontSize="small" /> },
+    { label: 'Logbook', path: '/study/logbook', icon: <ArticleRoundedIcon fontSize="small" /> },
+    { label: 'Library', path: '/study/library', icon: <MenuBookRoundedIcon fontSize="small" /> },
 ];
 
 const Sidebar = () => {

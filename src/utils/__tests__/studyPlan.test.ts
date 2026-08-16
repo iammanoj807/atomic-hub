@@ -4,14 +4,12 @@ import {
     getPlanWeek,
     daysUntilPlanStart,
     getPlanPhase,
-    getRoutineForDay,
-    routineWeeklyHours,
     summariseHours,
     getUnderPaceStreak,
     isUnderPace,
     type WeekLogInput,
 } from '../studyPlan';
-import { planWeeks, PLAN_WEEKS, FULL_WEEK_TARGET_HOURS } from '../../data/studyPlan';
+import { planWeeks, PLAN_WEEKS } from '../../data/studyPlan';
 
 describe('the plan data itself', () => {
     it('has 26 consecutive weeks', () => {
@@ -90,24 +88,6 @@ describe('daysUntilPlanStart / getPlanPhase', () => {
 
     it('knows when the plan is over', () => {
         expect(getPlanPhase('2027-03-01')).toBe('after');
-    });
-});
-
-describe('the daily routine', () => {
-    it('adds up to the weekly target', () => {
-        expect(routineWeeklyHours()).toBe(FULL_WEEK_TARGET_HOURS);
-    });
-
-    it('finds a day whatever its case', () => {
-        expect(getRoutineForDay('friday')).toHaveLength(2);
-        expect(getRoutineForDay('Monday')[0].track).toBe('A - Theory');
-    });
-
-    it('gives every day at least one DSA slot', () => {
-        const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-        for (const day of days) {
-            expect(getRoutineForDay(day).length).toBeGreaterThan(0);
-        }
     });
 });
 

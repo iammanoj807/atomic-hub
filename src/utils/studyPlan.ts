@@ -5,11 +5,9 @@
 
 import {
     planWeeks,
-    dailyRoutine,
     PLAN_START_DATE,
     PLAN_WEEKS,
     type PlanWeek,
-    type RoutineSlot,
 } from '../data/studyPlan';
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -42,17 +40,6 @@ export const getPlanPhase = (dateISO: string): PlanPhase => {
     if (daysUntilPlanStart(dateISO) > 0) return 'before';
     return getPlanWeekNumber(dateISO) === null ? 'after' : 'during';
 };
-
-/**
- * The routine slots for one weekday, in order.
- * Matched case-insensitively because the sheet shouts FRIDAY.
- */
-export const getRoutineForDay = (dayName: string): RoutineSlot[] =>
-    dailyRoutine.filter(slot => slot.day.toLowerCase() === dayName.toLowerCase());
-
-/** What one week of the routine adds up to — 24 hours, and it should stay that way. */
-export const routineWeeklyHours = (): number =>
-    dailyRoutine.reduce((total, slot) => total + (slot.hours ?? 0), 0);
 
 // ============ Hours Log ============
 
