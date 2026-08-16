@@ -40,6 +40,7 @@ import { subDays } from 'date-fns';
 import { defaultTasks } from '../data/defaultTasks';
 import { MISSION_HABITS, parseRoleTags } from '../data/missionTypes';
 import type { Role } from '../data/missionTypes';
+import type { Weekday } from '../data/studyPlan';
 import { getLondonDateString } from '../utils/date';
 import { calculateStreak } from '../utils/streak';
 
@@ -132,6 +133,8 @@ interface TaskContextType {
     studyWeekLogs: Record<number, StudyWeekLog>;
     currentWeekNumber: number | null;
     saveWeekLog: (week: number, updates: Partial<Omit<StudyWeekLog, 'week' | 'updatedAt'>>) => Promise<void>;
+    saveDaysOff: (week: number, daysOff: Weekday[]) => Promise<void>;
+    getDaysOff: (week: number) => Weekday[];
     studyPapers: StudyPaper[];
     savePaper: (paper: Omit<StudyPaper, 'id' | 'createdAt'> & { id?: string }) => Promise<void>;
     deletePaper: (id: string) => Promise<void>;
@@ -210,6 +213,8 @@ export const TaskProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         studyWeekLogs,
         currentWeekNumber,
         saveWeekLog,
+        saveDaysOff,
+        getDaysOff,
         studyPapers,
         savePaper,
         deletePaper,
@@ -724,6 +729,8 @@ export const TaskProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 studyWeekLogs,
                 currentWeekNumber,
                 saveWeekLog,
+                saveDaysOff,
+                getDaysOff,
                 studyPapers,
                 savePaper,
                 deletePaper,

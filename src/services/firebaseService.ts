@@ -748,6 +748,12 @@ export interface StudyWeekLog {
     dsaProblems: number | null;
     finished: string;         // "What I finished"
     learned: string;          // "One thing I understand now that I didn't last week"
+    /**
+     * Which days were actually off this week ('Mon'..'Sun'). The days off move
+     * and are not known in advance, so the week's schedule is generated from
+     * whatever is stored here rather than assuming Friday.
+     */
+    daysOff?: string[];
     updatedAt: Timestamp;
 }
 
