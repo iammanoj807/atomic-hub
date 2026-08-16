@@ -13,14 +13,10 @@ import DSAHubPage from './components/DSAHubPage';
 import DSATopicDetailPage from './components/DSATopicDetailPage';
 import EvidenceLogPage from './components/EvidenceLogPage';
 import CoreStoriesPage from './components/CoreStoriesPage';
-import StudyPlanPage from './components/study/StudyPlanPage';
-import StudyWeeksPage from './components/study/StudyWeeksPage';
-import StudyRoutinePage from './components/study/StudyRoutinePage';
-import StudyPatternsPage from './components/study/StudyPatternsPage';
-import StudyResourcesPage from './components/study/StudyResourcesPage';
-import StudyProjectsPage from './components/study/StudyProjectsPage';
-import StudyHoursPage from './components/study/StudyHoursPage';
-import StudyPapersPage from './components/study/StudyPapersPage';
+import ThisWeekPage from './components/study/ThisWeekPage';
+import JourneyPage from './components/study/JourneyPage';
+import LogbookPage from './components/study/LogbookPage';
+import LibraryPage from './components/study/LibraryPage';
 import IdentityBanner from './components/IdentityBanner';
 import GlobalTimer from './components/GlobalTimer';
 import ReactPlayer from 'react-player';
@@ -207,14 +203,13 @@ function MainLayout() {
                                 <Route path="/evidence" element={<EvidenceLogPage />} />
                                 <Route path="/dsa" element={<DSAHubPage />} />
                                 <Route path="/dsa/:topicId" element={<DSATopicDetailPage />} />
-                                <Route path="/study" element={<StudyPlanPage />} />
-                                <Route path="/study/weeks" element={<StudyWeeksPage />} />
-                                <Route path="/study/routine" element={<StudyRoutinePage />} />
-                                <Route path="/study/patterns" element={<StudyPatternsPage />} />
-                                <Route path="/study/resources" element={<StudyResourcesPage />} />
-                                <Route path="/study/projects" element={<StudyProjectsPage />} />
-                                <Route path="/study/hours" element={<StudyHoursPage />} />
-                                <Route path="/study/papers" element={<StudyPapersPage />} />
+                                <Route path="/study" element={<ThisWeekPage />} />
+                                <Route path="/study/journey" element={<JourneyPage />} />
+                                <Route path="/study/logbook" element={<LogbookPage />} />
+                                <Route path="/study/library" element={<LibraryPage />} />
+                                {/* The plan used to be eight pages; anything bookmarked
+                                    from then lands on the week you are actually in. */}
+                                <Route path="/study/*" element={<Navigate to="/study" replace />} />
                                 <Route path="/interview-prep" element={<InterviewDashboard />} />
                                 <Route path="/core-stories" element={<CoreStoriesPage />} />
                                 <Route path="/category/:categoryName" element={<CategoryPage />} />

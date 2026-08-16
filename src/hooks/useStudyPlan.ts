@@ -11,6 +11,7 @@ import {
 import type { StudyWeekLog, StudyPaper } from '../services/firebaseService';
 import { getLondonDateString } from '../utils/date';
 import { getPlanWeekNumber } from '../utils/studyPlan';
+import type { Weekday } from '../data/studyPlan';
 
 /**
  * The moving parts of the 26-week plan: the Sunday hours entry, the papers
@@ -44,6 +45,17 @@ export const useStudyPlan = () => {
         await saveStudyWeekLog(week, updates);
     };
 
+    /**
+     * Which days were off in a given week. Stored on the week's own log,
+     * because the answer is different every week and only that week knows it.
+     */
+    const saveDaysOff = async (week: number, daysOff: Weekday[]) => {
+        await saveStudyWeekLog(week, { daysOff });
+    };
+
+    const getDaysOff = (week: number): Weekday[] =>
+        (studyWeekLogs[week]?.daysOff ?? []) as Weekday[];
+
     const savePaper = async (paper: Omit<StudyPaper, 'id' | 'createdAt'> & { id?: string }) => {
         const existing = paper.id ? studyPapers.find(p => p.id === paper.id) : undefined;
 
@@ -71,6 +83,8 @@ export const useStudyPlan = () => {
         studyWeekLogs,
         currentWeekNumber,
         saveWeekLog,
+        saveDaysOff,
+        getDaysOff,
         studyPapers,
         savePaper,
         deletePaper,
