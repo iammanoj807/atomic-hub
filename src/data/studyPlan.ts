@@ -13,15 +13,15 @@ export const PLAN_START_DATE = '2026-08-17'; // Monday of week 1
 export const PLAN_END_DATE = '2027-02-14';   // Sunday of week 26
 export const PLAN_WEEKS = 26;
 
-/** Hours a normal week asks for. The week's sessions add up to this. */
-export const FULL_WEEK_TARGET_HOURS = 24;
+/** Hours a normal week asks for. The routine below adds up to exactly this. */
+export const FULL_WEEK_TARGET_HOURS = 29;
 /** Consolidation and holiday weeks are deliberately lighter. */
 export const LIGHT_WEEK_TARGET_HOURS = 10;
 
 // ============ START HERE — the strategy before the schedule ============
 
 export const workPattern =
-    'Six days on, one or two off — and which days move. Mark them each week and the plan reshapes itself.';
+    'Shift work, so the day off moves. Set it each week and the deep work block follows it.';
 
 export interface Track {
     id: 'A' | 'B';
@@ -113,16 +113,19 @@ export const neverSkipBuild =
     'implement it, you do not know it.';
 
 export const timeBudgetNote =
-    'This is a lot on top of a 6-day job. If it becomes crushing, cut the Sunday session first, then ' +
-    'the Saturday session. Protect the mornings and the daily DSA above everything - those two are the ' +
-    'habits that carry the whole plan.';
+    'This is a lot on top of shift work. If it becomes crushing, cut the Saturday papers hour first, ' +
+    'then the Saturday project session. Protect the mornings, the daily DSA and the daily applications ' +
+    'above everything - those are the habits that carry the whole plan.';
 
-// ============ THE WEEK — sessions, not fixed days ============
+// ============ THE WEEK — a fixed routine on a moving day off ============
 //
-// The original plan hard-coded Friday as the day off. In practice the days off
-// move: sometimes Thursday, sometimes Friday, sometimes two of them, and it is
-// not known in advance. So the week is defined as a set of sessions instead,
-// and utils/studySchedule.ts lays them onto whichever days are actually free.
+// The plan was written around a Friday day off. Shift work moves it, so the
+// six ordinary days are fixed and only the deep work block travels — see
+// utils/studySchedule.ts, which lays it onto whichever day is off that week.
+//
+// Two habits are never displaced by anything: the daily NeetCode problem and
+// the half hour of applications after it. A broken chain costs more than a
+// missed hour, so every day carries both whatever else happens to it.
 
 export type Weekday = 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat' | 'Sun';
 
@@ -138,82 +141,104 @@ export const WEEKDAY_NAMES: Record<Weekday, string> = {
     Sun: 'Sunday',
 };
 
-export type SessionKind = 'deep' | 'theory' | 'aieng' | 'papers' | 'dsa' | 'rest';
+/**
+ * What a slot is, for logic. `track` below is what it is called on screen.
+ * 'dsa' and 'job' are the two that survive being displaced.
+ */
+export type SlotKind =
+    | 'theory'
+    | 'aieng'
+    | 'papers'
+    | 'dsa'
+    | 'job'
+    | 'light'
+    | 'build'
+    | 'review';
 
-export interface SessionTemplate {
-    kind: SessionKind;
-    label: string;
+export interface RoutineSlot {
+    kind: SlotKind;
+    /** 'HH:MM', 24-hour. Kept as start/end rather than one label so the
+     *  nothing-after-21:00 rule can actually be checked instead of trusted. */
+    start: string;
+    end: string;
     hours: number;
-    /** Relative, not clock-fixed — the day it lands on changes week to week. */
-    when: string;
+    /** The track label from the plan — Track A is research, Track B is the job half. */
+    track: string;
     what: string;
-    why: string;
     color: string;
 }
 
-export const sessionTemplates: Record<SessionKind, SessionTemplate> = {
-    deep: {
-        kind: 'deep',
-        label: 'DEEP WORK',
-        hours: 5,
-        when: 'Your day off · roughly 09:00-15:00',
-        what: 'Building things from scratch. The most valuable five hours of your week.',
-        why: 'Your one full day — this is the anchor the whole plan hangs on',
-        color: '#ff8a65',
-    },
-    theory: {
-        kind: 'theory',
-        label: 'THEORY',
-        hours: 2,
-        when: 'Morning, before work · 06:30-08:30',
-        what: 'Maths and theory. WATCH the video, then READ, then work problems.',
-        why: 'Your brain is freshest before the shift, and never after it',
-        color: '#66bb6a',
-    },
-    aieng: {
-        kind: 'aieng',
-        label: 'AI ENGINEERING',
-        hours: 3.5,
-        when: 'Afternoon, after the short shift',
-        what: 'LLM systems, RAG, evals, deployment. Project work.',
-        why: 'Track B — the half that pays and funds the rest',
-        color: '#ffd54f',
-    },
-    papers: {
-        kind: 'papers',
-        label: 'PAPERS + REVIEW',
-        hours: 3,
-        when: 'Afternoon',
-        what: 'Read papers, review the week, fill in the log, plan the next one.',
-        why: 'Consolidation beats new material',
-        color: '#b39ddb',
-    },
-    dsa: {
-        kind: 'dsa',
-        label: 'DSA',
-        hours: 0.75,
-        when: 'Evening · 45 minutes',
-        what: '1 NeetCode problem. Watch the video AFTER you have tried it.',
-        why: 'Puzzles work fine on a tired brain — this is the habit that proves consistency',
-        color: '#4a90e2',
-    },
-    rest: {
-        kind: 'rest',
-        label: 'REST',
-        hours: 0,
-        when: 'After the deep work block',
-        what: 'Nothing. Stop completely.',
-        why: 'No rest and you quit by week 8',
-        color: '#90a4ae',
-    },
+/** Nothing may end after this. A 05:00 start needs a 21:30 bedtime. */
+export const LATEST_END_TIME = '21:00';
+
+const SLOT_COLORS: Record<SlotKind, string> = {
+    theory: '#66bb6a',
+    aieng: '#ffd54f',
+    papers: '#b39ddb',
+    dsa: '#4a90e2',
+    job: '#4dd0e1',
+    light: '#90a4ae',
+    build: '#ff8a65',
+    review: '#f06292',
 };
 
+const slot = (
+    kind: SlotKind,
+    start: string,
+    end: string,
+    hours: number,
+    track: string,
+    what: string
+): RoutineSlot => ({ kind, start, end, hours, track, what, color: SLOT_COLORS[kind] });
+
+const dsaSlot = (start = '19:30', end = '20:15') =>
+    slot('dsa', start, end, 0.75, 'B - DSA', 'One NeetCode problem');
+
+const jobSlot = (start = '20:15', end = '20:45') =>
+    slot('job', start, end, 0.5, 'B - Job applications', 'Applications and outreach');
+
+/**
+ * The six ordinary days. Friday looks empty of study on purpose: it is the
+ * default deep work day, and when the deep work moves elsewhere Friday is
+ * where that day's displaced study slots land, which is what keeps the week
+ * at the same total however the rota falls.
+ */
+export const dailyRoutine: Record<Weekday, RoutineSlot[]> = {
+    Mon: [slot('theory', '05:00', '07:30', 2.5, 'A - Theory', 'Maths and theory'), dsaSlot(), jobSlot()],
+    Tue: [slot('theory', '05:00', '07:30', 2.5, 'A - Theory', 'Maths and theory'), dsaSlot(), jobSlot()],
+    Wed: [slot('theory', '05:00', '07:30', 2.5, 'A - Theory', 'Maths and theory'), dsaSlot(), jobSlot()],
+    Thu: [slot('aieng', '05:00', '07:30', 2.5, 'B - AI Eng', 'AI engineering'), dsaSlot(), jobSlot()],
+    Fri: [dsaSlot(), jobSlot()],
+    Sat: [
+        slot('aieng', '15:30', '18:30', 3.0, 'B - AI Eng', 'AI engineering project'),
+        slot('papers', '18:30', '19:30', 1.0, 'A - Papers', 'Read papers'),
+        dsaSlot(),
+        jobSlot(),
+    ],
+    // The light day. Three slots and nothing else — see LIGHT_DAY_NOTE.
+    Sun: [
+        dsaSlot('16:00', '16:45'),
+        jobSlot('16:45', '17:15'),
+        slot('light', '17:30', '18:30', 1.0, 'A - Light review', 'Light review only'),
+    ],
+};
+
+/** The block that travels. Everything else stays where it is. */
+export const deepWorkSlots: RoutineSlot[] = [
+    slot('build', '09:00', '15:00', 5.0, 'A + B - Build', 'Build from scratch'),
+    slot('review', '15:00', '15:15', 0.25, 'Review', 'Weekly review ritual'),
+];
+
+export const LIGHT_DAY_NOTE =
+    'Re-read the week\'s notes and redo the problems you got wrong. Never new material.';
+
 export const routineRules: string[] = [
-    'Mornings are for theory. Never move it to the evening - you will be too tired and you will quit.',
+    'Mornings are for theory. 05:00 to 07:30, before anything else can take them.',
     'DSA every single day, no exceptions. 45 minutes. This is the habit that proves you are consistent.',
-    'Your day off is deep work, 09:00-15:00, and then you STOP. Whichever day it lands on, it is sacred.',
-    'Every 4th week is CONSOLIDATION. No new material. Catch up, review, rest.',
-    'Write 10 minutes in English daily about what you learned. Fixes writing AND understanding together.',
+    'Job applications every day, 30 minutes, straight after DSA. Consistency beats bursts here too.',
+    'Nothing ends after 21:00. A 05:00 wake needs a 21:30 bedtime, and the plan is worthless without it.',
+    'Deep work is 09:00-15:00 on whichever day you are off, and then you STOP.',
+    'Sunday is a light day: DSA, applications, and one hour of review. Never new material.',
     'Miss a day? SKIP it. Never double up. Doubling up is how plans die.',
 ];
 
