@@ -135,6 +135,8 @@ interface TaskContextType {
     saveWeekLog: (week: number, updates: Partial<Omit<StudyWeekLog, 'week' | 'updatedAt'>>) => Promise<void>;
     saveDeepWorkDay: (week: number, deepWorkDay: Weekday) => Promise<void>;
     getDeepWorkDay: (week: number) => Weekday;
+    saveSecondDayOff: (week: number, secondDayOff: Weekday | null) => Promise<void>;
+    getSecondDayOff: (week: number) => Weekday | null;
     studyPapers: StudyPaper[];
     savePaper: (paper: Omit<StudyPaper, 'id' | 'createdAt'> & { id?: string }) => Promise<void>;
     deletePaper: (id: string) => Promise<void>;
@@ -215,6 +217,8 @@ export const TaskProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         saveWeekLog,
         saveDeepWorkDay,
         getDeepWorkDay,
+        saveSecondDayOff,
+        getSecondDayOff,
         studyPapers,
         savePaper,
         deletePaper,
@@ -731,6 +735,8 @@ export const TaskProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 saveWeekLog,
                 saveDeepWorkDay,
                 getDeepWorkDay,
+                saveSecondDayOff,
+                getSecondDayOff,
                 studyPapers,
                 savePaper,
                 deletePaper,

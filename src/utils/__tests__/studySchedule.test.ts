@@ -192,12 +192,12 @@ describe('the deep work day', () => {
 });
 
 describe('weekdayOf / isWeekday', () => {
-    it('reads the plan start as a Monday', () => {
-        expect(weekdayOf('2026-08-17')).toBe('Mon');
+    it('reads the plan start as a Tuesday', () => {
+        expect(weekdayOf('2026-08-18')).toBe('Tue');
     });
 
-    it('reads the plan end as a Sunday', () => {
-        expect(weekdayOf('2027-02-14')).toBe('Sun');
+    it('reads the plan end as a Monday', () => {
+        expect(weekdayOf('2027-02-15')).toBe('Mon');
     });
 
     it('is not shifted by the local timezone', () => {

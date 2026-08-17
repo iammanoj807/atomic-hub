@@ -71,6 +71,8 @@ const ThisWeekPage = () => {
         currentWeekNumber,
         getDeepWorkDay,
         saveDeepWorkDay,
+        getSecondDayOff,
+        saveSecondDayOff,
         studyPapers,
         completedProjectIds,
     } = useTaskContext();
@@ -108,6 +110,7 @@ const ThisWeekPage = () => {
     // Before the plan starts you can still set week 1's day off.
     const plannedWeek = currentWeekNumber ?? 1;
     const deepWorkDay = getDeepWorkDay(plannedWeek);
+    const secondDayOff = getSecondDayOff(plannedWeek);
 
     const accent = PHASE_COLORS[featuredWeek.phaseKey];
     const resources = getWeekResources(featuredWeek.week);
@@ -294,12 +297,15 @@ const ThisWeekPage = () => {
             <Box sx={{ mb: 2 }}>
                 <DeepWorkDayPicker
                     deepWorkDay={deepWorkDay}
-                    onChange={(day) => saveDeepWorkDay(plannedWeek, day)}
+                    secondDayOff={secondDayOff}
+                    onChangeDeepWorkDay={(day) => saveDeepWorkDay(plannedWeek, day)}
+                    onChangeSecondDayOff={(day) => saveSecondDayOff(plannedWeek, day)}
                 />
             </Box>
             <Box sx={{ mb: 5 }}>
                 <WeekSchedule
                     deepWorkDay={deepWorkDay}
+                    secondDayOff={secondDayOff}
                     today={phase === 'during' ? (weekdayOf(today) as Weekday) : undefined}
                 />
             </Box>

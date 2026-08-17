@@ -49,7 +49,7 @@ There is no streak here, and no warning state. A missed day shows as nothing at 
 because the app's job is to make coming back easy, not to punish a gap.
 
 ### Study Plan
-Twenty-six weeks, 17 August 2026 to 14 February 2027, running two tracks at once: research
+Twenty-six weeks, 18 August 2026 to 15 February 2027, running two tracks at once: research
 depth in the mornings, engineering and DSA in the evenings. It started as a spreadsheet with
 eight tabs, which meant the plan lived somewhere I never had open. Now it lives here, as four
 pages instead of eight.
@@ -59,18 +59,21 @@ what to learn — the exact video, the exact chapter, the exact thing to build, 
 26-week strip across the top fills in square by square as weeks get logged, so progress is
 something you see rather than calculate.
 
-**The days off move.** The original plan assumed Friday was always free. It isn't — some weeks
-it's Thursday, some weeks two days, and it isn't known in advance. So nothing is pinned to a
-named day any more. I mark the days I'm actually off and the week deals itself out: the first
-day off becomes the five-hour deep work block, the week review stays at the end of the week,
-AI engineering takes the second day off if there is one, and everything else is a theory
-morning with DSA in the evening. However the days fall, it still comes to 24 hours.
+**The days off move.** I work shifts, so the original plan's fixed Friday was fiction. The six
+ordinary days are fixed — 05:00 mornings, a NeetCode problem and half an hour of applications
+every single evening, Saturday's project and papers, Sunday light — and only the five-hour
+build travels. I set which day I'm off and it follows; whatever study that day had moves to
+Friday rather than being dropped, so the week comes to 29 hours whichever day the rota gives
+me. Nothing ends after 21:00, because a 05:00 start needs the evening back.
+
+Some weeks bring a second day off. I can set that too, and it's recorded on the week — but it
+deliberately changes nothing, because a free day is time I gain, not study I lose.
 
 **The Journey** is the whole six months in one place — every week grouped by phase and
 expandable, the nine projects, and the 150 DSA problems. **The Logbook** is what I've actually
 done: the Sunday hours entry and the papers, in one place because they're the same act. The
-spreadsheet said *"if you are under 16 hrs/week for three weeks running, cut Sunday, then
-Saturday"*; the app watches for that and tells me. **The Library** is every source, either by
+spreadsheet's under-pace rule now trips at 19 hours for three weeks running, and the app
+watches for it and tells me. **The Library** is every source, either by
 subject when I want to master something or week by week when I just need today's two hours.
 
 Every resource carries its exact title and author as well as a link, because a title stays
