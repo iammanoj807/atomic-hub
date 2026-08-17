@@ -25,10 +25,10 @@ describe('the plan data itself', () => {
         }
     });
 
-    it('runs 17 Aug 2026 to 14 Feb 2027', () => {
-        expect(PLAN_START_DATE).toBe('2026-08-17');
-        expect(planWeeks[0].startDate).toBe('2026-08-17');
-        expect(planWeeks[PLAN_WEEKS - 1].endDate).toBe('2027-02-14');
+    it('runs 18 Aug 2026 to 15 Feb 2027', () => {
+        expect(PLAN_START_DATE).toBe('2026-08-18');
+        expect(planWeeks[0].startDate).toBe('2026-08-18');
+        expect(planWeeks[PLAN_WEEKS - 1].endDate).toBe('2027-02-15');
     });
 });
 
@@ -37,24 +37,27 @@ describe('getPlanWeekNumber', () => {
         expect(getPlanWeekNumber('2026-08-16')).toBeNull();
     });
 
-    it('counts the first Monday as week 1', () => {
-        expect(getPlanWeekNumber('2026-08-17')).toBe(1);
+    it('counts the first Tuesday as week 1', () => {
+        // The plan starts on a Tuesday, so weeks run Tue-Mon.
+        expect(getPlanWeekNumber('2026-08-18')).toBe(1);
+        expect(getPlanWeekNumber('2026-08-17')).toBeNull();
     });
 
     it('keeps the whole first week on week 1', () => {
         expect(getPlanWeekNumber('2026-08-23')).toBe(1);
+        expect(getPlanWeekNumber('2026-08-24')).toBe(1);
     });
 
-    it('rolls over on the Monday', () => {
-        expect(getPlanWeekNumber('2026-08-24')).toBe(2);
+    it('rolls over on the Tuesday', () => {
+        expect(getPlanWeekNumber('2026-08-25')).toBe(2);
     });
 
     it('handles the last day of the plan', () => {
-        expect(getPlanWeekNumber('2027-02-14')).toBe(26);
+        expect(getPlanWeekNumber('2027-02-15')).toBe(26);
     });
 
     it('returns null after the plan ends', () => {
-        expect(getPlanWeekNumber('2027-02-15')).toBeNull();
+        expect(getPlanWeekNumber('2027-02-16')).toBeNull();
     });
 
     it('agrees with every week in the data', () => {
@@ -78,12 +81,12 @@ describe('getPlanWeek', () => {
 
 describe('daysUntilPlanStart / getPlanPhase', () => {
     it('counts down to the start', () => {
-        expect(daysUntilPlanStart('2026-08-15')).toBe(2);
+        expect(daysUntilPlanStart('2026-08-15')).toBe(3);
         expect(getPlanPhase('2026-08-15')).toBe('before');
     });
 
     it('goes negative once running', () => {
-        expect(daysUntilPlanStart('2026-08-20')).toBe(-3);
+        expect(daysUntilPlanStart('2026-08-20')).toBe(-2);
         expect(getPlanPhase('2026-08-20')).toBe('during');
     });
 

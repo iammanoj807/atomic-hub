@@ -82,6 +82,9 @@ service cloud.firestore {
                    || (request.resource.data.week is int
                        && (!('deepWorkDay' in request.resource.data.keys())
                            || request.resource.data.deepWorkDay
+                              in ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'])
+                       && (!('secondDayOff' in request.resource.data.keys())
+                           || request.resource.data.secondDayOff
                               in ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']));
     }
 
