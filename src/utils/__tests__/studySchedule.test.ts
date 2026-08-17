@@ -1,125 +1,197 @@
 import { describe, it, expect } from 'vitest';
-import { buildWeekSchedule, weekdayOf, getDaySchedule } from '../studySchedule';
-import type { Weekday, SessionKind } from '../../data/studyPlan';
+import {
+    getRoutineForWeek,
+    getRoutineForDay,
+    routineWeeklyHours,
+    hoursOnDay,
+    latestEndTime,
+    endsTooLate,
+    hasLightDay,
+    isLightDay,
+    minutesInto,
+    weekdayOf,
+    isWeekday,
+    DEFAULT_DEEP_WORK_DAY,
+} from '../studySchedule';
+import {
+    WEEKDAYS,
+    FULL_WEEK_TARGET_HOURS,
+    LATEST_END_TIME,
+    type Weekday,
+} from '../../data/studyPlan';
 
-/** The session kinds on a given day, for readable assertions. */
-const kindsOn = (daysOff: Weekday[], day: Weekday): SessionKind[] => {
-    const schedule = buildWeekSchedule(daysOff);
-    return getDaySchedule(schedule, day)!.sessions.map(session => session.kind);
-};
+/** The slot kinds on a given day, for readable assertions. */
+const kindsOn = (day: Weekday, deepWorkDay?: Weekday): string[] =>
+    getRoutineForWeek(deepWorkDay)[day].map(slot => slot.kind);
 
-describe('buildWeekSchedule with Friday off', () => {
-    // This is the arrangement the original spreadsheet hard-coded, so it is the
-    // case that proves the generator did not change the plan, only freed it.
-    const schedule = buildWeekSchedule(['Fri']);
-
-    it('puts deep work on the Friday and stops after it', () => {
-        expect(kindsOn(['Fri'], 'Fri')).toEqual(['deep', 'rest']);
+describe('routineWeeklyHours', () => {
+    it('matches the target the plan logs against', () => {
+        // 0.75 and 0.25 hour slots are all multiples of a quarter, so this is
+        // exact in practice — the tolerance is here so a future half-hour slot
+        // cannot make the suite fail for a reason nobody cares about.
+        expect(routineWeeklyHours()).toBeCloseTo(FULL_WEEK_TARGET_HOURS, 5);
     });
 
-    it('gives Monday to Thursday theory and DSA', () => {
-        for (const day of ['Mon', 'Tue', 'Wed', 'Thu'] as Weekday[]) {
-            expect(kindsOn(['Fri'], day)).toEqual(['theory', 'dsa']);
+    it('comes to 29 hours', () => {
+        expect(routineWeeklyHours()).toBeCloseTo(29, 5);
+    });
+
+    it('stays at 29 hours whichever day the deep work lands on', () => {
+        for (const day of WEEKDAYS) {
+            expect(routineWeeklyHours(day)).toBeCloseTo(29, 5);
         }
     });
 
-    it('puts AI engineering on Saturday and papers on Sunday', () => {
-        expect(kindsOn(['Fri'], 'Sat')).toEqual(['aieng', 'dsa']);
-        expect(kindsOn(['Fri'], 'Sun')).toEqual(['papers', 'dsa']);
-    });
-
-    it('adds up to the 24-hour week the plan asks for', () => {
-        expect(schedule.totalHours).toBe(24);
-    });
-
-    it('knows which day is the anchor', () => {
-        expect(schedule.deepWorkDay).toBe('Fri');
-        expect(schedule.needsDayOff).toBe(false);
+    it('splits into the days the plan describes', () => {
+        const monToThu = (['Mon', 'Tue', 'Wed', 'Thu'] as Weekday[])
+            .reduce((sum, day) => sum + hoursOnDay(day), 0);
+        expect(monToThu).toBeCloseTo(15, 5);
+        expect(hoursOnDay('Fri')).toBeCloseTo(6.5, 5);   // the default deep work day
+        expect(hoursOnDay('Sat')).toBeCloseTo(5.25, 5);
+        expect(hoursOnDay('Sun')).toBeCloseTo(2.25, 5);
     });
 });
 
-describe('buildWeekSchedule when the day off moves', () => {
-    it('moves deep work to Thursday', () => {
-        expect(kindsOn(['Thu'], 'Thu')).toEqual(['deep', 'rest']);
-        expect(kindsOn(['Thu'], 'Fri')).toEqual(['theory', 'dsa']);
+describe('getRoutineForDay', () => {
+    it('gives Friday four slots when it is the deep work day', () => {
+        expect(kindsOn('Fri')).toEqual(['build', 'review', 'dsa', 'job']);
+        expect(getRoutineForDay('Friday')).toHaveLength(4);
     });
 
-    it('keeps the same 24 hours wherever the day off lands', () => {
-        for (const day of ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as Weekday[]) {
-            expect(buildWeekSchedule([day]).totalHours).toBe(24);
+    it('leaves Friday with only the two habits when the build moves', () => {
+        expect(kindsOn('Fri', 'Tue')).toContain('dsa');
+        expect(kindsOn('Fri', 'Tue')).toContain('job');
+        expect(kindsOn('Fri', 'Tue')).not.toContain('build');
+    });
+
+    it('gives Sunday exactly three slots: DSA, applications, light review', () => {
+        expect(getRoutineForDay('Sunday')).toHaveLength(3);
+        expect(kindsOn('Sun')).toEqual(['dsa', 'job', 'light']);
+    });
+
+    it('starts Thursday on the AI engineering track, not theory', () => {
+        const morning = getRoutineForDay('Thursday')[0];
+        expect(morning.kind).toBe('aieng');
+        expect(morning.track).toBe('B - AI Eng');
+    });
+
+    it('starts Monday to Wednesday on theory', () => {
+        for (const day of ['Monday', 'Tuesday', 'Wednesday']) {
+            expect(getRoutineForDay(day)[0].track).toBe('A - Theory');
         }
     });
 
-    it('still closes the week with papers when Sunday is the day off', () => {
-        const schedule = buildWeekSchedule(['Sun']);
-        expect(kindsOn(['Sun'], 'Sun')).toEqual(['deep', 'rest']);
-        // Papers slides to the last day that is left.
-        expect(kindsOn(['Sun'], 'Sat')).toEqual(['papers', 'dsa']);
-        expect(schedule.deepWorkDay).toBe('Sun');
+    it('accepts the short day code as well as the full name', () => {
+        expect(getRoutineForDay('Sun')).toEqual(getRoutineForDay('Sunday'));
+    });
+
+    it('returns nothing for a day that does not exist', () => {
+        expect(getRoutineForDay('Someday')).toEqual([]);
     });
 });
 
-describe('buildWeekSchedule with two days off', () => {
-    const schedule = buildWeekSchedule(['Thu', 'Fri']);
-
-    it('anchors deep work on the first of them', () => {
-        expect(kindsOn(['Thu', 'Fri'], 'Thu')).toEqual(['deep', 'rest']);
+describe('the two habits that never move', () => {
+    it('puts exactly one DSA slot on every day, for every deep work day', () => {
+        for (const deepWorkDay of WEEKDAYS) {
+            const week = getRoutineForWeek(deepWorkDay);
+            for (const day of WEEKDAYS) {
+                expect(week[day].filter(slot => slot.kind === 'dsa')).toHaveLength(1);
+            }
+        }
     });
 
-    it('gives the second day off to AI engineering', () => {
-        expect(kindsOn(['Thu', 'Fri'], 'Fri')).toEqual(['aieng', 'dsa']);
+    it('puts exactly one job applications slot on every day, for every deep work day', () => {
+        for (const deepWorkDay of WEEKDAYS) {
+            const week = getRoutineForWeek(deepWorkDay);
+            for (const day of WEEKDAYS) {
+                expect(week[day].filter(slot => slot.kind === 'job')).toHaveLength(1);
+            }
+        }
     });
 
-    it('does not care which order the days were marked in', () => {
-        expect(buildWeekSchedule(['Fri', 'Thu'])).toEqual(schedule);
+    it('runs applications immediately after DSA', () => {
+        for (const day of WEEKDAYS) {
+            const slots = getRoutineForWeek()[day];
+            const dsa = slots.find(slot => slot.kind === 'dsa')!;
+            const job = slots.find(slot => slot.kind === 'job')!;
+            expect(job.start).toBe(dsa.end);
+        }
     });
 
-    it('marks both days as off', () => {
-        expect(schedule.days.filter(day => day.isOff).map(day => day.day)).toEqual(['Thu', 'Fri']);
-    });
-
-    it('leaves Saturday free for theory once AI engineering has a home', () => {
-        expect(kindsOn(['Thu', 'Fri'], 'Sat')).toEqual(['theory', 'dsa']);
-    });
-
-    it('keeps the week review at the end of the week even when that day is off', () => {
-        // Thursday and Sunday off: papers still closes the week on Sunday
-        // rather than being displaced by AI engineering, because reviewing the
-        // week and planning the next one only works at the end of it.
-        expect(kindsOn(['Thu', 'Sun'], 'Sun')).toEqual(['papers', 'dsa']);
-        expect(kindsOn(['Thu', 'Sun'], 'Sat')).toEqual(['aieng', 'dsa']);
-        expect(buildWeekSchedule(['Thu', 'Sun']).totalHours).toBe(24);
-    });
-});
-
-describe('buildWeekSchedule edge cases', () => {
-    it('asks for a day off when none is marked', () => {
-        const schedule = buildWeekSchedule([]);
-        expect(schedule.needsDayOff).toBe(true);
-        expect(schedule.deepWorkDay).toBeNull();
-        // Everything else still stands up: the five hours of deep work are lost,
-        // and that day becomes an ordinary theory morning with DSA in the evening.
-        // 5 theory (10h) + AI eng (3.5) + papers (3) + 7 DSA (5.25) = 21.75.
-        expect(schedule.totalHours).toBe(21.75);
-        expect(schedule.days.every(day => day.sessions.some(s => s.kind === 'dsa'))).toBe(true);
-    });
-
-    it('turns a third day off into an ordinary theory day', () => {
-        const kinds = kindsOn(['Mon', 'Tue', 'Wed'], 'Wed');
-        expect(kinds).toEqual(['theory', 'dsa']);
-    });
-
-    it('keeps DSA on every day except the deep work day', () => {
-        const schedule = buildWeekSchedule(['Wed']);
-        const withDsa = schedule.days.filter(day =>
-            day.sessions.some(session => session.kind === 'dsa')
-        );
-        expect(withDsa).toHaveLength(6);
-        expect(withDsa.some(day => day.day === 'Wed')).toBe(false);
+    it('keeps applications on Track B', () => {
+        expect(getRoutineForDay('Monday').find(s => s.kind === 'job')!.track)
+            .toBe('B - Job applications');
     });
 });
 
-describe('weekdayOf', () => {
+describe('the 21:00 rule', () => {
+    it('finishes no later than 21:00 whichever day the deep work lands on', () => {
+        for (const deepWorkDay of WEEKDAYS) {
+            const week = getRoutineForWeek(deepWorkDay);
+            for (const day of WEEKDAYS) {
+                for (const slot of week[day]) {
+                    expect(minutesInto(slot.end)).toBeLessThanOrEqual(minutesInto(LATEST_END_TIME));
+                }
+            }
+            expect(endsTooLate(deepWorkDay)).toBe(false);
+        }
+    });
+
+    it('actually finishes at 20:45 — a 05:00 start needs the evening back', () => {
+        expect(latestEndTime()).toBe('20:45');
+    });
+});
+
+describe('the deep work day', () => {
+    it('defaults to Friday', () => {
+        expect(DEFAULT_DEEP_WORK_DAY).toBe('Fri');
+        expect(kindsOn('Fri')).toContain('build');
+    });
+
+    it('moves the build when a different day is set', () => {
+        expect(kindsOn('Wed', 'Wed')).toContain('build');
+        expect(kindsOn('Fri', 'Wed')).not.toContain('build');
+    });
+
+    it('replaces that day\'s study but keeps DSA and applications', () => {
+        // Wednesday's 2.5 hours of theory cannot sit beside a five-hour build.
+        expect(kindsOn('Wed')).toEqual(['theory', 'dsa', 'job']);
+        expect(kindsOn('Wed', 'Wed')).toEqual(['build', 'review', 'dsa', 'job']);
+    });
+
+    it('moves the displaced study to Friday rather than losing it', () => {
+        expect(kindsOn('Fri', 'Wed')).toContain('theory');
+        expect(kindsOn('Fri', 'Sat')).toEqual(expect.arrayContaining(['aieng', 'papers']));
+    });
+
+    it('keeps every slot in clock order after the move', () => {
+        for (const deepWorkDay of WEEKDAYS) {
+            const week = getRoutineForWeek(deepWorkDay);
+            for (const day of WEEKDAYS) {
+                const starts = week[day].map(slot => minutesInto(slot.start));
+                expect([...starts].sort((a, b) => a - b)).toEqual(starts);
+            }
+        }
+    });
+
+    it('never calls Friday a light day just because it holds the review hour', () => {
+        // Sunday's hour moves to Friday when the build takes Sunday. Friday is
+        // still a working day and must not be drawn as the week's breather.
+        expect(kindsOn('Fri', 'Sun')).toContain('light');
+        expect(isLightDay('Fri', 'Sun')).toBe(false);
+        expect(isLightDay('Sun', 'Fri')).toBe(true);
+    });
+
+    it('takes the light day away when Sunday is chosen', () => {
+        expect(hasLightDay()).toBe(true);
+        expect(hasLightDay('Sun')).toBe(false);
+        expect(kindsOn('Sun', 'Sun')).toEqual(['build', 'review', 'dsa', 'job']);
+        // The hour of review moves rather than vanishing.
+        expect(kindsOn('Fri', 'Sun')).toContain('light');
+    });
+});
+
+describe('weekdayOf / isWeekday', () => {
     it('reads the plan start as a Monday', () => {
         expect(weekdayOf('2026-08-17')).toBe('Mon');
     });
@@ -130,5 +202,11 @@ describe('weekdayOf', () => {
 
     it('is not shifted by the local timezone', () => {
         expect(weekdayOf('2026-08-15')).toBe('Sat');
+    });
+
+    it('accepts only the seven day codes', () => {
+        expect(isWeekday('Fri')).toBe(true);
+        expect(isWeekday('Friday')).toBe(false);
+        expect(isWeekday(undefined)).toBe(false);
     });
 });

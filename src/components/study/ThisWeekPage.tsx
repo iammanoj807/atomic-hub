@@ -27,7 +27,7 @@ import {
 import { getWeekResources } from '../../data/studyResources';
 import { dsaCurriculum } from '../../data/dsaCurriculum';
 import { subscribeToDSAProgress, type DSATopicProgress } from '../../services/firebaseService';
-import DaysOffPicker from './DaysOffPicker';
+import DeepWorkDayPicker from './DeepWorkDayPicker';
 import WeekSchedule from './WeekSchedule';
 import ResourceList from './ResourceList';
 import WeekLogDialog from './WeekLogDialog';
@@ -69,8 +69,8 @@ const ThisWeekPage = () => {
     const {
         studyWeekLogs,
         currentWeekNumber,
-        getDaysOff,
-        saveDaysOff,
+        getDeepWorkDay,
+        saveDeepWorkDay,
         studyPapers,
         completedProjectIds,
     } = useTaskContext();
@@ -105,9 +105,9 @@ const ThisWeekPage = () => {
             .map(log => log.week)
     );
 
-    // Before the plan starts you are still allowed to plan week 1's days off.
+    // Before the plan starts you can still set week 1's day off.
     const plannedWeek = currentWeekNumber ?? 1;
-    const daysOff = getDaysOff(plannedWeek);
+    const deepWorkDay = getDeepWorkDay(plannedWeek);
 
     const accent = PHASE_COLORS[featuredWeek.phaseKey];
     const resources = getWeekResources(featuredWeek.week);
@@ -249,8 +249,9 @@ const ThisWeekPage = () => {
 
             {behind && (
                 <Alert severity="warning" variant="outlined" sx={{ mb: 4, borderRadius: 3 }}>
-                    Three weeks running under {UNDER_PACE_HOURS} hours. Cut the papers session first, then the
-                    AI engineering one. Keep the mornings and keep the daily DSA — those two habits are the plan.
+                    Three weeks running under {UNDER_PACE_HOURS} hours. Cut Saturday's papers hour first, then
+                    the Saturday project. Keep the mornings, the daily DSA and the daily applications — those
+                    are the habits that carry the plan.
                 </Alert>
             )}
 
@@ -291,14 +292,14 @@ const ThisWeekPage = () => {
                 YOUR WEEK
             </Typography>
             <Box sx={{ mb: 2 }}>
-                <DaysOffPicker
-                    daysOff={daysOff}
-                    onChange={(days) => saveDaysOff(plannedWeek, days)}
+                <DeepWorkDayPicker
+                    deepWorkDay={deepWorkDay}
+                    onChange={(day) => saveDeepWorkDay(plannedWeek, day)}
                 />
             </Box>
             <Box sx={{ mb: 5 }}>
                 <WeekSchedule
-                    daysOff={daysOff}
+                    deepWorkDay={deepWorkDay}
                     today={phase === 'during' ? (weekdayOf(today) as Weekday) : undefined}
                 />
             </Box>

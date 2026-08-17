@@ -103,8 +103,9 @@ export const summariseHours = (
     };
 };
 
-/** Below this for three weeks running and the plan says to cut Sunday, then Saturday. */
-export const UNDER_PACE_HOURS = 16;
+/** Below this for three weeks running and something has to give. Roughly the
+ *  same fraction of the target as the 16-of-24 it replaced. */
+export const UNDER_PACE_HOURS = 19;
 export const UNDER_PACE_WEEKS = 3;
 
 /**

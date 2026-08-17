@@ -181,7 +181,9 @@ const LogbookPage = () => {
                                 value: `${summary.diffToDate > 0 ? '+' : ''}${summary.diffToDate}h`,
                                 color: summary.diffToDate < 0 ? '#ff8a65' : '#66bb6a',
                             },
-                            { label: 'OF 540 HOURS', value: `${summary.actualTotal}`, color: undefined },
+                            // Read off the plan rather than written in, so changing the
+                            // weekly target can never leave a stale number on screen.
+                            { label: `OF ${summary.targetTotal} HOURS`, value: `${summary.actualTotal}`, color: undefined },
                             { label: 'DSA PROBLEMS', value: `${summary.dsaProblems}`, color: undefined },
                         ].map(stat => (
                             <Box
@@ -218,8 +220,8 @@ const LogbookPage = () => {
 
                     {behind && (
                         <Alert severity="warning" variant="outlined" sx={{ mb: 3, borderRadius: 3 }}>
-                            Under {UNDER_PACE_HOURS} hours for three weeks running. Cut the papers session first,
-                            then the AI engineering one. Keep the mornings and keep the daily DSA.
+                            Under {UNDER_PACE_HOURS} hours for three weeks running. Cut Saturday's papers hour
+                            first, then the Saturday project. Keep the mornings, the daily DSA and the applications.
                         </Alert>
                     )}
 
@@ -281,9 +283,9 @@ const LogbookPage = () => {
                                         </Box>
 
                                         <Stack direction="row" spacing={1} alignItems="center" sx={{ flexShrink: 0 }}>
-                                            {log?.daysOff && log.daysOff.length > 0 && (
+                                            {log?.deepWorkDay && (
                                                 <Chip
-                                                    label={`off ${log.daysOff.join(', ')}`}
+                                                    label={`built ${log.deepWorkDay}`}
                                                     size="small"
                                                     sx={{
                                                         height: 22,

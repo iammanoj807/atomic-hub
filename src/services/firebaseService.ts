@@ -749,11 +749,11 @@ export interface StudyWeekLog {
     finished: string;         // "What I finished"
     learned: string;          // "One thing I understand now that I didn't last week"
     /**
-     * Which days were actually off this week ('Mon'..'Sun'). The days off move
-     * and are not known in advance, so the week's schedule is generated from
-     * whatever is stored here rather than assuming Friday.
+     * Which day the deep work block sat on this week ('Mon'..'Sun'). Shift work
+     * moves it, so the routine is generated from whatever is stored here rather
+     * than assuming Friday. Absent means the default, not "no deep work".
      */
-    daysOff?: string[];
+    deepWorkDay?: string;
     updatedAt: Timestamp;
 }
 

@@ -1,38 +1,59 @@
 import { Box, Typography, Stack, Chip } from '@mui/material';
-import { WEEKDAY_NAMES, type Weekday } from '../../data/studyPlan';
-import { buildWeekSchedule } from '../../utils/studySchedule';
+import {
+    WEEKDAYS,
+    WEEKDAY_NAMES,
+    LIGHT_DAY_NOTE,
+    type Weekday,
+} from '../../data/studyPlan';
+import {
+    getRoutineForWeek,
+    routineWeeklyHours,
+    hoursOnDay,
+    latestEndTime,
+    isLightDay,
+    DEFAULT_DEEP_WORK_DAY,
+} from '../../utils/studySchedule';
 
 /**
- * This week's seven days, generated from the days marked off.
+ * The week as it actually falls, once the deep work block has moved to
+ * whichever day is off.
  *
- * Nothing here is hard-coded to a weekday — the same sessions get dealt onto
- * whichever days are actually free, so a week where Thursday is off reads
- * exactly as clearly as one where Friday is.
+ * Sunday is drawn as a light day rather than a short study day — it carries
+ * the two habits and an hour of review, and reading it like any other row
+ * would lose the only deliberate breather in the week.
  */
 const WeekSchedule = ({
-    daysOff,
+    deepWorkDay = DEFAULT_DEEP_WORK_DAY,
     today,
 }: {
-    daysOff: Weekday[];
+    deepWorkDay?: Weekday;
     today?: Weekday;
 }) => {
-    const schedule = buildWeekSchedule(daysOff);
+    const week = getRoutineForWeek(deepWorkDay);
 
     return (
         <Stack spacing={1}>
-            {schedule.days.map(day => {
-                const isToday = day.day === today;
+            {WEEKDAYS.map(day => {
+                const slots = week[day];
+                const isToday = day === today;
+                const isDeep = day === deepWorkDay;
+                const isLight = isLightDay(day, deepWorkDay);
 
                 return (
                     <Box
-                        key={day.day}
+                        key={day}
                         sx={{
                             p: 1.75,
                             borderRadius: 3,
                             bgcolor: isToday ? 'rgba(41, 121, 255, 0.08)' : 'background.paper',
                             border: '1px solid',
-                            borderColor: isToday ? 'primary.main' : 'rgba(255,255,255,0.08)',
-                            opacity: day.sessions.length === 0 ? 0.6 : 1,
+                            borderColor: isToday
+                                ? 'primary.main'
+                                : isDeep
+                                    ? 'rgba(255, 138, 101, 0.4)'
+                                    : 'rgba(255,255,255,0.08)',
+                            // The light day is deliberately quieter on the page too.
+                            ...(isLight && { bgcolor: 'rgba(144, 164, 174, 0.06)' }),
                         }}
                     >
                         <Stack
@@ -44,7 +65,7 @@ const WeekSchedule = ({
                                 direction="row"
                                 spacing={1}
                                 alignItems="center"
-                                sx={{ width: { sm: 150 }, flexShrink: 0 }}
+                                sx={{ width: { sm: 168 }, flexShrink: 0 }}
                             >
                                 <Typography
                                     variant="body2"
@@ -54,7 +75,7 @@ const WeekSchedule = ({
                                         width: 40,
                                     }}
                                 >
-                                    {day.day}
+                                    {day}
                                 </Typography>
                                 {isToday && (
                                     <Chip
@@ -69,9 +90,9 @@ const WeekSchedule = ({
                                         }}
                                     />
                                 )}
-                                {day.isOff && (
+                                {isDeep && (
                                     <Chip
-                                        label="OFF"
+                                        label="DAY OFF"
                                         size="small"
                                         sx={{
                                             height: 18,
@@ -82,27 +103,36 @@ const WeekSchedule = ({
                                         }}
                                     />
                                 )}
+                                {isLight && (
+                                    <Chip
+                                        label="LIGHT DAY"
+                                        size="small"
+                                        sx={{
+                                            height: 18,
+                                            fontSize: '0.55rem',
+                                            fontWeight: 800,
+                                            color: '#90a4ae',
+                                            bgcolor: 'rgba(144, 164, 174, 0.18)',
+                                        }}
+                                    />
+                                )}
                             </Stack>
 
                             <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap sx={{ flex: 1 }}>
-                                {day.sessions.map(session => (
+                                {slots.map(slotItem => (
                                     <Chip
-                                        key={`${day.day}-${session.kind}`}
-                                        label={
-                                            session.hours > 0
-                                                ? `${session.label} · ${session.hours}h`
-                                                : session.label
-                                        }
+                                        key={`${day}-${slotItem.kind}-${slotItem.start}`}
+                                        label={`${slotItem.start} ${slotItem.track.replace(/^[AB +]+- /, '')}`}
                                         size="small"
-                                        title={`${session.when} — ${session.what}`}
+                                        title={`${slotItem.start}-${slotItem.end} · ${slotItem.track} · ${slotItem.what}`}
                                         sx={{
                                             height: 24,
                                             fontSize: '0.66rem',
                                             fontWeight: 700,
-                                            color: session.color,
-                                            bgcolor: `${session.color}1f`,
+                                            color: slotItem.color,
+                                            bgcolor: `${slotItem.color}1f`,
                                             border: '1px solid',
-                                            borderColor: `${session.color}33`,
+                                            borderColor: `${slotItem.color}33`,
                                         }}
                                     />
                                 ))}
@@ -113,24 +143,37 @@ const WeekSchedule = ({
                                 color="text.secondary"
                                 sx={{ fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}
                             >
-                                {day.hours}h
+                                {hoursOnDay(day, deepWorkDay)}h
                             </Typography>
                         </Stack>
+
+                        {isLight && (
+                            <Typography
+                                variant="body2"
+                                color="text.secondary"
+                                sx={{ mt: 1, fontSize: '0.78rem', fontStyle: 'italic' }}
+                            >
+                                {LIGHT_DAY_NOTE}
+                            </Typography>
+                        )}
                     </Box>
                 );
             })}
 
-            <Stack direction="row" justifyContent="space-between" sx={{ pt: 1, px: 0.5 }}>
+            <Stack
+                direction={{ xs: 'column', sm: 'row' }}
+                justifyContent="space-between"
+                spacing={0.5}
+                sx={{ pt: 1, px: 0.5 }}
+            >
                 <Typography variant="body2" color="text.secondary">
-                    {schedule.deepWorkDay
-                        ? `Deep work on ${WEEKDAY_NAMES[schedule.deepWorkDay]}, then stop.`
-                        : 'No day off marked — the five-hour block has nowhere to go.'}
+                    Deep work on {WEEKDAY_NAMES[deepWorkDay]}. Nothing runs past {latestEndTime(deepWorkDay)}.
                 </Typography>
                 <Typography
                     variant="body2"
                     sx={{ color: 'text.primary', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}
                 >
-                    {schedule.totalHours}h this week
+                    {routineWeeklyHours(deepWorkDay)}h this week
                 </Typography>
             </Stack>
         </Stack>

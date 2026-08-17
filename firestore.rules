@@ -72,10 +72,17 @@ service cloud.firestore {
 
     // Study plan — the 26 weeks. The plan itself ships in the bundle; only
     // what changes week to week is stored.
+    // The deep work day moves with the rota, so it is stored per week here.
+    // It is checked against the seven day codes rather than "is string", so a
+    // typo fails at the door instead of quietly producing a week with no
+    // deep work block in it.
     match /study_weeks/{weekId} {
       allow read: if true;
       allow write: if request.resource == null
-                   || request.resource.data.week is int;
+                   || (request.resource.data.week is int
+                       && (!('deepWorkDay' in request.resource.data.keys())
+                           || request.resource.data.deepWorkDay
+                              in ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']));
     }
 
     match /study_papers/{paperId} {
