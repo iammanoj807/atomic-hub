@@ -11,6 +11,7 @@ import {
 import type { StudyWeekLog, StudyPaper } from '../services/firebaseService';
 import { getLondonDateString } from '../utils/date';
 import { getPlanWeekNumber } from '../utils/studyPlan';
+import { DEFAULT_DEEP_WORK_DAY, isWeekday } from '../utils/studySchedule';
 import type { Weekday } from '../data/studyPlan';
 
 /**
@@ -46,15 +47,19 @@ export const useStudyPlan = () => {
     };
 
     /**
-     * Which days were off in a given week. Stored on the week's own log,
-     * because the answer is different every week and only that week knows it.
+     * Which day the deep work block sits on in a given week. Stored on that
+     * week's own log, because the rota answer is different every week and only
+     * that week knows it.
      */
-    const saveDaysOff = async (week: number, daysOff: Weekday[]) => {
-        await saveStudyWeekLog(week, { daysOff });
+    const saveDeepWorkDay = async (week: number, deepWorkDay: Weekday) => {
+        await saveStudyWeekLog(week, { deepWorkDay });
     };
 
-    const getDaysOff = (week: number): Weekday[] =>
-        (studyWeekLogs[week]?.daysOff ?? []) as Weekday[];
+    /** Falls back to the plan's original Friday when a week has not set one. */
+    const getDeepWorkDay = (week: number): Weekday => {
+        const stored = studyWeekLogs[week]?.deepWorkDay;
+        return isWeekday(stored) ? stored : DEFAULT_DEEP_WORK_DAY;
+    };
 
     const savePaper = async (paper: Omit<StudyPaper, 'id' | 'createdAt'> & { id?: string }) => {
         const existing = paper.id ? studyPapers.find(p => p.id === paper.id) : undefined;
@@ -83,8 +88,8 @@ export const useStudyPlan = () => {
         studyWeekLogs,
         currentWeekNumber,
         saveWeekLog,
-        saveDaysOff,
-        getDaysOff,
+        saveDeepWorkDay,
+        getDeepWorkDay,
         studyPapers,
         savePaper,
         deletePaper,

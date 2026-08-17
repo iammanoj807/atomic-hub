@@ -9,7 +9,7 @@ import {
     isUnderPace,
     type WeekLogInput,
 } from '../studyPlan';
-import { planWeeks, PLAN_WEEKS } from '../../data/studyPlan';
+import { planWeeks, PLAN_WEEKS, PLAN_START_DATE } from '../../data/studyPlan';
 
 describe('the plan data itself', () => {
     it('has 26 consecutive weeks', () => {
@@ -26,6 +26,7 @@ describe('the plan data itself', () => {
     });
 
     it('runs 17 Aug 2026 to 14 Feb 2027', () => {
+        expect(PLAN_START_DATE).toBe('2026-08-17');
         expect(planWeeks[0].startDate).toBe('2026-08-17');
         expect(planWeeks[PLAN_WEEKS - 1].endDate).toBe('2027-02-14');
     });
@@ -98,8 +99,9 @@ describe('summariseHours', () => {
         3: { dsaProblems: 7 }, // notes only, no hours yet
     };
 
-    it('totals the whole plan at 540 hours', () => {
-        expect(summariseHours({}, null).targetTotal).toBe(540);
+    it('totals the whole plan at 640 hours', () => {
+        // 20 full weeks at 29 plus 6 lighter weeks at 10.
+        expect(summariseHours({}, null).targetTotal).toBeCloseTo(640, 5);
     });
 
     it('targets nothing before the plan starts', () => {
@@ -107,8 +109,8 @@ describe('summariseHours', () => {
     });
 
     it('targets only the weeks up to now', () => {
-        // Weeks 1-4: 24 + 24 + 24 + 10 (consolidation).
-        expect(summariseHours(logs, 4).targetToDate).toBe(82);
+        // Weeks 1-4: 29 + 29 + 29 + 10 (consolidation).
+        expect(summariseHours(logs, 4).targetToDate).toBeCloseTo(97, 5);
     });
 
     it('counts a week as logged only once it has hours', () => {
@@ -119,20 +121,20 @@ describe('summariseHours', () => {
     });
 
     it('reports how far behind you are', () => {
-        // 48 done against a 72-hour target for weeks 1-3.
-        expect(summariseHours(logs, 3).diffToDate).toBe(-24);
+        // 48 done against an 87-hour target for weeks 1-3.
+        expect(summariseHours(logs, 3).diffToDate).toBeCloseTo(-39, 5);
     });
 });
 
 describe('under-pace detection', () => {
-    it('counts consecutive weeks under 16 hours', () => {
-        const logs = { 1: { actualHours: 24 }, 2: { actualHours: 12 }, 3: { actualHours: 9 } };
+    it('counts consecutive weeks under 19 hours', () => {
+        const logs = { 1: { actualHours: 29 }, 2: { actualHours: 12 }, 3: { actualHours: 9 } };
         expect(getUnderPaceStreak(logs, 3)).toBe(2);
         expect(isUnderPace(logs, 3)).toBe(false);
     });
 
     it('fires after three bad weeks running', () => {
-        const logs = { 1: { actualHours: 15 }, 2: { actualHours: 12 }, 3: { actualHours: 9 } };
+        const logs = { 1: { actualHours: 18 }, 2: { actualHours: 12 }, 3: { actualHours: 9 } };
         expect(isUnderPace(logs, 3)).toBe(true);
     });
 

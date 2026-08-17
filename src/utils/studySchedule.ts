@@ -1,102 +1,134 @@
-// Laying the week's sessions onto whichever days are actually free.
+// Putting the week's routine onto a rota that moves.
 //
-// The plan was written assuming Friday is always off. It isn't: sometimes it is
-// Thursday, sometimes Friday, sometimes two days, and it is not known in
-// advance. So nothing here is tied to a named day. You mark the days you are
-// off and the same week of work gets dealt onto them, in this order:
+// Six days are fixed. The deep work block travels to whichever day is off that
+// week, and when it lands on a day that already had study on it, that study
+// moves to Friday rather than being dropped — otherwise a Wednesday day off
+// would quietly cost the week two and a half hours.
 //
-//   1. the first day off      -> DEEP WORK (5h), then stop
-//   2. the last day of the week that is left -> PAPERS + REVIEW (3h)
-//   3. a second day off, or else the latest day still free -> AI ENGINEERING
-//   4. everything else        -> THEORY before work
-//   5. every day except the deep work day -> DSA in the evening
-//
-// With Friday off this reproduces the original plan exactly, which is the test
-// that matters most.
+// Two slots are never displaced: the daily NeetCode problem and the half hour
+// of applications after it. Whatever else happens to a day, it keeps both.
 
 import {
     WEEKDAYS,
-    sessionTemplates,
+    dailyRoutine,
+    deepWorkSlots,
+    LATEST_END_TIME,
     type Weekday,
-    type SessionKind,
-    type SessionTemplate,
+    type RoutineSlot,
 } from '../data/studyPlan';
 
-export interface DaySchedule {
-    day: Weekday;
-    isOff: boolean;
-    sessions: SessionTemplate[];
-    hours: number;
-}
+/** Where the deep work block sits when a week has not said otherwise. */
+export const DEFAULT_DEEP_WORK_DAY: Weekday = 'Fri';
 
-export interface WeekSchedule {
-    days: DaySchedule[];
-    totalHours: number;
-    /** No day off marked — the deep work block has nowhere to go. */
-    needsDayOff: boolean;
-    deepWorkDay: Weekday | null;
-}
+/** The day displaced study lands on — the one day carrying no study of its own. */
+const OVERFLOW_DAY: Weekday = 'Fri';
 
-/** Week order, so "first day off" means first in the week and not first tapped. */
-const inWeekOrder = (days: Weekday[]): Weekday[] =>
-    WEEKDAYS.filter(day => days.includes(day));
+/** These survive the deep work block landing on their day. */
+const UNDISPLACEABLE = new Set(['dsa', 'job']);
 
-export const buildWeekSchedule = (daysOff: Weekday[]): WeekSchedule => {
-    const off = inWeekOrder(daysOff);
-    const assignment = new Map<Weekday, SessionKind[]>();
-
-    // 1. Deep work goes on the first day off. Without one there is no anchor,
-    //    and the caller is expected to ask for the days off.
-    const deepWorkDay = off[0] ?? null;
-    if (deepWorkDay) assignment.set(deepWorkDay, ['deep', 'rest']);
-
-    const free = WEEKDAYS.filter(day => day !== deepWorkDay);
-
-    // 2. Papers and review close the week — the last free day, usually Sunday.
-    const papersDay = free[free.length - 1];
-    if (papersDay) assignment.set(papersDay, ['papers']);
-
-    // 3. AI engineering prefers a second day off; otherwise the latest day
-    //    still free, which is the short shift day.
-    const secondOff = off.find(day => day !== deepWorkDay && day !== papersDay);
-    const aiEngDay = secondOff
-        ?? [...free].reverse().find(day => !assignment.has(day));
-    if (aiEngDay) assignment.set(aiEngDay, ['aieng']);
-
-    // 4. Everything left is a theory morning.
-    for (const day of free) {
-        if (!assignment.has(day)) assignment.set(day, ['theory']);
-    }
-
-    // 5. DSA every day except the deep work day, which is already five hours of
-    //    the hardest thing in the week and ends in a full stop.
-    const days: DaySchedule[] = WEEKDAYS.map(day => {
-        const kinds = [...(assignment.get(day) ?? [])];
-        if (day !== deepWorkDay) kinds.push('dsa');
-
-        const sessions = kinds.map(kind => sessionTemplates[kind]);
-
-        return {
-            day,
-            isOff: off.includes(day),
-            sessions,
-            hours: sessions.reduce((sum, session) => sum + session.hours, 0),
-        };
-    });
-
-    return {
-        days,
-        totalHours: days.reduce((sum, day) => sum + day.hours, 0),
-        needsDayOff: deepWorkDay === null,
-        deepWorkDay,
-    };
+/** Minutes since midnight, so slot times can actually be compared. */
+export const minutesInto = (time: string): number => {
+    const [hours, minutes] = time.split(':').map(Number);
+    return hours * 60 + minutes;
 };
 
-/** The schedule for one day, for the "what am I doing today" card. */
-export const getDaySchedule = (
-    schedule: WeekSchedule,
-    day: Weekday
-): DaySchedule | null => schedule.days.find(d => d.day === day) ?? null;
+const bySlotStart = (a: RoutineSlot, b: RoutineSlot) =>
+    minutesInto(a.start) - minutesInto(b.start);
+
+/**
+ * The whole week's routine for a given deep work day.
+ * Keyed by weekday, each day's slots in clock order.
+ */
+export const getRoutineForWeek = (
+    deepWorkDay: Weekday = DEFAULT_DEEP_WORK_DAY
+): Record<Weekday, RoutineSlot[]> => {
+    const week = {} as Record<Weekday, RoutineSlot[]>;
+    let displaced: RoutineSlot[] = [];
+
+    for (const day of WEEKDAYS) {
+        if (day === deepWorkDay) {
+            // The build replaces this day's study; DSA and applications stay.
+            displaced = dailyRoutine[day].filter(s => !UNDISPLACEABLE.has(s.kind));
+            week[day] = [
+                ...deepWorkSlots,
+                ...dailyRoutine[day].filter(s => UNDISPLACEABLE.has(s.kind)),
+            ].sort(bySlotStart);
+        } else {
+            week[day] = [...dailyRoutine[day]];
+        }
+    }
+
+    // Friday absorbs whatever the build pushed off its day, keeping the week
+    // at the same total however the rota falls. When Friday IS the deep work
+    // day nothing was displaced, so there is nothing to move.
+    if (deepWorkDay !== OVERFLOW_DAY && displaced.length > 0) {
+        week[OVERFLOW_DAY] = [...week[OVERFLOW_DAY], ...displaced].sort(bySlotStart);
+    }
+
+    return week;
+};
+
+/**
+ * One day's slots. Accepts either the short form ('Sun') or the full name
+ * ('Sunday'), because the routine reads better spelled out on screen.
+ */
+export const getRoutineForDay = (
+    dayName: string,
+    deepWorkDay: Weekday = DEFAULT_DEEP_WORK_DAY
+): RoutineSlot[] => {
+    const wanted = dayName.slice(0, 3).toLowerCase();
+    const day = WEEKDAYS.find(d => d.toLowerCase() === wanted);
+    return day ? getRoutineForWeek(deepWorkDay)[day] : [];
+};
+
+/** What the week adds up to. Should not move when the deep work day does. */
+export const routineWeeklyHours = (
+    deepWorkDay: Weekday = DEFAULT_DEEP_WORK_DAY
+): number => {
+    const week = getRoutineForWeek(deepWorkDay);
+    return WEEKDAYS.reduce(
+        (total, day) => total + week[day].reduce((sum, s) => sum + s.hours, 0),
+        0
+    );
+};
+
+export const hoursOnDay = (
+    day: Weekday,
+    deepWorkDay: Weekday = DEFAULT_DEEP_WORK_DAY
+): number =>
+    getRoutineForWeek(deepWorkDay)[day].reduce((sum, s) => sum + s.hours, 0);
+
+/** The latest any slot finishes, as 'HH:MM'. Nothing may pass LATEST_END_TIME. */
+export const latestEndTime = (
+    deepWorkDay: Weekday = DEFAULT_DEEP_WORK_DAY
+): string => {
+    const week = getRoutineForWeek(deepWorkDay);
+    const latest = Math.max(
+        ...WEEKDAYS.flatMap(day => week[day].map(s => minutesInto(s.end)))
+    );
+    return `${String(Math.floor(latest / 60)).padStart(2, '0')}:${String(latest % 60).padStart(2, '0')}`;
+};
+
+export const endsTooLate = (deepWorkDay: Weekday = DEFAULT_DEEP_WORK_DAY): boolean =>
+    minutesInto(latestEndTime(deepWorkDay)) > minutesInto(LATEST_END_TIME);
+
+/**
+ * Sunday is the light day, and only Sunday. When the build takes Sunday the
+ * review hour moves to Friday, which does not make Friday a light day — so
+ * this asks about the day as well as the slot.
+ */
+export const isLightDay = (
+    day: Weekday,
+    deepWorkDay: Weekday = DEFAULT_DEEP_WORK_DAY
+): boolean =>
+    day === 'Sun' && getRoutineForWeek(deepWorkDay).Sun.some(s => s.kind === 'light');
+
+/**
+ * Whether the week has a light day at all. Choosing Sunday for deep work means
+ * it does not, which the UI says out loud rather than hiding.
+ */
+export const hasLightDay = (deepWorkDay: Weekday = DEFAULT_DEEP_WORK_DAY): boolean =>
+    isLightDay('Sun', deepWorkDay);
 
 const JS_DAY_TO_WEEKDAY: Weekday[] = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -104,8 +136,6 @@ const JS_DAY_TO_WEEKDAY: Weekday[] = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 
 export const weekdayOf = (dateISO: string): Weekday =>
     JS_DAY_TO_WEEKDAY[new Date(`${dateISO}T00:00:00Z`).getUTCDay()];
 
-/**
- * What the plan assumed before the days off stopped being fixed. Used as the
- * suggestion when a week has nothing marked yet — never silently applied.
- */
-export const DEFAULT_DAYS_OFF: Weekday[] = ['Fri'];
+/** Accepts only the seven day codes — used when reading Firestore back. */
+export const isWeekday = (value: unknown): value is Weekday =>
+    typeof value === 'string' && (WEEKDAYS as string[]).includes(value);
