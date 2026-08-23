@@ -7,6 +7,7 @@ import {
     summariseHours,
     getUnderPaceStreak,
     isUnderPace,
+    getPaceState,
     type WeekLogInput,
 } from '../studyPlan';
 import { planWeeks, PLAN_WEEKS, PLAN_START_DATE } from '../../data/studyPlan';
@@ -148,5 +149,40 @@ describe('under-pace detection', () => {
 
     it('is clear before the plan starts', () => {
         expect(getUnderPaceStreak({}, null)).toBe(0);
+    });
+});
+
+describe('getPaceState', () => {
+    it('says nothing about a single bad week', () => {
+        // One week under is a week, not a pattern.
+        expect(getPaceState({ 1: { actualHours: 12 } }, 1)).toBe('ok');
+    });
+
+    it('notices two weeks running', () => {
+        expect(getPaceState({ 1: { actualHours: 12 }, 2: { actualHours: 15 } }, 2)).toBe('notice');
+    });
+
+    it('escalates on the third', () => {
+        const logs = { 1: { actualHours: 18 }, 2: { actualHours: 12 }, 3: { actualHours: 9 } };
+        expect(getPaceState(logs, 3)).toBe('act');
+    });
+
+    it('agrees with isUnderPace at the three-week mark, so old callers still mean the same thing', () => {
+        const logs = { 1: { actualHours: 18 }, 2: { actualHours: 12 }, 3: { actualHours: 9 } };
+        expect(isUnderPace(logs, 3)).toBe(true);
+        expect(getPaceState(logs, 3)).toBe('act');
+
+        const twoBad = { 1: { actualHours: 12 }, 2: { actualHours: 15 } };
+        expect(isUnderPace(twoBad, 2)).toBe(false);
+        expect(getPaceState(twoBad, 2)).toBe('notice');
+    });
+
+    it('clears once a good week lands', () => {
+        const logs = { 1: { actualHours: 12 }, 2: { actualHours: 15 }, 3: { actualHours: 29 } };
+        expect(getPaceState(logs, 3)).toBe('ok');
+    });
+
+    it('is quiet before the plan starts', () => {
+        expect(getPaceState({}, null)).toBe('ok');
     });
 });
