@@ -9,7 +9,13 @@ import { useTaskContext } from '../../context/TaskContext';
 import { getLondonDateString, getLondonTimeString } from '../../utils/date';
 import { getPlanPhase, getPlanWeek, daysUntilPlanStart } from '../../utils/studyPlan';
 import { getRoutineForDay, weekdayOf } from '../../utils/studySchedule';
-import { resolveSlotFocus, slotState, patternForWeek } from '../../utils/studyToday';
+import {
+    resolveSlotFocus,
+    slotState,
+    patternForWeek,
+    theoryWeeksLeft,
+    isTheoryTrackWeek,
+} from '../../utils/studyToday';
 import {
     planWeeks,
     DAY_TITLES,
@@ -315,6 +321,19 @@ const TodayPage = () => {
                     />
                 ))}
             </Stack>
+
+            {/* The theory track is finite and does not feel it week to week:
+                from week 13 the mornings go to TOEFL and never come back. */}
+            {phase === 'during' && isTheoryTrackWeek(planWeek.week) && (
+                <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ mt: 3, fontSize: '0.82rem', fontStyle: 'italic' }}
+                >
+                    {theoryWeeksLeft(planWeek.week)} theory {theoryWeeksLeft(planWeek.week) === 1 ? 'week' : 'weeks'} left
+                    before TOEFL takes the mornings.
+                </Typography>
+            )}
 
             {/* One line on where the 150 problems stand */}
             {pattern && (
