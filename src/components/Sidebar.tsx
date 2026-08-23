@@ -45,6 +45,7 @@ import ReceiptLongRoundedIcon from '@mui/icons-material/ReceiptLongRounded';
 import AutoStoriesRoundedIcon from '@mui/icons-material/AutoStoriesRounded';
 import MapRoundedIcon from '@mui/icons-material/MapRounded';
 import TodayRoundedIcon from '@mui/icons-material/TodayRounded';
+import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded';
 import MenuBookRoundedIcon from '@mui/icons-material/MenuBookRounded';
 import TimelineRoundedIcon from '@mui/icons-material/TimelineRounded';
 import ArticleRoundedIcon from '@mui/icons-material/ArticleRounded';
@@ -77,7 +78,8 @@ const categoryIcons: Record<Category, React.ReactNode> = {
  * of these — nothing was dropped, it stopped being scattered.
  */
 const studyPages: { label: string; path: string; icon: React.ReactNode }[] = [
-    { label: 'This Week', path: '/study', icon: <TodayRoundedIcon fontSize="small" /> },
+    { label: 'Today', path: '/study/today', icon: <TodayRoundedIcon fontSize="small" /> },
+    { label: 'This Week', path: '/study', icon: <CalendarMonthRoundedIcon fontSize="small" /> },
     { label: 'The Journey', path: '/study/journey', icon: <TimelineRoundedIcon fontSize="small" /> },
     { label: 'Logbook', path: '/study/logbook', icon: <ArticleRoundedIcon fontSize="small" /> },
     { label: 'Library', path: '/study/library', icon: <MenuBookRoundedIcon fontSize="small" /> },
@@ -153,12 +155,12 @@ const Sidebar = () => {
 
     const handleStudyToggle = () => {
         if (isCollapsed) {
-            navigate('/study');
+            navigate('/study/today');
             return;
         }
 
         if (!studyOpen) {
-            navigate('/study');
+            navigate('/study/today');
         }
         setStudyOpen(!studyOpen);
     };

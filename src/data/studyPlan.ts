@@ -146,6 +146,21 @@ export const WEEKDAY_NAMES: Record<Weekday, string> = {
  * What a slot is, for logic. `track` below is what it is called on screen.
  * 'dsa' and 'job' are the two that survive being displaced.
  */
+/**
+ * Each day has one job, and naming it is what stops the daily "so what am I
+ * actually doing today". The names describe the day's centre of gravity, not
+ * its only slot — every day still carries DSA and applications.
+ */
+export const DAY_TITLES: Record<Weekday, string> = {
+    Mon: 'Watch day',
+    Tue: 'Read day',
+    Wed: 'Build day',
+    Thu: 'Deep work day',
+    Fri: 'Ship day',
+    Sat: 'Project day',
+    Sun: 'Light day',
+};
+
 export type SlotKind =
     | 'theory'
     | 'aieng'
@@ -528,7 +543,7 @@ export const dsaPatterns: DSAPatternPlan[] = [
     { topicId: 'linked-list', name: 'Linked List', weeks: '7-8', why: 'Pointer manipulation. Fast/slow pointer technique.' },
     { topicId: 'trees', name: 'Trees', weeks: '9-12', why: 'Biggest single category. DFS, BFS, recursion.' },
     { topicId: 'tries', name: 'Tries', weeks: '13', why: 'Prefix problems. Small but appears in real interviews.' },
-    { topicId: 'heap-priority-queue', name: 'Heap / Priority Queue', weeks: '13', why: 'Top-K problems, median of stream, scheduling.' },
+    { topicId: 'heap-priority-queue', name: 'Heap / Priority Queue', weeks: '13-14', why: 'Top-K problems, median of stream, scheduling.' },
     { topicId: 'backtracking', name: 'Backtracking', weeks: '15-16', why: 'Permutations, subsets. Most people are WEAK here.', weakSpot: true },
     { topicId: 'graphs', name: 'Graphs', weeks: '17-18', why: 'BFS/DFS on grids and adjacency lists. Very common.' },
     { topicId: 'advanced-graphs', name: 'Advanced Graphs', weeks: '19-20', why: 'Dijkstra, MST, topological sort.' },
