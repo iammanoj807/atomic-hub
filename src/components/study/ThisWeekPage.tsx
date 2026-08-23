@@ -13,7 +13,7 @@ import {
     getPlanWeek,
     daysUntilPlanStart,
     summariseHours,
-    isUnderPace,
+    getPaceState,
     UNDER_PACE_HOURS,
 } from '../../utils/studyPlan';
 import { weekdayOf } from '../../utils/studySchedule';
@@ -100,7 +100,7 @@ const ThisWeekPage = () => {
     const daysToStart = daysUntilPlanStart(today);
 
     const hours = summariseHours(studyWeekLogs, currentWeekNumber);
-    const behind = isUnderPace(studyWeekLogs, currentWeekNumber);
+    const pace = getPaceState(studyWeekLogs, currentWeekNumber);
     const loggedWeeks = new Set(
         Object.values(studyWeekLogs)
             .filter(log => log.actualHours != null)
@@ -250,11 +250,17 @@ const ThisWeekPage = () => {
                 </Stack>
             </Box>
 
-            {behind && (
-                <Alert severity="warning" variant="outlined" sx={{ mb: 4, borderRadius: 3 }}>
-                    Three weeks running under {UNDER_PACE_HOURS} hours. Cut Saturday's papers hour first, then
-                    the Saturday project. Keep the mornings, the daily DSA and the daily applications — those
-                    are the habits that carry the plan.
+            {pace !== 'ok' && (
+                <Alert
+                    severity={pace === 'act' ? 'warning' : 'info'}
+                    variant="outlined"
+                    sx={{ mb: 4, borderRadius: 3 }}
+                >
+                    {pace === 'act'
+                        ? `Three weeks running under ${UNDER_PACE_HOURS} hours. Cut Saturday's papers hour
+                           first, then the Saturday project. Keep the mornings, the daily DSA and the daily
+                           applications — those are the habits that carry the plan.`
+                        : `Two weeks under ${UNDER_PACE_HOURS} hours. Just noting it.`}
                 </Alert>
             )}
 

@@ -103,15 +103,17 @@ export const summariseHours = (
     };
 };
 
-/** Below this for three weeks running and something has to give. Roughly the
- *  same fraction of the target as the 16-of-24 it replaced. */
+/** Below this and the week did not go the way it was meant to. */
 export const UNDER_PACE_HOURS = 19;
+/** Two weeks is worth saying out loud. */
+export const UNDER_PACE_NOTICE_WEEKS = 2;
+/** Three is where the plan itself says something has to give. */
 export const UNDER_PACE_WEEKS = 3;
 
 /**
- * How many of the most recent consecutive logged weeks came in under 16 hours.
- * Walks backwards from the current week and stops at the first week that is
- * either fine or missing — an unlogged week breaks the run rather than
+ * How many of the most recent consecutive logged weeks came in under the
+ * threshold. Walks backwards from the current week and stops at the first week
+ * that is either fine or missing — an unlogged week breaks the run rather than
  * silently counting as a zero.
  */
 export const getUnderPaceStreak = (
@@ -133,3 +135,23 @@ export const isUnderPace = (
     logs: Record<number, WeekLogInput>,
     upToWeek: number | null
 ): boolean => getUnderPaceStreak(logs, upToWeek) >= UNDER_PACE_WEEKS;
+
+/**
+ * 'notice' after two weeks, 'act' after three.
+ *
+ * Waiting for three consecutive weeks meant roughly five weeks of drift before
+ * anything was said, by which point the answer is an apology rather than a
+ * decision. Two weeks states the fact and stops; three names the cut, because
+ * by then the choice is which session goes, not whether one does.
+ */
+export type PaceState = 'ok' | 'notice' | 'act';
+
+export const getPaceState = (
+    logs: Record<number, WeekLogInput>,
+    upToWeek: number | null
+): PaceState => {
+    const streak = getUnderPaceStreak(logs, upToWeek);
+    if (streak >= UNDER_PACE_WEEKS) return 'act';
+    if (streak >= UNDER_PACE_NOTICE_WEEKS) return 'notice';
+    return 'ok';
+};
