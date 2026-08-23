@@ -12,3 +12,17 @@ export const getLondonDateString = (): string => {
         timeZone: 'Europe/London'
     });
 };
+
+/**
+ * The current London time as HH:MM, whatever timezone the device is in.
+ * Used to work out which slot of the day is running right now, so it has to
+ * agree with getLondonDateString rather than with the phone's clock.
+ */
+export const getLondonTimeString = (): string => {
+    return new Date().toLocaleTimeString('en-GB', {
+        timeZone: 'Europe/London',
+        hour12: false,
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+};

@@ -1,9 +1,9 @@
-// Putting the week's routine onto a rota that moves.
+// Putting the week's routine onto a rota.
 //
-// Six days are fixed. The deep work block travels to whichever day is off that
-// week, and when it lands on a day that already had study on it, that study
-// moves to Friday rather than being dropped — otherwise a Wednesday day off
-// would quietly cost the week two and a half hours.
+// Six days are fixed. The deep work block sits on the day off — Thursday, on
+// the current rota — and when it lands on a day that already had study on it,
+// that study moves to Friday rather than being dropped, otherwise a Wednesday
+// day off would quietly cost the week two and a half hours.
 //
 // Two slots are never displaced: the daily NeetCode problem and the half hour
 // of applications after it. Whatever else happens to a day, it keeps both.
@@ -17,10 +17,18 @@ import {
     type RoutineSlot,
 } from '../data/studyPlan';
 
-/** Where the deep work block sits when a week has not said otherwise. */
-export const DEFAULT_DEEP_WORK_DAY: Weekday = 'Fri';
+/**
+ * Thursday is the day off on the current shift pattern, so it carries the
+ * build. The picker exists for when the rota changes, not because it changes
+ * every week — most weeks this default is simply correct and never touched.
+ */
+export const DEFAULT_DEEP_WORK_DAY: Weekday = 'Thu';
 
-/** The day displaced study lands on — the one day carrying no study of its own. */
+/**
+ * Where displaced study lands. Friday is a full 10:00-18:00 shift but carries
+ * no study block of its own, so it is the only day with room for Thursday's
+ * morning to move into — at the same 06:00-08:30 it would have had.
+ */
 const OVERFLOW_DAY: Weekday = 'Fri';
 
 /** These survive the deep work block landing on their day. */

@@ -1,4 +1,4 @@
-// The 26-week study plan — 17 Aug 2026 to 14 Feb 2027.
+// The 26-week study plan — 24 Aug 2026 to 21 Feb 2027.
 //
 // This is the content of Study_Tracker.xlsx, moved into the app so the plan
 // lives where the work already happens. Everything here is fixed: the schedule,
@@ -9,8 +9,8 @@
 //   A — research depth (mornings + Sunday): maths, theory, papers, reproduction
 //   B — engineering + DSA (evenings + weekends): LLM systems, RAG, evals, LeetCode
 
-export const PLAN_START_DATE = '2026-08-17'; // Monday of week 1
-export const PLAN_END_DATE = '2027-02-14';   // Sunday of week 26
+export const PLAN_START_DATE = '2026-08-24'; // Monday of week 1
+export const PLAN_END_DATE = '2027-02-21';   // Sunday of week 26
 export const PLAN_WEEKS = 26;
 
 /** Hours a normal week asks for. The routine below adds up to exactly this. */
@@ -21,7 +21,8 @@ export const LIGHT_WEEK_TARGET_HOURS = 10;
 // ============ START HERE — the strategy before the schedule ============
 
 export const workPattern =
-    'Shift work, so the day off moves. Set it each week and the deep work block follows it.';
+    'Shifts 10:00-18:00 Mon, Tue, Wed and Fri, 10:00-14:00 Sat and Sun, Thursday off. ' +
+    'The deep work block sits on the day off, and moves with it when the rota changes.';
 
 export interface Track {
     id: 'A' | 'B';
@@ -119,9 +120,9 @@ export const timeBudgetNote =
 
 // ============ THE WEEK — a fixed routine on a moving day off ============
 //
-// The plan was written around a Friday day off. Shift work moves it, so the
-// six ordinary days are fixed and only the deep work block travels — see
-// utils/studySchedule.ts, which lays it onto whichever day is off that week.
+// The plan was written around a Friday day off; the real rota gives Thursday.
+// So the six ordinary days are fixed and only the deep work block travels —
+// see utils/studySchedule.ts, which lays it onto whichever day is off.
 //
 // Two habits are never displaced by anything: the daily NeetCode problem and
 // the half hour of applications after it. A broken chain costs more than a
@@ -145,6 +146,21 @@ export const WEEKDAY_NAMES: Record<Weekday, string> = {
  * What a slot is, for logic. `track` below is what it is called on screen.
  * 'dsa' and 'job' are the two that survive being displaced.
  */
+/**
+ * Each day has one job, and naming it is what stops the daily "so what am I
+ * actually doing today". The names describe the day's centre of gravity, not
+ * its only slot — every day still carries DSA and applications.
+ */
+export const DAY_TITLES: Record<Weekday, string> = {
+    Mon: 'Watch day',
+    Tue: 'Read day',
+    Wed: 'Build day',
+    Thu: 'Deep work day',
+    Fri: 'Ship day',
+    Sat: 'Project day',
+    Sun: 'Light day',
+};
+
 export type SlotKind =
     | 'theory'
     | 'aieng'
@@ -168,7 +184,7 @@ export interface RoutineSlot {
     color: string;
 }
 
-/** Nothing may end after this. A 05:00 start needs a 21:30 bedtime. */
+/** Nothing may end after this. A 06:00 start needs a 22:30 bedtime. */
 export const LATEST_END_TIME = '21:00';
 
 const SLOT_COLORS: Record<SlotKind, string> = {
@@ -198,16 +214,16 @@ const jobSlot = (start = '20:15', end = '20:45') =>
     slot('job', start, end, 0.5, 'B - Job applications', 'Applications and outreach');
 
 /**
- * The six ordinary days. Friday looks empty of study on purpose: it is the
- * default deep work day, and when the deep work moves elsewhere Friday is
- * where that day's displaced study slots land, which is what keeps the week
- * at the same total however the rota falls.
+ * The six ordinary days. Friday looks empty of study on purpose: it is where
+ * the deep work day's displaced study lands, which is what keeps the week at
+ * the same total wherever the day off falls. On the current rota that means
+ * Friday morning carries Thursday's AI engineering block.
  */
 export const dailyRoutine: Record<Weekday, RoutineSlot[]> = {
-    Mon: [slot('theory', '05:00', '07:30', 2.5, 'A - Theory', 'Maths and theory'), dsaSlot(), jobSlot()],
-    Tue: [slot('theory', '05:00', '07:30', 2.5, 'A - Theory', 'Maths and theory'), dsaSlot(), jobSlot()],
-    Wed: [slot('theory', '05:00', '07:30', 2.5, 'A - Theory', 'Maths and theory'), dsaSlot(), jobSlot()],
-    Thu: [slot('aieng', '05:00', '07:30', 2.5, 'B - AI Eng', 'AI engineering'), dsaSlot(), jobSlot()],
+    Mon: [slot('theory', '06:00', '08:30', 2.5, 'A - Theory', 'Maths and theory'), dsaSlot(), jobSlot()],
+    Tue: [slot('theory', '06:00', '08:30', 2.5, 'A - Theory', 'Maths and theory'), dsaSlot(), jobSlot()],
+    Wed: [slot('theory', '06:00', '08:30', 2.5, 'A - Theory', 'Maths and theory'), dsaSlot(), jobSlot()],
+    Thu: [slot('aieng', '06:00', '08:30', 2.5, 'B - AI Eng', 'AI engineering'), dsaSlot(), jobSlot()],
     Fri: [dsaSlot(), jobSlot()],
     Sat: [
         slot('aieng', '15:30', '18:30', 3.0, 'B - AI Eng', 'AI engineering project'),
@@ -233,14 +249,21 @@ export const LIGHT_DAY_NOTE =
     'Re-read the week\'s notes and redo the problems you got wrong. Never new material.';
 
 export const routineRules: string[] = [
-    'Mornings are for theory. 05:00 to 07:30, before anything else can take them.',
+    'Mornings are for theory. 06:00 to 08:30, before anything else can take them.',
     'DSA every single day, no exceptions. 45 minutes. This is the habit that proves you are consistent.',
     'Job applications every day, 30 minutes, straight after DSA. Consistency beats bursts here too.',
-    'Nothing ends after 21:00. A 05:00 wake needs a 21:30 bedtime, and the plan is worthless without it.',
+    'Nothing ends after 21:00. A 06:00 wake needs a 22:30 bedtime, and the plan is worthless without it.',
     'Deep work is 09:00-15:00 on whichever day you are off, and then you STOP.',
     'Sunday is a light day: DSA, applications, and one hour of review. Never new material.',
     'Miss a day? SKIP it. Never double up. Doubling up is how plans die.',
 ];
+
+/**
+ * Track A theory runs to here; from week 13 the mornings belong to TOEFL.
+ * Worth knowing as a number rather than discovering in November: minus the
+ * consolidation weeks it is nine real theory weeks, and nothing replaces them.
+ */
+export const THEORY_TRACK_LAST_WEEK = 12;
 
 // ============ THE 26 WEEKS ============
 
@@ -283,7 +306,7 @@ const FULL = FULL_WEEK_TARGET_HOURS;
 
 export const planWeeks: PlanWeek[] = [
     {
-        week: 1, dates: '17-23 Aug', startDate: '2026-08-17', endDate: '2026-08-23',
+        week: 1, dates: '24-30 Aug', startDate: '2026-08-24', endDate: '2026-08-30',
         phase: 'PHASE 1: Foundations + Autograd', phaseKey: 'foundations', targetHours: FULL,
         theory: "WATCH 3Blue1Brown 'Essence of Linear Algebra' (full series). READ Deisenroth Ch 2. BUILD: matrix ops in NumPy by hand.",
         deepWork: 'Karpathy Video 1 - build MICROGRAD from nothing. Type every line.',
@@ -291,7 +314,7 @@ export const planWeeks: PlanWeek[] = [
         dsa: 'Arrays & Hashing (1-5)', milestone: 'GitHub set up + first commit',
     },
     {
-        week: 2, dates: '24-30 Aug', startDate: '2026-08-24', endDate: '2026-08-30',
+        week: 2, dates: '31 Aug-6 Sep', startDate: '2026-08-31', endDate: '2026-09-06',
         phase: 'PHASE 1: Foundations + Autograd', phaseKey: 'foundations', targetHours: FULL,
         theory: "WATCH 3B1B 'Essence of Calculus'. READ Deisenroth Ch 3-4 (geometry, SVD). BUILD: implement SVD-based PCA yourself.",
         deepWork: 'Finish micrograd. EXTEND it: add tanh, exp, and one operation of your own design.',
@@ -299,7 +322,7 @@ export const planWeeks: PlanWeek[] = [
         dsa: 'Arrays & Hashing (6-9)',
     },
     {
-        week: 3, dates: '31 Aug-6 Sep', startDate: '2026-08-31', endDate: '2026-09-06',
+        week: 3, dates: '7-13 Sep', startDate: '2026-09-07', endDate: '2026-09-13',
         phase: 'PHASE 1: Foundations + Autograd', phaseKey: 'foundations', targetHours: FULL,
         theory: "WATCH 3B1B 'Neural Networks' series. READ Deisenroth Ch 5 (vector calculus). BUILD: derive backprop for 2-layer MLP ON PAPER.",
         deepWork: 'Karpathy Video 2 - makemore 1 (bigrams). Then rewrite it in pure NumPy.',
@@ -307,7 +330,7 @@ export const planWeeks: PlanWeek[] = [
         dsa: 'Two Pointers (all 5)',
     },
     {
-        week: 4, dates: '7-13 Sep', startDate: '2026-09-07', endDate: '2026-09-13',
+        week: 4, dates: '14-20 Sep', startDate: '2026-09-14', endDate: '2026-09-20',
         phase: '*** CONSOLIDATION WEEK ***', phaseKey: 'consolidation', targetHours: LIGHT,
         theory: 'No new theory. Review Weeks 1-3. Redo the problems you got wrong.',
         deepWork: "WRITE + PUBLISH: 'Building an autograd engine from scratch' blog post.",
@@ -315,7 +338,7 @@ export const planWeeks: PlanWeek[] = [
         dsa: 'Review + redo weak problems', milestone: 'OUTPUT: repo + blog post',
     },
     {
-        week: 5, dates: '14-20 Sep', startDate: '2026-09-14', endDate: '2026-09-20',
+        week: 5, dates: '21-27 Sep', startDate: '2026-09-21', endDate: '2026-09-27',
         phase: 'PHASE 2: Probability + Sequence Models', phaseKey: 'probability', targetHours: FULL,
         theory: 'WATCH Harvard Stat 110 Lec 1-8 (Blitzstein). READ Murphy Book 1 Ch 2. BUILD: simulate every distribution in NumPy.',
         deepWork: 'Karpathy Video 3-4 - makemore 2-3 (MLP, activations, BatchNorm internals).',
@@ -323,7 +346,7 @@ export const planWeeks: PlanWeek[] = [
         dsa: 'Sliding Window (all 6)',
     },
     {
-        week: 6, dates: '21-27 Sep', startDate: '2026-09-21', endDate: '2026-09-27',
+        week: 6, dates: '28 Sep-4 Oct', startDate: '2026-09-28', endDate: '2026-10-04',
         phase: 'PHASE 2: Probability + Sequence Models', phaseKey: 'probability', targetHours: FULL,
         theory: 'WATCH Stat 110 Lec 9-16. READ Murphy Ch 3-4. BUILD: implement MLE and Bayesian inference by hand.',
         deepWork: 'Karpathy Video 5 - makemore 4 (manual backprop through EVERYTHING).',
@@ -331,7 +354,7 @@ export const planWeeks: PlanWeek[] = [
         dsa: 'Stack (all 7)', milestone: 'Eval skills = biggest market gap',
     },
     {
-        week: 7, dates: '28 Sep-4 Oct', startDate: '2026-09-28', endDate: '2026-10-04',
+        week: 7, dates: '5-11 Oct', startDate: '2026-10-05', endDate: '2026-10-11',
         phase: 'PHASE 2: Probability + Sequence Models', phaseKey: 'probability', targetHours: FULL,
         theory: 'WATCH MacKay lectures (Cambridge, on YouTube). READ MacKay Ch 1-4 (entropy, KL). BUILD: VAE from scratch on MNIST - derive ELBO on paper FIRST.',
         deepWork: 'Karpathy Video 6 - makemore 5 (WaveNet).',
@@ -339,7 +362,7 @@ export const planWeeks: PlanWeek[] = [
         dsa: 'Binary Search (all 7)',
     },
     {
-        week: 8, dates: '5-11 Oct', startDate: '2026-10-05', endDate: '2026-10-11',
+        week: 8, dates: '12-18 Oct', startDate: '2026-10-12', endDate: '2026-10-18',
         phase: '*** CONSOLIDATION WEEK ***', phaseKey: 'consolidation', targetHours: LIGHT,
         theory: 'Review Phases 1-2.',
         deepWork: 'Publish VAE + LaTeX derivation write-up (learn Overleaf now).',
@@ -347,7 +370,7 @@ export const planWeeks: PlanWeek[] = [
         dsa: 'Review + redo weak problems', milestone: 'OUTPUT: VAE + subfield chosen',
     },
     {
-        week: 9, dates: '12-18 Oct', startDate: '2026-10-12', endDate: '2026-10-18',
+        week: 9, dates: '19-25 Oct', startDate: '2026-10-19', endDate: '2026-10-25',
         phase: 'PHASE 3: Transformers + Learning Theory', phaseKey: 'transformers', targetHours: FULL,
         theory: "WATCH Stanford CS336 Lec 1-3 (free on YouTube). READ 'The Annotated Transformer'. BUILD: tokeniser (BPE) from scratch.",
         deepWork: "Karpathy Video 7 - 'Let's build GPT from scratch'.",
@@ -355,7 +378,7 @@ export const planWeeks: PlanWeek[] = [
         dsa: 'Linked List (1-6)', milestone: 'Papers now ALL in your subfield',
     },
     {
-        week: 10, dates: '19-25 Oct', startDate: '2026-10-19', endDate: '2026-10-25',
+        week: 10, dates: '26 Oct-1 Nov', startDate: '2026-10-26', endDate: '2026-11-01',
         phase: 'PHASE 3: Transformers + Learning Theory', phaseKey: 'transformers', targetHours: FULL,
         theory: 'WATCH CS336 Lec 4-6. READ Shalev-Shwartz Ch 2-6 (PAC learning, VC dimension). BUILD: implement a PAC bound empirically.',
         deepWork: 'Train your GPT on a real dataset. Get it genuinely working.',
@@ -363,7 +386,7 @@ export const planWeeks: PlanWeek[] = [
         dsa: 'Linked List (7-11)',
     },
     {
-        week: 11, dates: '26 Oct-1 Nov', startDate: '2026-10-26', endDate: '2026-11-01',
+        week: 11, dates: '2-8 Nov', startDate: '2026-11-02', endDate: '2026-11-08',
         phase: 'PHASE 3: Transformers + Learning Theory', phaseKey: 'transformers', targetHours: FULL,
         theory: 'WATCH CS336 Lec 7-9. READ Shalev-Shwartz Ch 7-13 (generalisation bounds). BUILD: reproduce a double-descent curve yourself.',
         deepWork: "Karpathy - 'Let's reproduce GPT-2 (124M)'.",
@@ -371,7 +394,7 @@ export const planWeeks: PlanWeek[] = [
         dsa: 'Trees (1-8)',
     },
     {
-        week: 12, dates: '2-8 Nov', startDate: '2026-11-02', endDate: '2026-11-08',
+        week: 12, dates: '9-15 Nov', startDate: '2026-11-09', endDate: '2026-11-15',
         phase: '*** CONSOLIDATION WEEK ***', phaseKey: 'consolidation', targetHours: LIGHT,
         theory: 'Review Phase 3.',
         deepWork: '*** EMAIL YOUR MSc SUPERVISOR *** Plan + GitHub links + ask for guidance and collaboration.',
@@ -379,7 +402,7 @@ export const planWeeks: PlanWeek[] = [
         dsa: 'Trees (9-15)', milestone: '** THE MOST IMPORTANT WEEK **',
     },
     {
-        week: 13, dates: '9-15 Nov', startDate: '2026-11-09', endDate: '2026-11-15',
+        week: 13, dates: '16-22 Nov', startDate: '2026-11-16', endDate: '2026-11-22',
         phase: 'PHASE 4: Reproduction + TOEFL', phaseKey: 'reproduction', targetHours: FULL,
         theory: 'SWITCH: TOEFL prep 2h/day. Official ETS + TST Prep YouTube. Focus WRITING and SPEAKING.',
         deepWork: 'CHOOSE your reproduction paper. Recent, your subfield, runs on free GPU.',
@@ -387,7 +410,7 @@ export const planWeeks: PlanWeek[] = [
         dsa: 'Tries (3) + Heap (1-3)', milestone: 'TOEFL prep starts',
     },
     {
-        week: 14, dates: '16-22 Nov', startDate: '2026-11-16', endDate: '2026-11-22',
+        week: 14, dates: '23-29 Nov', startDate: '2026-11-23', endDate: '2026-11-29',
         phase: 'PHASE 4: Reproduction + TOEFL', phaseKey: 'reproduction', targetHours: FULL,
         theory: 'TOEFL. Writing daily - this is your weakest area and the most fixable.',
         deepWork: 'BUILD the reproduction. Get it running end-to-end, even badly.',
@@ -395,15 +418,15 @@ export const planWeeks: PlanWeek[] = [
         dsa: 'Heap (4-7)',
     },
     {
-        week: 15, dates: '23-29 Nov', startDate: '2026-11-23', endDate: '2026-11-29',
+        week: 15, dates: '30 Nov-6 Dec', startDate: '2026-11-30', endDate: '2026-12-06',
         phase: 'PHASE 4: Reproduction + TOEFL', phaseKey: 'reproduction', targetHours: FULL,
-        theory: 'TOEFL. *** BOOK YOUR EXAM for mid-January *** Booking makes it real.',
+        theory: 'TOEFL. *** BOOK YOUR EXAM for late January *** Booking makes it real.',
         deepWork: 'DEBUG until your numbers match the paper. This is where real learning happens.',
         aiEng: 'vLLM + quantisation. Serve a model efficiently. Measure latency and cost.',
         dsa: 'Backtracking (1-5)', milestone: 'TOEFL booked',
     },
     {
-        week: 16, dates: '30 Nov-6 Dec', startDate: '2026-11-30', endDate: '2026-12-06',
+        week: 16, dates: '7-13 Dec', startDate: '2026-12-07', endDate: '2026-12-13',
         phase: '*** CONSOLIDATION WEEK ***', phaseKey: 'consolidation', targetHours: LIGHT,
         theory: 'Light TOEFL only. Rest.',
         deepWork: 'Write the README properly: what matched, what did not, and WHY.',
@@ -411,7 +434,7 @@ export const planWeeks: PlanWeek[] = [
         dsa: 'Backtracking (6-9)', milestone: 'OUTPUT: working reproduction',
     },
     {
-        week: 17, dates: '7-13 Dec', startDate: '2026-12-07', endDate: '2026-12-13',
+        week: 17, dates: '14-20 Dec', startDate: '2026-12-14', endDate: '2026-12-20',
         phase: 'PHASE 5: Original Contribution', phaseKey: 'original', targetHours: FULL,
         theory: 'TOEFL (1h) + newest arXiv in your subfield (1h).',
         deepWork: 'FIND YOUR EXTENSION: an ablation nobody ran, a failure mode, a simpler method, or a clean negative result.',
@@ -419,7 +442,7 @@ export const planWeeks: PlanWeek[] = [
         dsa: 'Graphs (1-6)',
     },
     {
-        week: 18, dates: '14-20 Dec', startDate: '2026-12-14', endDate: '2026-12-20',
+        week: 18, dates: '21-27 Dec', startDate: '2026-12-21', endDate: '2026-12-27',
         phase: 'PHASE 5: Original Contribution', phaseKey: 'original', targetHours: FULL,
         theory: 'TOEFL.',
         deepWork: 'RUN EXPERIMENTS. Log everything. Track every seed.',
@@ -427,7 +450,7 @@ export const planWeeks: PlanWeek[] = [
         dsa: 'Graphs (7-13)',
     },
     {
-        week: 19, dates: '21-27 Dec', startDate: '2026-12-21', endDate: '2026-12-27',
+        week: 19, dates: '28 Dec-3 Jan', startDate: '2026-12-28', endDate: '2027-01-03',
         phase: 'LIGHTER WEEK (Christmas)', phaseKey: 'lighter', targetHours: LIGHT,
         theory: 'TOEFL only. Call your family properly.',
         deepWork: 'Light work or rest.',
@@ -435,7 +458,7 @@ export const planWeeks: PlanWeek[] = [
         dsa: 'Advanced Graphs (1-3)',
     },
     {
-        week: 20, dates: '28 Dec-3 Jan', startDate: '2026-12-28', endDate: '2027-01-03',
+        week: 20, dates: '4-10 Jan', startDate: '2027-01-04', endDate: '2027-01-10',
         phase: '*** CONSOLIDATION WEEK ***', phaseKey: 'consolidation', targetHours: LIGHT,
         theory: 'Review the whole 5 months.',
         deepWork: 'Finish experiments. Draft in NeurIPS/ICML LaTeX template.',
@@ -443,7 +466,7 @@ export const planWeeks: PlanWeek[] = [
         dsa: 'Advanced Graphs (4-6)', milestone: 'OUTPUT: original result + draft',
     },
     {
-        week: 21, dates: '4-10 Jan', startDate: '2027-01-04', endDate: '2027-01-10',
+        week: 21, dates: '11-17 Jan', startDate: '2027-01-11', endDate: '2027-01-17',
         phase: 'PHASE 6: Publish, Test, Apply', phaseKey: 'publish', targetHours: FULL,
         theory: 'FINAL TOEFL PREP.',
         deepWork: 'Polish write-up. Send to your MSc supervisor for feedback.',
@@ -451,7 +474,7 @@ export const planWeeks: PlanWeek[] = [
         dsa: '1-D DP (1-6)',
     },
     {
-        week: 22, dates: '11-17 Jan', startDate: '2027-01-11', endDate: '2027-01-17',
+        week: 22, dates: '18-24 Jan', startDate: '2027-01-18', endDate: '2027-01-24',
         phase: 'PHASE 6: Publish, Test, Apply', phaseKey: 'publish', targetHours: FULL,
         theory: '*** TOEFL EXAM ***',
         deepWork: 'PUBLISH: arXiv preprint (supervisor endorses) or detailed technical blog + GitHub.',
@@ -459,7 +482,7 @@ export const planWeeks: PlanWeek[] = [
         dsa: '1-D DP (7-12)', milestone: 'OUTPUT: TOEFL + published work',
     },
     {
-        week: 23, dates: '18-24 Jan', startDate: '2027-01-18', endDate: '2027-01-24',
+        week: 23, dates: '25-31 Jan', startDate: '2027-01-25', endDate: '2027-01-31',
         phase: 'PHASE 6: Publish, Test, Apply', phaseKey: 'publish', targetHours: FULL,
         theory: 'Build professor list: 25-30 names, their recent papers, funding, availability.',
         deepWork: 'Read 3 papers from each of your top 10 professors.',
@@ -467,7 +490,7 @@ export const planWeeks: PlanWeek[] = [
         dsa: '2-D DP (1-6)',
     },
     {
-        week: 24, dates: '25-31 Jan', startDate: '2027-01-25', endDate: '2027-01-31',
+        week: 24, dates: '1-7 Feb', startDate: '2027-02-01', endDate: '2027-02-07',
         phase: 'PHASE 6: Publish, Test, Apply', phaseKey: 'publish', targetHours: FULL,
         theory: 'Draft Statement of Purpose.',
         deepWork: 'EMAIL PROFESSORS - 5 per week, each personalised. Never generic.',
@@ -475,7 +498,7 @@ export const planWeeks: PlanWeek[] = [
         dsa: '2-D DP (7-11)', milestone: 'Outreach begins',
     },
     {
-        week: 25, dates: '1-7 Feb', startDate: '2027-02-01', endDate: '2027-02-07',
+        week: 25, dates: '8-14 Feb', startDate: '2027-02-08', endDate: '2027-02-14',
         phase: 'PHASE 6: Publish, Test, Apply', phaseKey: 'publish', targetHours: FULL,
         theory: 'Refine SoP. Get it edited by a native speaker.',
         deepWork: '5 more professor emails.',
@@ -483,7 +506,7 @@ export const planWeeks: PlanWeek[] = [
         dsa: 'Greedy (all 8)',
     },
     {
-        week: 26, dates: '8-14 Feb', startDate: '2027-02-08', endDate: '2027-02-14',
+        week: 26, dates: '15-21 Feb', startDate: '2027-02-15', endDate: '2027-02-21',
         phase: 'REVIEW + PLAN NEXT PHASE', phaseKey: 'review', targetHours: FULL,
         theory: 'Honest review of all 6 months. What worked, what did not.',
         deepWork: 'Plan next 6 months: GRE if needed, second project, Dec 2027 applications.',
@@ -527,7 +550,7 @@ export const dsaPatterns: DSAPatternPlan[] = [
     { topicId: 'linked-list', name: 'Linked List', weeks: '7-8', why: 'Pointer manipulation. Fast/slow pointer technique.' },
     { topicId: 'trees', name: 'Trees', weeks: '9-12', why: 'Biggest single category. DFS, BFS, recursion.' },
     { topicId: 'tries', name: 'Tries', weeks: '13', why: 'Prefix problems. Small but appears in real interviews.' },
-    { topicId: 'heap-priority-queue', name: 'Heap / Priority Queue', weeks: '13', why: 'Top-K problems, median of stream, scheduling.' },
+    { topicId: 'heap-priority-queue', name: 'Heap / Priority Queue', weeks: '13-14', why: 'Top-K problems, median of stream, scheduling.' },
     { topicId: 'backtracking', name: 'Backtracking', weeks: '15-16', why: 'Permutations, subsets. Most people are WEAK here.', weakSpot: true },
     { topicId: 'graphs', name: 'Graphs', weeks: '17-18', why: 'BFS/DFS on grids and adjacency lists. Very common.' },
     { topicId: 'advanced-graphs', name: 'Advanced Graphs', weeks: '19-20', why: 'Dijkstra, MST, topological sort.' },

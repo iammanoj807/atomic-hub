@@ -24,9 +24,11 @@ import {
  */
 const WeekSchedule = ({
     deepWorkDay = DEFAULT_DEEP_WORK_DAY,
+    secondDayOff = null,
     today,
 }: {
     deepWorkDay?: Weekday;
+    secondDayOff?: Weekday | null;
     today?: Weekday;
 }) => {
     const week = getRoutineForWeek(deepWorkDay);
@@ -37,6 +39,9 @@ const WeekSchedule = ({
                 const slots = week[day];
                 const isToday = day === today;
                 const isDeep = day === deepWorkDay;
+                // Marked so the week reads true, but the day keeps its slots:
+                // a free day is time gained, not study cancelled.
+                const isSecondOff = day === secondDayOff;
                 const isLight = isLightDay(day, deepWorkDay);
 
                 return (
@@ -100,6 +105,19 @@ const WeekSchedule = ({
                                             fontWeight: 800,
                                             color: '#ff8a65',
                                             bgcolor: 'rgba(255, 138, 101, 0.15)',
+                                        }}
+                                    />
+                                )}
+                                {isSecondOff && (
+                                    <Chip
+                                        label="OFF"
+                                        size="small"
+                                        sx={{
+                                            height: 18,
+                                            fontSize: '0.55rem',
+                                            fontWeight: 800,
+                                            color: '#4dd0e1',
+                                            bgcolor: 'rgba(77, 208, 225, 0.15)',
                                         }}
                                     />
                                 )}
