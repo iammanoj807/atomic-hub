@@ -258,6 +258,13 @@ export const routineRules: string[] = [
     'Miss a day? SKIP it. Never double up. Doubling up is how plans die.',
 ];
 
+/**
+ * Track A theory runs to here; from week 13 the mornings belong to TOEFL.
+ * Worth knowing as a number rather than discovering in November: minus the
+ * consolidation weeks it is nine real theory weeks, and nothing replaces them.
+ */
+export const THEORY_TRACK_LAST_WEEK = 12;
+
 // ============ THE 26 WEEKS ============
 
 /** Drives the colour each week is shown in — the phase bands from the sheet. */

@@ -7,7 +7,14 @@
 // This is that join, in one place, so the answer can be rendered rather than
 // worked out.
 
-import { LIGHT_DAY_NOTE, type SlotKind, type Weekday, type PlanWeek } from '../data/studyPlan';
+import {
+    planWeeks,
+    LIGHT_DAY_NOTE,
+    THEORY_TRACK_LAST_WEEK,
+    type SlotKind,
+    type Weekday,
+    type PlanWeek,
+} from '../data/studyPlan';
 import { getWeekResources, type WeekResource } from '../data/studyResources';
 import { dsaPatterns, type DSAPatternPlan } from '../data/studyPlan';
 import { minutesInto } from './studySchedule';
@@ -113,3 +120,19 @@ export const patternForWeek = (week: number): DSAPatternPlan | undefined =>
             ? week >= parts[0] && week <= parts[1]
             : parts[0] === week;
     });
+
+/**
+ * How many theory weeks are left, counting this one. Consolidation weeks are
+ * review rather than new material, so they do not count — nine of the twelve
+ * are real, and that is the number worth seeing early.
+ */
+export const theoryWeeksLeft = (currentWeek: number): number =>
+    planWeeks.filter(
+        w => w.week >= currentWeek
+            && w.week <= THEORY_TRACK_LAST_WEEK
+            && w.phaseKey !== 'consolidation'
+    ).length;
+
+/** Whether the mornings still belong to theory at all. */
+export const isTheoryTrackWeek = (week: number): boolean =>
+    week <= THEORY_TRACK_LAST_WEEK;

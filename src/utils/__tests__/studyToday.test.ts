@@ -4,9 +4,17 @@ import {
     slotState,
     buildSentence,
     patternForWeek,
+    theoryWeeksLeft,
+    isTheoryTrackWeek,
 } from '../studyToday';
 import { getRoutineForDay, DEFAULT_DEEP_WORK_DAY } from '../studySchedule';
-import { planWeeks, DAY_TITLES, WEEKDAYS, LIGHT_DAY_NOTE } from '../../data/studyPlan';
+import {
+    planWeeks,
+    DAY_TITLES,
+    WEEKDAYS,
+    LIGHT_DAY_NOTE,
+    THEORY_TRACK_LAST_WEEK,
+} from '../../data/studyPlan';
 
 const week1 = planWeeks[0];
 
@@ -137,5 +145,40 @@ describe('patternForWeek', () => {
         for (const week of planWeeks) {
             expect(patternForWeek(week.week)).toBeDefined();
         }
+    });
+});
+
+describe('the theory track', () => {
+    it('ends at week 12', () => {
+        expect(THEORY_TRACK_LAST_WEEK).toBe(12);
+        expect(isTheoryTrackWeek(12)).toBe(true);
+        expect(isTheoryTrackWeek(13)).toBe(false);
+    });
+
+    it('counts nine real theory weeks, not twelve', () => {
+        // Weeks 4, 8 and 12 are consolidation: review, not new material.
+        expect(theoryWeeksLeft(1)).toBe(9);
+    });
+
+    it('counts down as the weeks go, this week included', () => {
+        expect(theoryWeeksLeft(2)).toBe(8);
+        expect(theoryWeeksLeft(11)).toBe(1);
+    });
+
+    it('does not count the consolidation weeks it passes', () => {
+        // Week 4 is consolidation, so standing on it there are 6 left ahead.
+        expect(theoryWeeksLeft(4)).toBe(6);
+    });
+
+    it('reaches zero once TOEFL has the mornings', () => {
+        expect(theoryWeeksLeft(13)).toBe(0);
+        expect(theoryWeeksLeft(26)).toBe(0);
+    });
+
+    it('agrees with the weeks the plan actually marks as theory', () => {
+        const realTheoryWeeks = planWeeks.filter(
+            w => w.week <= THEORY_TRACK_LAST_WEEK && w.phaseKey !== 'consolidation'
+        ).length;
+        expect(theoryWeeksLeft(1)).toBe(realTheoryWeeks);
     });
 });
