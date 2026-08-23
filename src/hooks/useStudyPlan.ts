@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import {
     subscribeToStudyWeeks,
     saveStudyWeekLog,
+    saveStudyWeekSecondDayOff,
     subscribeToStudyPapers,
     saveStudyPaper,
     deleteStudyPaper,
@@ -61,6 +62,20 @@ export const useStudyPlan = () => {
         return isWeekday(stored) ? stored : DEFAULT_DEEP_WORK_DAY;
     };
 
+    /**
+     * The second day off, on the weeks the rota gives one. Null is the honest
+     * answer for a one-day-off week, so it is stored as a cleared field rather
+     * than a day that happens to mean "none".
+     */
+    const saveSecondDayOff = async (week: number, secondDayOff: Weekday | null) => {
+        await saveStudyWeekSecondDayOff(week, secondDayOff);
+    };
+
+    const getSecondDayOff = (week: number): Weekday | null => {
+        const stored = studyWeekLogs[week]?.secondDayOff;
+        return isWeekday(stored) ? stored : null;
+    };
+
     const savePaper = async (paper: Omit<StudyPaper, 'id' | 'createdAt'> & { id?: string }) => {
         const existing = paper.id ? studyPapers.find(p => p.id === paper.id) : undefined;
 
@@ -90,6 +105,8 @@ export const useStudyPlan = () => {
         saveWeekLog,
         saveDeepWorkDay,
         getDeepWorkDay,
+        saveSecondDayOff,
+        getSecondDayOff,
         studyPapers,
         savePaper,
         deletePaper,

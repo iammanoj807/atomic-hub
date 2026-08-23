@@ -754,6 +754,11 @@ export interface StudyWeekLog {
      * than assuming Friday. Absent means the default, not "no deep work".
      */
     deepWorkDay?: string;
+    /**
+     * The other day off, when the rota gives two ('Mon'..'Sun'). Recorded so
+     * the week reads true; it does not move any slots — see studySchedule.ts.
+     */
+    secondDayOff?: string;
     updatedAt: Timestamp;
 }
 
@@ -789,6 +794,25 @@ export const saveStudyWeekLog = async (
         }, { merge: true });
     } catch (error) {
         console.error('❌ Failed to save study week:', error);
+        throw error;
+    }
+};
+
+/**
+ * The second day off is set and unset week to week, so clearing it has to
+ * remove the field rather than write undefined — Firestore rejects undefined,
+ * and a stored "none" would be indistinguishable from a real answer.
+ */
+export const saveStudyWeekSecondDayOff = async (week: number, day: string | null) => {
+    try {
+        const docRef = doc(db, STUDY_WEEKS_COLLECTION, studyWeekDocId(week));
+        await setDoc(docRef, {
+            week,
+            secondDayOff: day ?? deleteField(),
+            updatedAt: Timestamp.now(),
+        }, { merge: true });
+    } catch (error) {
+        console.error('❌ Failed to save second day off:', error);
         throw error;
     }
 };

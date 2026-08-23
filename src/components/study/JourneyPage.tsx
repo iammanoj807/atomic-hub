@@ -29,6 +29,7 @@ import {
     PHASE_COLORS,
     PROJECT_WEIGHT_LABELS,
     PROJECT_WEIGHT_COLORS,
+    THEORY_TRACK_LAST_WEEK,
     type PlanWeek,
 } from '../../data/studyPlan';
 import { getWeekResources } from '../../data/studyResources';
@@ -153,6 +154,10 @@ const JourneyPage = () => {
 
                                 <Stack spacing={1}>
                                     {group.weeks.map(week => {
+                                        // Theory ends here and TOEFL takes the
+                                        // mornings, which is an edge in the plan
+                                        // rather than just the next week along.
+                                        const endsTheoryTrack = week.week === THEORY_TRACK_LAST_WEEK;
                                         const isOpen = openWeek === week.week;
                                         const isCurrent = week.week === currentWeekNumber;
                                         const isLogged = loggedWeeks.has(week.week);
@@ -226,6 +231,24 @@ const JourneyPage = () => {
                                                         <ResourceList resources={getWeekResources(week.week)} />
                                                     </Stack>
                                                 </Collapse>
+
+                                                {endsTheoryTrack && (
+                                                    <Stack
+                                                        direction="row"
+                                                        alignItems="center"
+                                                        spacing={1.5}
+                                                        sx={{ mt: 1.5, mb: 0.5 }}
+                                                    >
+                                                        <Box sx={{ flex: 1, height: '1px', bgcolor: 'rgba(255,255,255,0.12)' }} />
+                                                        <Typography
+                                                            variant="caption"
+                                                            sx={{ color: 'text.disabled', fontWeight: 800, letterSpacing: 1.1, fontSize: '0.62rem' }}
+                                                        >
+                                                            THEORY ENDS · TOEFL TAKES THE MORNINGS
+                                                        </Typography>
+                                                        <Box sx={{ flex: 1, height: '1px', bgcolor: 'rgba(255,255,255,0.12)' }} />
+                                                    </Stack>
+                                                )}
                                             </Box>
                                         );
                                     })}

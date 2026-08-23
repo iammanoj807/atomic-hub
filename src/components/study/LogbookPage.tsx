@@ -26,7 +26,7 @@ import { useSearchParams } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
 import { useTaskContext } from '../../context/TaskContext';
 import { getLondonDateString } from '../../utils/date';
-import { summariseHours, isUnderPace, UNDER_PACE_HOURS } from '../../utils/studyPlan';
+import { summariseHours, getPaceState, UNDER_PACE_HOURS } from '../../utils/studyPlan';
 import { planWeeks, PHASE_COLORS, paperPasses } from '../../data/studyPlan';
 import type { StudyPaper } from '../../services/firebaseService';
 import StudyPageHeader from './StudyPageHeader';
@@ -66,7 +66,7 @@ const LogbookPage = () => {
     const [pendingDelete, setPendingDelete] = useState<StudyPaper | null>(null);
 
     const summary = summariseHours(studyWeekLogs, currentWeekNumber);
-    const behind = isUnderPace(studyWeekLogs, currentWeekNumber);
+    const pace = getPaceState(studyWeekLogs, currentWeekNumber);
     const deepReads = studyPapers.filter(paper => paper.pass === 3).length;
 
     const openNewPaper = () => {
@@ -218,10 +218,17 @@ const LogbookPage = () => {
                         ))}
                     </Box>
 
-                    {behind && (
-                        <Alert severity="warning" variant="outlined" sx={{ mb: 3, borderRadius: 3 }}>
-                            Under {UNDER_PACE_HOURS} hours for three weeks running. Cut Saturday's papers hour
-                            first, then the Saturday project. Keep the mornings, the daily DSA and the applications.
+                    {pace !== 'ok' && (
+                        <Alert
+                            severity={pace === 'act' ? 'warning' : 'info'}
+                            variant="outlined"
+                            sx={{ mb: 3, borderRadius: 3 }}
+                        >
+                            {pace === 'act'
+                                ? `Under ${UNDER_PACE_HOURS} hours for three weeks running. Cut Saturday's
+                                   papers hour first, then the Saturday project. Keep the mornings, the daily
+                                   DSA and the applications.`
+                                : `Two weeks under ${UNDER_PACE_HOURS} hours. Just noting it.`}
                         </Alert>
                     )}
 
