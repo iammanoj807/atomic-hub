@@ -21,6 +21,7 @@ import {
     DAY_TITLES,
     PHASE_COLORS,
     PLAN_WEEKS,
+    PLAN_START_DATE,
     type Weekday,
     type RoutineSlot,
 } from '../../data/studyPlan';
@@ -284,10 +285,16 @@ const TodayPage = () => {
                         variant="h4"
                         sx={{ fontWeight: 800, color: 'text.primary', fontSize: { xs: '1.7rem', sm: '2rem' } }}
                     >
-                        {phase === 'during' ? DAY_TITLES[weekday] : 'Not started yet'}
+                        {phase === 'during'
+                            ? DAY_TITLES[weekday]
+                            : daysToStart === 1
+                                ? 'Week 1 starts tomorrow'
+                                : `Week 1 starts in ${daysToStart} days`}
                     </Typography>
+                    {/* Before the plan starts, the date that matters is the one it
+                        starts on. Printing today's date here read as the start date. */}
                     <Typography variant="body1" color="text.secondary">
-                        {format(parseISO(today), 'EEEE d MMMM')}
+                        {format(parseISO(phase === 'during' ? today : PLAN_START_DATE), 'EEEE d MMMM')}
                     </Typography>
                 </Stack>
 
@@ -297,14 +304,12 @@ const TodayPage = () => {
                 >
                     {phase === 'during'
                         ? `Week ${currentWeekNumber} of ${PLAN_WEEKS} · ${planWeek.phase.replace(/\*/g, '').trim()}`
-                        : daysToStart === 1
-                            ? 'Week 1 starts tomorrow'
-                            : `Week 1 starts in ${daysToStart} days`}
+                        : `Week 1 · ${planWeek.dates} · ${planWeek.phase.replace(/\*/g, '').trim()}`}
                 </Typography>
 
                 {phase === 'before' && (
                     <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                        This is what Monday will ask for.
+                        This is what that Monday will ask for.
                     </Typography>
                 )}
             </Box>
