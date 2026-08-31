@@ -3,6 +3,7 @@ import WbTwilightRoundedIcon from '@mui/icons-material/WbTwilightRounded';
 import ConstructionRoundedIcon from '@mui/icons-material/ConstructionRounded';
 import HubRoundedIcon from '@mui/icons-material/HubRounded';
 import CodeRoundedIcon from '@mui/icons-material/CodeRounded';
+import MenuBookRoundedIcon from '@mui/icons-material/MenuBookRounded';
 import FlagRoundedIcon from '@mui/icons-material/FlagRounded';
 import { PHASE_COLORS, type PlanWeek } from '../../data/studyPlan';
 
@@ -93,9 +94,10 @@ const WeekCard = ({
 
             <Stack spacing={1.75}>
                 <WeekLine icon={<WbTwilightRoundedIcon sx={{ fontSize: 18 }} />} label="MORNINGS · THEORY" text={week.theory} />
-                <WeekLine icon={<ConstructionRoundedIcon sx={{ fontSize: 18 }} />} label="DEEP WORK 5H · YOUR DAY OFF" text={week.deepWork} />
-                <WeekLine icon={<HubRoundedIcon sx={{ fontSize: 18 }} />} label="AI ENGINEERING 3.5H" text={week.aiEng} />
+                <WeekLine icon={<ConstructionRoundedIcon sx={{ fontSize: 18 }} />} label="DEEP WORK 6H · YOUR DAY OFF" text={week.deepWork} />
+                <WeekLine icon={<HubRoundedIcon sx={{ fontSize: 18 }} />} label="SATURDAY AFTERNOON · TRACK B" text={week.aiEng} />
                 <WeekLine icon={<CodeRoundedIcon sx={{ fontSize: 18 }} />} label="DAILY DSA" text={week.dsa} />
+                <WeekLine icon={<MenuBookRoundedIcon sx={{ fontSize: 18 }} />} label="READING · 20 MIN A DAY" text={week.reading} />
             </Stack>
 
             {week.milestone && (

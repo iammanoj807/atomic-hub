@@ -18,6 +18,8 @@ import ThisWeekPage from './components/study/ThisWeekPage';
 import JourneyPage from './components/study/JourneyPage';
 import LogbookPage from './components/study/LogbookPage';
 import LibraryPage from './components/study/LibraryPage';
+import ReadingPage from './components/study/ReadingPage';
+import ArtifactsPage from './components/study/ArtifactsPage';
 import IdentityBanner from './components/IdentityBanner';
 import GlobalTimer from './components/GlobalTimer';
 import ReactPlayer from 'react-player';
@@ -221,6 +223,8 @@ function MainLayout() {
                                 <Route path="/study/journey" element={<JourneyPage />} />
                                 <Route path="/study/logbook" element={<LogbookPage />} />
                                 <Route path="/study/library" element={<LibraryPage />} />
+                                <Route path="/study/reading" element={<ReadingPage />} />
+                                <Route path="/study/artifacts" element={<ArtifactsPage />} />
                                 {/* The plan used to be eight pages; anything bookmarked
                                     from then lands on the week you are actually in. */}
                                 <Route path="/study/*" element={<Navigate to="/study" replace />} />

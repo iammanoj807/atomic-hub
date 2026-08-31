@@ -28,6 +28,9 @@ import type {
     PracticeRecord,
     StudyWeekLog,
     StudyPaper,
+    ReadingEntry,
+    GateAttempt,
+    ArtifactProgressDoc,
 } from '../services/firebaseService';
 import { usePomodoro, type PomodoroState } from '../hooks/usePomodoro';
 // Re-exported so existing imports of PomodoroState from this file keep working.
@@ -129,7 +132,7 @@ interface TaskContextType {
     practiceRecords: Record<string, PracticeRecord>;
     recordPractice: (questionId: string, confidence: 1 | 2 | 3) => Promise<void>;
 
-    // Study Plan — the 26 weeks
+    // Study Plan — the 52 weeks
     studyWeekLogs: Record<number, StudyWeekLog>;
     currentWeekNumber: number | null;
     saveWeekLog: (week: number, updates: Partial<Omit<StudyWeekLog, 'week' | 'updatedAt'>>) => Promise<void>;
@@ -142,6 +145,14 @@ interface TaskContextType {
     deletePaper: (id: string) => Promise<void>;
     completedProjectIds: string[];
     toggleProject: (projectId: string) => Promise<void>;
+    readingEntries: ReadingEntry[];
+    saveReading: (entry: Omit<ReadingEntry, 'id'>) => Promise<void>;
+    removeReading: (date: string) => Promise<void>;
+    gateAttempts: GateAttempt[];
+    saveGateAttempt: (attempt: Omit<GateAttempt, 'id'>) => Promise<void>;
+    artifactProgress: Record<string, ArtifactProgressDoc>;
+    toggleArtifactStage: (projectId: string, stage: 'build' | 'write' | 'publish' | 'post') => Promise<void>;
+    saveArtifactUrls: (projectId: string, links: { repoUrl?: string; postUrl?: string }) => Promise<void>;
 
     isMuted: boolean;
     setIsMuted: (muted: boolean) => void;
@@ -224,6 +235,14 @@ export const TaskProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         deletePaper,
         completedProjectIds,
         toggleProject,
+        readingEntries,
+        saveReading,
+        removeReading,
+        gateAttempts,
+        saveGateAttempt,
+        artifactProgress,
+        toggleArtifactStage,
+        saveArtifactUrls,
     } = useStudyPlan();
 
     // History State
@@ -742,6 +761,14 @@ export const TaskProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 deletePaper,
                 completedProjectIds,
                 toggleProject,
+                readingEntries,
+                saveReading,
+                removeReading,
+                gateAttempts,
+                saveGateAttempt,
+                artifactProgress,
+                toggleArtifactStage,
+                saveArtifactUrls,
                 isMuted,
                 setIsMuted,
                 pomodoroState,

@@ -3,11 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { planWeeks, PHASE_COLORS, PLAN_WEEKS } from '../../data/studyPlan';
 
 /**
- * Twenty-six squares — the whole six months at a glance.
+ * Fifty-two squares — the whole year at a glance.
  *
- * A bar would say "12% done". This says which weeks you logged, which phase
- * you are in, and how much road is left, which is the thing that actually
- * makes you want to keep going.
+ * A bar would say "12% done". This says which weeks you logged, which part
+ * you are in, and how much road is left. A missed week shows as nothing:
+ * there are no streaks here and no warning states, because a year is too
+ * long to run on guilt.
  */
 const WeekStrip = ({
     currentWeek,

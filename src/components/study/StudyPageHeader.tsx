@@ -1,5 +1,12 @@
 import { Box, Typography, Stack } from '@mui/material';
 import type { ReactNode } from 'react';
+import { PLAN_START_DATE, PLAN_END_DATE, PLAN_WEEKS } from '../../data/studyPlan';
+
+/** '31 Aug 2026' — read at UTC so no timezone can shift the plan's own dates. */
+const readable = (dateISO: string) =>
+    new Date(`${dateISO}T00:00:00Z`).toLocaleDateString('en-GB', {
+        day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC',
+    });
 
 /**
  * The top of every Study Plan page — an eyebrow, a headline and one line of
@@ -34,7 +41,7 @@ const StudyPageHeader = ({
                     {eyebrow}
                 </Typography>
                 <Typography variant="body1" fontWeight="medium" color="text.primary">
-                    17 Aug 2026 → 14 Feb 2027 · 26 weeks
+                    {readable(PLAN_START_DATE)} → {readable(PLAN_END_DATE)} · {PLAN_WEEKS} weeks
                 </Typography>
             </Box>
             {action}

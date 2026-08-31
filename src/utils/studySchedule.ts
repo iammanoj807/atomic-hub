@@ -2,11 +2,12 @@
 //
 // Six days are fixed. The deep work block sits on the day off — Thursday, on
 // the current rota — and when it lands on a day that already had study on it,
-// that study moves to Friday rather than being dropped, otherwise a Wednesday
-// day off would quietly cost the week its morning stage.
+// that study moves to Friday rather than being dropped, unless Friday already
+// runs the same block, which it now usually does.
 //
-// Two slots are never displaced: the daily NeetCode problem and the half hour
-// of applications after it. Whatever else happens to a day, it keeps both.
+// Three slots are never displaced: the daily twenty minutes of reading, the
+// NeetCode problem, and the applications half hour. Whatever else happens to a
+// day, it keeps all three.
 
 import {
     WEEKDAYS,
@@ -25,9 +26,9 @@ import {
 export const DEFAULT_DEEP_WORK_DAY: Weekday = 'Thu';
 
 /**
- * Where displaced study lands. Friday is a full 10:00-18:00 shift but carries
- * no study block of its own, so it is the only day with room for Thursday's
- * morning to move into — at the same 06:00-08:30 it would have had.
+ * Where displaced study lands. Friday was chosen when it carried no study of
+ * its own; it now runs the same shift-day shape as Monday, so most of what
+ * arrives is a duplicate of what is already there — see the merge below.
  */
 const OVERFLOW_DAY: Weekday = 'Fri';
 
@@ -71,11 +72,18 @@ export const getRoutineForWeek = (
         }
     }
 
-    // Friday absorbs whatever the build pushed off its day, keeping the week
-    // at the same total however the rota falls. When Friday IS the deep work
-    // day nothing was displaced, so there is nothing to move.
+    // Friday absorbs what the build pushed off its day, but only the parts it
+    // does not already run. Every shift day now has the same shape, so moving
+    // a Monday morning onto Friday wholesale would print theory twice at
+    // 06:00 and count the hours twice with it.
     if (deepWorkDay !== OVERFLOW_DAY && displaced.length > 0) {
-        week[OVERFLOW_DAY] = [...week[OVERFLOW_DAY], ...displaced].sort(bySlotStart);
+        const alreadyThere = new Set(
+            week[OVERFLOW_DAY].map(s => `${s.kind}@${s.start}`)
+        );
+        const toMove = displaced.filter(s => !alreadyThere.has(`${s.kind}@${s.start}`));
+        if (toMove.length > 0) {
+            week[OVERFLOW_DAY] = [...week[OVERFLOW_DAY], ...toMove].sort(bySlotStart);
+        }
     }
 
     return week;

@@ -44,6 +44,8 @@ import CodeRoundedIcon from '@mui/icons-material/CodeRounded';
 import ReceiptLongRoundedIcon from '@mui/icons-material/ReceiptLongRounded';
 import AutoStoriesRoundedIcon from '@mui/icons-material/AutoStoriesRounded';
 import MapRoundedIcon from '@mui/icons-material/MapRounded';
+import ImportContactsRoundedIcon from '@mui/icons-material/ImportContactsRounded';
+import RocketLaunchRoundedIcon from '@mui/icons-material/RocketLaunchRounded';
 import TodayRoundedIcon from '@mui/icons-material/TodayRounded';
 import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded';
 import MenuBookRoundedIcon from '@mui/icons-material/MenuBookRounded';
@@ -73,15 +75,18 @@ const categoryIcons: Record<Category, React.ReactNode> = {
 };
 
 /**
- * Four pages, not eight: what to do now, where it all leads, what you have
- * done, and what to learn from. Everything the spreadsheet had is inside one
- * of these — nothing was dropped, it stopped being scattered.
+ * What to do now, where it all leads, what you have done, what to learn from,
+ * the daily twenty minutes, and the nine things you will have to show. Reading
+ * and Artifacts earn their own pages because both are daily habits with a
+ * year-long shape, and neither fits inside a week.
  */
 const studyPages: { label: string; path: string; icon: React.ReactNode }[] = [
     { label: 'Today', path: '/study/today', icon: <TodayRoundedIcon fontSize="small" /> },
     { label: 'This Week', path: '/study', icon: <CalendarMonthRoundedIcon fontSize="small" /> },
     { label: 'The Journey', path: '/study/journey', icon: <TimelineRoundedIcon fontSize="small" /> },
     { label: 'Logbook', path: '/study/logbook', icon: <ArticleRoundedIcon fontSize="small" /> },
+    { label: 'Reading', path: '/study/reading', icon: <ImportContactsRoundedIcon fontSize="small" /> },
+    { label: 'Artifacts', path: '/study/artifacts', icon: <RocketLaunchRoundedIcon fontSize="small" /> },
     { label: 'Library', path: '/study/library', icon: <MenuBookRoundedIcon fontSize="small" /> },
 ];
 
