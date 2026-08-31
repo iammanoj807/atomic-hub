@@ -195,8 +195,6 @@ export const ALL_CATEGORIES: Category[] = [
 
 // Default habits for new users
 const defaultHabits: DailyHabit[] = [
-    { id: '5', title: 'Practice 3 behavioral questions', completed: false, note: '' },
-    { id: '3', title: 'Learn LangChain and Springboot', completed: false, note: '' },
     { id: '2', title: 'Solve 3 DSA questions', completed: false, note: '' },
 ];
 
