@@ -327,16 +327,17 @@ const TodayPage = () => {
                 ))}
             </Stack>
 
-            {/* The theory track is finite and does not feel it week to week:
-                from week 13 the mornings go to TOEFL and never come back. */}
+            {/* Which stage the mornings are serving, and how much of it is
+                left. Nothing takes the mornings away now — theory runs the
+                whole plan — so this names the work rather than a deadline. */}
             {phase === 'during' && isTheoryTrackWeek(planWeek.week) && (
                 <Typography
                     variant="body2"
                     color="text.secondary"
                     sx={{ mt: 3, fontSize: '0.82rem', fontStyle: 'italic' }}
                 >
-                    {theoryWeeksLeft(planWeek.week)} theory {theoryWeeksLeft(planWeek.week) === 1 ? 'week' : 'weeks'} left
-                    before TOEFL takes the mornings.
+                    {planWeek.stageName} · {theoryWeeksLeft(planWeek.week)} theory{' '}
+                    {theoryWeeksLeft(planWeek.week) === 1 ? 'week' : 'weeks'} left in the plan.
                 </Typography>
             )}
 
