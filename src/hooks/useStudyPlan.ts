@@ -8,16 +8,31 @@ import {
     deleteStudyPaper,
     subscribeToStudyProjects,
     saveStudyProjects,
+    subscribeToReading,
+    logReading,
+    deleteReading,
+    subscribeToGateAttempts,
+    logGateAttempt,
+    subscribeToArtifactProgress,
+    updateArtifactStage,
+    saveArtifactLinks,
 } from '../services/firebaseService';
-import type { StudyWeekLog, StudyPaper } from '../services/firebaseService';
+import type {
+    StudyWeekLog,
+    StudyPaper,
+    ReadingEntry,
+    GateAttempt,
+    ArtifactProgressDoc,
+} from '../services/firebaseService';
 import { getLondonDateString } from '../utils/date';
 import { getPlanWeekNumber } from '../utils/studyPlan';
 import { DEFAULT_DEEP_WORK_DAY, isWeekday } from '../utils/studySchedule';
+import { getArtifactProgress } from '../utils/studyProgress';
 import type { Weekday } from '../data/studyPlan';
 
 /**
- * The moving parts of the 26-week plan: the Sunday hours entry, the papers
- * log, and the project ticks. The plan content itself is static and imported
+ * The moving parts of the 52-week plan: the weekly hours entry, the papers
+ * log, the daily reading, the gate attempts and the artifact pipeline. The plan content itself is static and imported
  * directly by the pages that show it.
  *
  * Like the evidence log, this owns its own subscriptions and never blocks the
@@ -27,12 +42,18 @@ export const useStudyPlan = () => {
     const [studyWeekLogs, setStudyWeekLogs] = useState<Record<number, StudyWeekLog>>({});
     const [studyPapers, setStudyPapers] = useState<StudyPaper[]>([]);
     const [completedProjectIds, setCompletedProjectIds] = useState<string[]>([]);
+    const [readingEntries, setReadingEntries] = useState<ReadingEntry[]>([]);
+    const [gateAttempts, setGateAttempts] = useState<GateAttempt[]>([]);
+    const [artifactProgress, setArtifactProgress] = useState<Record<string, ArtifactProgressDoc>>({});
 
     useEffect(() => {
         const unsubscribers = [
             subscribeToStudyWeeks(setStudyWeekLogs),
             subscribeToStudyPapers(setStudyPapers),
             subscribeToStudyProjects(setCompletedProjectIds),
+            subscribeToReading(setReadingEntries),
+            subscribeToGateAttempts(setGateAttempts),
+            subscribeToArtifactProgress(setArtifactProgress),
         ];
         return () => unsubscribers.forEach(unsubscribe => unsubscribe());
     }, []);
@@ -99,6 +120,39 @@ export const useStudyPlan = () => {
         await saveStudyProjects(next);
     };
 
+    /** One entry per date — logging the same day twice edits it. */
+    const saveReading = async (entry: Omit<ReadingEntry, 'id'>) => {
+        await logReading(entry);
+    };
+
+    const removeReading = async (date: string) => {
+        await deleteReading(date);
+    };
+
+    /**
+     * Every sitting is kept. Failing a gate means repeating the stage, and the
+     * record of having failed it is the thing that makes that real.
+     */
+    const saveGateAttempt = async (attempt: Omit<GateAttempt, 'id'>) => {
+        await logGateAttempt(attempt);
+    };
+
+    /** Ticks one of the four steps, carrying the current doc so completedAt is right. */
+    const toggleArtifactStage = async (
+        projectId: string,
+        stage: 'build' | 'write' | 'publish' | 'post'
+    ) => {
+        const current = getArtifactProgress(artifactProgress, projectId);
+        await updateArtifactStage(projectId, stage, !current[stage], current);
+    };
+
+    const saveArtifactUrls = async (
+        projectId: string,
+        links: { repoUrl?: string; postUrl?: string }
+    ) => {
+        await saveArtifactLinks(projectId, links);
+    };
+
     return {
         studyWeekLogs,
         currentWeekNumber,
@@ -112,5 +166,13 @@ export const useStudyPlan = () => {
         deletePaper,
         completedProjectIds,
         toggleProject,
+        readingEntries,
+        saveReading,
+        removeReading,
+        gateAttempts,
+        saveGateAttempt,
+        artifactProgress,
+        toggleArtifactStage,
+        saveArtifactUrls,
     };
 };

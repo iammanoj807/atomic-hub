@@ -99,6 +99,38 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
+    // One reading entry per date. The ladder item and the level are free text
+    // because both come from data/studyPlan.ts, which the rules cannot see.
+    match /dailyReading/{date} {
+      allow read: if true;
+      allow write: if request.resource == null
+                   || (request.resource.data.weekNumber is int
+                       && request.resource.data.weekNumber >= 1
+                       && request.resource.data.weekNumber <= 52
+                       && request.resource.data.minutes is int);
+    }
+
+    // Every sitting of a gate, pass or fail. Failures are kept on purpose.
+    match /gateAttempts/{attemptId} {
+      allow read: if true;
+      allow write: if request.resource == null
+                   || (request.resource.data.stage is int
+                       && request.resource.data.stage >= 0
+                       && request.resource.data.stage <= 16
+                       && request.resource.data.passed is bool);
+    }
+
+    // The four steps of an artifact. All four must be true for it to be done.
+    match /artifactProgress/{projectId} {
+      allow read: if true;
+      allow write: if request.resource == null
+                   || (request.resource.data.projectId is string
+                       && (!('build' in request.resource.data.keys())
+                           || request.resource.data.build is bool)
+                       && (!('post' in request.resource.data.keys())
+                           || request.resource.data.post is bool));
+    }
+
     // Practice tracking
     match /practiceRecords/{questionId} {
       allow read: if true;
