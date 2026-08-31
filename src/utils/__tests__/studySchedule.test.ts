@@ -70,7 +70,7 @@ describe('getRoutineForDay', () => {
     it('runs Friday as an ordinary shift day', () => {
         // Friday used to be empty and was where displaced study landed. It now
         // runs the same shape as Monday, which is why nothing moves onto it.
-        expect(kindsOn('Fri')).toEqual(['theory', 'read', 'dsa', 'aieng', 'systems']);
+        expect(kindsOn('Fri')).toEqual(['theory', 'read', 'dsa', 'book', 'systems']);
         expect(getRoutineForDay('Friday')[0].start).toBe('06:00');
         expect(getRoutineForDay('Friday')[0].end).toBe('08:30');
     });
@@ -79,7 +79,7 @@ describe('getRoutineForDay', () => {
         // Tuesday's displaced morning is the same 06:00-08:30 theory Friday
         // already runs, so it is dropped rather than drawn on top of itself.
         const friday = kindsOn('Fri', 'Tue');
-        expect(friday).toEqual(['theory', 'read', 'dsa', 'aieng', 'systems']);
+        expect(friday).toEqual(['theory', 'read', 'dsa', 'book', 'systems']);
         expect(friday.filter(kind => kind === 'theory')).toHaveLength(1);
     });
 
@@ -202,13 +202,13 @@ describe('the deep work day', () => {
     it('replaces that day\'s study but keeps the three habits', () => {
         // Wednesday's 2.5 hours of theory cannot sit beside a six-hour build,
         // but reading and the problem are twenty minutes each and survive.
-        expect(kindsOn('Wed')).toEqual(['theory', 'read', 'dsa', 'aieng', 'systems']);
+        expect(kindsOn('Wed')).toEqual(['theory', 'read', 'dsa', 'book', 'systems']);
         expect(kindsOn('Wed', 'Wed')).toEqual(['build', 'review', 'read', 'dsa']);
     });
 
     it('moves displaced study to Friday only when Friday does not already run it', () => {
         // Wednesday's blocks are Friday's blocks, so nothing moves.
-        expect(kindsOn('Fri', 'Wed')).toEqual(['theory', 'read', 'dsa', 'aieng', 'systems']);
+        expect(kindsOn('Fri', 'Wed')).toEqual(['theory', 'read', 'dsa', 'book', 'systems']);
         // Saturday's afternoon is at a time Friday has free, so it does move.
         expect(kindsOn('Fri', 'Sat')).toEqual(expect.arrayContaining(['aieng', 'papers']));
     });
