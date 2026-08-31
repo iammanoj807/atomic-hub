@@ -1,4 +1,4 @@
-// Exactly what to watch, read and build — for every one of the 26 weeks.
+// Exactly what to watch, read and build — for every one of the 52 weeks.
 //
 // Every entry carries its exact title and source as well as a link, on purpose.
 // Course pages move and playlists get re-cut; a title and an author never rot,
@@ -6,6 +6,8 @@
 //
 // Links point at canonical homes (the course page, the author's site, the repo)
 // rather than at individual video ids, for the same reason.
+
+import { PLAN_WEEKS } from './studyPlan';
 
 export type ResourceKind = 'watch' | 'read' | 'build' | 'aieng';
 
@@ -33,7 +35,7 @@ export const RESOURCE_KIND_COLORS: Record<ResourceKind, string> = {
     aieng: '#ffd54f',
 };
 
-/** Keyed by week number, 1-26. */
+/** Keyed by week number, 1-52. */
 export const weekResources: Record<number, WeekResource[]> = {
     1: [
         {
@@ -750,7 +752,540 @@ export const weekResources: Record<number, WeekResource[]> = {
             source: 'Genuinely',
         },
     ],
+    27: [
+        {
+            kind: 'watch',
+            title: 'Vision Transformer explained',
+            source: 'Yannic Kilcher',
+            url: 'https://www.youtube.com/@YannicKilcher',
+        },
+        {
+            kind: 'read',
+            title: 'An Image Is Worth 16x16 Words (ViT)',
+            source: 'Dosovitskiy et al.',
+            url: 'https://arxiv.org/abs/2010.11929',
+            detail: 'Then Swin. Note what changes when attention gets a window.',
+        },
+        {
+            kind: 'build',
+            title: 'Attention in NumPy, from scratch',
+            source: 'GATE WEEK',
+            detail: 'Q, K, V, the sqrt(d) scaling, multi-head. NumPy only, no PyTorch. This is the gate - do not skip to torch.',
+        },
+    ],
+    28: [
+        {
+            kind: 'watch',
+            title: 'Re-watch anything from Stage 9 that did not land',
+            source: 'Consolidation',
+        },
+        {
+            kind: 'read',
+            title: 'Your own notes from weeks 16-27',
+            source: 'Your logbook',
+        },
+        {
+            kind: 'build',
+            title: 'Finish ARTIFACT 4 write-up: WRITE, PUBLISH, POST',
+            source: 'Consolidation',
+            detail: 'The GPT is due week 32 but the autograd post is overdue. Consolidation weeks are for shipping, not new material.',
+        },
+    ],
+    29: [
+        {
+            kind: 'watch',
+            title: "Let's build the GPT Tokenizer",
+            source: 'Andrej Karpathy',
+            url: 'https://karpathy.ai/zero-to-hero.html',
+        },
+        {
+            kind: 'read',
+            title: 'Neural Machine Translation of Rare Words with Subword Units',
+            source: 'Sennrich et al.',
+            url: 'https://arxiv.org/abs/1508.07909',
+        },
+        {
+            kind: 'build',
+            title: 'BPE tokeniser from scratch, no libraries',
+            source: 'Stage 10',
+        },
+    ],
+    30: [
+        {
+            kind: 'watch',
+            title: "Let's build GPT: from scratch, in code, spelled out",
+            source: 'Andrej Karpathy',
+            url: 'https://karpathy.ai/zero-to-hero.html',
+        },
+        {
+            kind: 'read',
+            title: 'The Annotated Transformer',
+            source: 'Harvard NLP',
+            url: 'https://nlp.seas.harvard.edu/annotated-transformer/',
+        },
+        {
+            kind: 'build',
+            title: 'nanoGPT, typed by hand',
+            source: 'Stage 10',
+        },
+    ],
+    31: [
+        {
+            kind: 'watch',
+            title: "Let's reproduce GPT-2 (124M)",
+            source: 'Andrej Karpathy',
+            url: 'https://karpathy.ai/zero-to-hero.html',
+        },
+        {
+            kind: 'read',
+            title: 'Language Models are Unsupervised Multitask Learners (GPT-2)',
+            source: 'Radford et al.',
+        },
+        {
+            kind: 'build',
+            title: 'Train it. Watch the loss curve. Debug what goes wrong.',
+            source: 'Stage 10',
+            detail: 'This is where mixed precision, gradient clipping and LR warmup stop being words.',
+        },
+    ],
+    32: [
+        {
+            kind: 'watch',
+            title: 'Stanford CS336 lectures 8-9',
+            source: 'Stanford',
+            url: 'https://stanford-cs336.github.io/',
+        },
+        {
+            kind: 'read',
+            title: 'Scaling Laws for Neural Language Models',
+            source: 'Kaplan et al.',
+        },
+        {
+            kind: 'build',
+            title: 'ARTIFACT 4: GPT from nothing. BUILD/WRITE/PUBLISH/POST.',
+            source: 'GATE WEEK',
+        },
+        {
+            kind: 'aieng',
+            title: 'Post: What I learned building GPT from scratch',
+            source: 'Your blog',
+            detail: '800 words minimum. Link the repo.',
+        },
+    ],
+    33: [
+        {
+            kind: 'watch',
+            title: 'CS336 - scaling and data',
+            source: 'Stanford',
+            url: 'https://stanford-cs336.github.io/',
+        },
+        {
+            kind: 'read',
+            title: 'Training Compute-Optimal LLMs (Chinchilla)',
+            source: 'Hoffmann et al.',
+            url: 'https://arxiv.org/abs/2203.15556',
+        },
+        {
+            kind: 'build',
+            title: 'Fine-tune a small model with LoRA',
+            source: 'Stage 11',
+        },
+    ],
+    34: [
+        {
+            kind: 'watch',
+            title: 'RLHF explained',
+            source: 'Hugging Face',
+            url: 'https://huggingface.co/blog/rlhf',
+        },
+        {
+            kind: 'read',
+            title: 'Training language models to follow instructions (InstructGPT)',
+            source: 'Ouyang et al.',
+            url: 'https://arxiv.org/abs/2203.02155',
+            detail: 'Then DPO. Understand why DPO removed the reward model.',
+        },
+        {
+            kind: 'build',
+            title: 'Implement DPO on a toy preference dataset',
+            source: 'Stage 11',
+        },
+    ],
+    35: [
+        {
+            kind: 'watch',
+            title: 'Mixture of Experts explained',
+            source: 'Trelis / Yannic Kilcher',
+        },
+        {
+            kind: 'read',
+            title: 'Mamba: Linear-Time Sequence Modeling',
+            source: 'Gu & Dao',
+            url: 'https://arxiv.org/abs/2312.00752',
+        },
+        {
+            kind: 'build',
+            title: 'GATE: fine-tune with LoRA and explain what it changes',
+            source: 'GATE WEEK',
+        },
+    ],
+    36: [
+        {
+            kind: 'watch',
+            title: 'Nothing new. Re-read your reading log.',
+            source: 'Consolidation',
+        },
+        {
+            kind: 'read',
+            title: 'Your own paper notes, weeks 22-35',
+            source: 'Your logbook',
+        },
+        {
+            kind: 'build',
+            title: 'Ship anything unposted. Choose the reproduction paper now.',
+            source: 'Consolidation',
+            detail: 'Recent, your subfield, runs on one free GPU. Choosing it late is the commonest way week 49 slips.',
+        },
+    ],
+    37: [
+        {
+            kind: 'watch',
+            title: 'Variational Autoencoders',
+            source: 'Arxiv Insights',
+        },
+        {
+            kind: 'read',
+            title: 'Auto-Encoding Variational Bayes',
+            source: 'Kingma & Welling',
+            url: 'https://arxiv.org/abs/1312.6114',
+        },
+        {
+            kind: 'build',
+            title: 'Derive the ELBO on paper BEFORE any code. GATE.',
+            source: 'GATE WEEK',
+        },
+    ],
+    38: [
+        {
+            kind: 'watch',
+            title: 'Diffusion models explained',
+            source: 'Computerphile / Outlier',
+        },
+        {
+            kind: 'read',
+            title: 'What are Diffusion Models?',
+            source: 'Lilian Weng',
+            url: 'https://lilianweng.github.io/posts/2021-07-11-diffusion-models/',
+            detail: 'Then DDPM itself.',
+        },
+        {
+            kind: 'build',
+            title: 'Minimal diffusion model on MNIST',
+            source: 'Stage 12',
+        },
+    ],
+    39: [
+        {
+            kind: 'watch',
+            title: 'David Silver RL Course, lectures 1-3',
+            source: 'DeepMind',
+        },
+        {
+            kind: 'read',
+            title: 'Spinning Up in Deep RL - intro and PPO',
+            source: 'OpenAI',
+            url: 'https://spinningup.openai.com/',
+            detail: 'E level only. You need PPO because RLHF uses it.',
+        },
+        {
+            kind: 'build',
+            title: 'ARTIFACT 5: VAE from scratch + LaTeX derivation',
+            source: 'Stage 12',
+        },
+        {
+            kind: 'aieng',
+            title: 'Post: Deriving the ELBO by hand',
+            source: 'Your blog',
+            detail: 'Learn Overleaf now.',
+        },
+    ],
+    40: [
+        {
+            kind: 'watch',
+            title: 'GPU MODE lecture 1',
+            source: 'GPU MODE',
+            url: 'https://www.youtube.com/@GPUMODE',
+        },
+        {
+            kind: 'read',
+            title: 'GPU Puzzles',
+            source: 'Sasha Rush',
+            url: 'https://github.com/srush/GPU-Puzzles',
+            detail: 'Numba, pure Python. Work them, do not read them.',
+        },
+        {
+            kind: 'build',
+            title: 'Triton tutorials 1-2: vector add, fused softmax',
+            source: 'Triton',
+            url: 'https://triton-lang.org/',
+        },
+    ],
+    41: [
+        {
+            kind: 'watch',
+            title: 'GPU MODE - performance and profiling',
+            source: 'GPU MODE',
+            url: 'https://www.youtube.com/@GPUMODE',
+        },
+        {
+            kind: 'read',
+            title: 'Making Deep Learning Go Brrrr From First Principles',
+            source: 'Horace He',
+            url: 'https://horace.io/brrr_intro.html',
+            detail: 'The best free explanation of compute vs memory vs overhead bound. Read it twice.',
+        },
+        {
+            kind: 'build',
+            title: 'Triton tutorial 3: matmul. Benchmark vs torch.matmul.',
+            source: 'Triton',
+            url: 'https://triton-lang.org/',
+        },
+    ],
+    42: [
+        {
+            kind: 'watch',
+            title: 'torch.compile internals',
+            source: 'PyTorch dev podcast',
+        },
+        {
+            kind: 'read',
+            title: 'Triton: An Intermediate Language for Tiled Neural Network Computations',
+            source: 'Tillet et al.',
+        },
+        {
+            kind: 'build',
+            title: 'GATE: fused softmax kernel in Triton, beating naive',
+            source: 'GATE WEEK',
+        },
+    ],
+    43: [
+        {
+            kind: 'watch',
+            title: 'Nothing new.',
+            source: 'Consolidation',
+        },
+        {
+            kind: 'read',
+            title: 'Your kernel benchmarks',
+            source: 'Your own numbers',
+        },
+        {
+            kind: 'build',
+            title: 'ARTIFACT 6: Triton kernel suite, benchmarked. BUILD/WRITE/PUBLISH/POST.',
+            source: 'Consolidation',
+        },
+        {
+            kind: 'aieng',
+            title: 'Post: Writing GPU kernels in Python - what the roofline told me',
+            source: 'Your blog',
+        },
+    ],
+    44: [
+        {
+            kind: 'watch',
+            title: 'Quantization explained',
+            source: 'Hugging Face',
+        },
+        {
+            kind: 'read',
+            title: 'LLM.int8()',
+            source: 'Dettmers et al.',
+            url: 'https://arxiv.org/abs/2208.07339',
+            detail: 'Then GPTQ.',
+        },
+        {
+            kind: 'build',
+            title: 'INT8 quantisation by hand in NumPy. No library.',
+            source: 'Stage 14',
+        },
+    ],
+    45: [
+        {
+            kind: 'watch',
+            title: 'MLSys 2024 - AWQ talk',
+            source: 'MLSys',
+            url: 'https://mlsys.org/',
+        },
+        {
+            kind: 'read',
+            title: 'SmoothQuant',
+            source: 'Xiao et al.',
+            url: 'https://arxiv.org/abs/2211.10438',
+            detail: 'Then AWQ. Third pass on both - derive the maths.',
+        },
+        {
+            kind: 'build',
+            title: 'Quantise your own GPT. FP16 vs INT8 vs INT4. Plot the curve.',
+            source: 'Stage 14',
+        },
+    ],
+    46: [
+        {
+            kind: 'watch',
+            title: 'Pruning and distillation',
+            source: 'Han Lab / MIT 6.5940',
+            url: 'https://hanlab.mit.edu/courses/2024-fall-65940',
+        },
+        {
+            kind: 'read',
+            title: 'The Lottery Ticket Hypothesis',
+            source: 'Frankle & Carbin',
+        },
+        {
+            kind: 'build',
+            title: 'ARTIFACT 7: quantisation study. GATE week.',
+            source: 'GATE WEEK',
+        },
+        {
+            kind: 'aieng',
+            title: 'Post: INT8, INT4, and where the accuracy actually goes',
+            source: 'Your blog',
+        },
+    ],
+    47: [
+        {
+            kind: 'watch',
+            title: 'FlashAttention explained',
+            source: 'Aleksa Gordic',
+        },
+        {
+            kind: 'read',
+            title: 'Efficient Memory Management for LLM Serving with PagedAttention',
+            source: 'Kwon et al.',
+            url: 'https://arxiv.org/abs/2309.06180',
+            detail: 'Then READ THE PYTHON SOURCE: vllm/core/scheduler.py, vllm/core/block_manager.py, vllm/engine/llm_engine.py. The design decisions are all in Python.',
+        },
+        {
+            kind: 'build',
+            title: 'Serve your GPT with vLLM, end to end',
+            source: 'Stage 15',
+        },
+    ],
+    48: [
+        {
+            kind: 'watch',
+            title: 'GPU MODE - profiling deep dive',
+            source: 'GPU MODE',
+            url: 'https://www.youtube.com/@GPUMODE',
+        },
+        {
+            kind: 'read',
+            title: 'Fast Inference from Transformers via Speculative Decoding',
+            source: 'Leviathan et al.',
+        },
+        {
+            kind: 'build',
+            title: 'Profile vLLM with torch.profiler. Prefill vs decode.',
+            source: 'Stage 15',
+        },
+    ],
+    49: [
+        {
+            kind: 'watch',
+            title: 'Parallelism strategies',
+            source: 'Hugging Face / Ultrascale',
+        },
+        {
+            kind: 'read',
+            title: 'ZeRO: Memory Optimizations Toward Training Trillion Parameter Models',
+            source: 'Rajbhandari et al.',
+        },
+        {
+            kind: 'build',
+            title: 'ARTIFACT 8: reproduction matching published numbers. GATE.',
+            source: 'GATE WEEK',
+        },
+        {
+            kind: 'aieng',
+            title: 'Post: Reproducing [paper] - what matched, what did not, and why',
+            source: 'Your blog',
+            detail: 'The honest gaps are the credible part. Do not hide them.',
+        },
+    ],
+    50: [
+        {
+            kind: 'watch',
+            title: 'Nothing new.',
+            source: 'Consolidation',
+        },
+        {
+            kind: 'read',
+            title: 'MLSys proceedings, last two years',
+            source: 'MLSys',
+            url: 'https://mlsys.org/',
+            detail: 'Sweep it. Note last authors - those are the PIs.',
+        },
+        {
+            kind: 'build',
+            title: 'Ship every unposted artifact. All four steps, all eight.',
+            source: 'Consolidation',
+        },
+    ],
+    51: [
+        {
+            kind: 'watch',
+            title: 'How to write a great research paper',
+            source: 'Simon Peyton Jones',
+        },
+        {
+            kind: 'read',
+            title: 'Two recent papers from your target venue, FOR STRUCTURE',
+            source: 'Your target venue',
+            detail: 'Not for content. How is the abstract built? Where does related work sit? What do the limitations admit?',
+        },
+        {
+            kind: 'build',
+            title: 'Write up your extension in the NeurIPS LaTeX template',
+            source: 'Stage 16',
+        },
+    ],
+    52: [
+        {
+            kind: 'watch',
+            title: 'Anthropic / Distill interpretability explainers',
+            source: 'Read only',
+        },
+        {
+            kind: 'read',
+            title: 'Alignment, interpretability, fairness, privacy - one each',
+            source: 'AWARENESS WEEK',
+            detail: 'AWARENESS WEEK. A-level only. Define it, say why it matters, name a paper. Do not go deeper.',
+        },
+        {
+            kind: 'build',
+            title: 'ARTIFACT 9: extension + preprint. Then plan Sept 2027 - Dec 2028: second research cycle, IELTS, professor list, applications.',
+            source: 'Stage 16',
+        },
+        {
+            kind: 'aieng',
+            title: 'Read your hours log from week 1 forward',
+            source: 'Your logbook',
+            detail: 'Fifty-two weeks of evidence. That IS the statement of purpose.',
+        },
+    ],
 };
 
-/** Guard against a week silently having no material. */
-export const getWeekResources = (week: number): WeekResource[] => weekResources[week] ?? [];
+/**
+ * Guard against a week silently having no material.
+ *
+ * This returned [] for weeks 27-52 for a while and the mornings simply
+ * rendered blank, which is exactly the kind of hole that hides until you are
+ * standing in it. In dev it now says so.
+ */
+export const getWeekResources = (week: number): WeekResource[] => {
+    const found = weekResources[week];
+    if (!found && import.meta.env.DEV && week >= 1 && week <= PLAN_WEEKS) {
+        console.warn(`No resources for week ${week}`);
+    }
+    return found ?? [];
+};
