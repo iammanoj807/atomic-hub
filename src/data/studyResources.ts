@@ -794,6 +794,7 @@ export const weekResources: Record<number, WeekResource[]> = {
             kind: 'read',
             title: 'Scaling Laws for Neural Language Models',
             source: 'Kaplan et al.',
+            url: 'https://arxiv.org/abs/2001.08361',
         },
         {
             kind: 'build',
@@ -1084,6 +1085,7 @@ export const weekResources: Record<number, WeekResource[]> = {
             kind: 'read',
             title: 'The Lottery Ticket Hypothesis',
             source: 'Frankle & Carbin',
+            url: 'https://arxiv.org/abs/1803.03635',
         },
         {
             kind: 'build',
@@ -1099,8 +1101,14 @@ export const weekResources: Record<number, WeekResource[]> = {
     47: [
         {
             kind: 'watch',
-            title: 'FlashAttention explained',
+            title: 'The AI Epiphany',
             source: 'Aleksa Gordic',
+            url: 'https://www.youtube.com/c/TheAIEpiphany/',
+            detail: 'Search the channel for FlashAttention. Read his written '
+                + 'version first - ELI5: FlashAttention, '
+                + 'https://gordicaleksa.medium.com/eli5-flash-attention-5c44017022ad '
+                + 'It derives the inefficiencies one at a time from vanilla '
+                + 'attention and explains kernel fusion and materialization.',
         },
         {
             kind: 'read',
@@ -1126,6 +1134,7 @@ export const weekResources: Record<number, WeekResource[]> = {
             kind: 'read',
             title: 'Fast Inference from Transformers via Speculative Decoding',
             source: 'Leviathan et al.',
+            url: 'https://arxiv.org/abs/2211.17192',
         },
         {
             kind: 'build',
@@ -1143,6 +1152,7 @@ export const weekResources: Record<number, WeekResource[]> = {
             kind: 'read',
             title: 'ZeRO: Memory Optimizations Toward Training Trillion Parameter Models',
             source: 'Rajbhandari et al.',
+            url: 'https://arxiv.org/abs/1910.02054',
         },
         {
             kind: 'build',
