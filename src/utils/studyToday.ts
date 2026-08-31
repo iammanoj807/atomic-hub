@@ -86,6 +86,10 @@ export const resolveSlotFocus = (
                 text: 'The weekly review ritual: what you finished, and one thing you understand now that you did not last week.',
                 opensWeekLog: true,
             };
+        case 'read':
+            return { text: 'Twenty minutes of the reading ladder. Every day, never doubled.' };
+        case 'systems':
+            return { text: 'Designing Data-Intensive Applications. Twenty minutes, straight after the problem.' };
         case 'papers':
             return {
                 text: 'Read papers. Write the main idea in your own words or it did not happen.',

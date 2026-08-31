@@ -3,7 +3,7 @@
 // Six days are fixed. The deep work block sits on the day off — Thursday, on
 // the current rota — and when it lands on a day that already had study on it,
 // that study moves to Friday rather than being dropped, otherwise a Wednesday
-// day off would quietly cost the week two and a half hours.
+// day off would quietly cost the week its morning stage.
 //
 // Two slots are never displaced: the daily NeetCode problem and the half hour
 // of applications after it. Whatever else happens to a day, it keeps both.
@@ -31,8 +31,13 @@ export const DEFAULT_DEEP_WORK_DAY: Weekday = 'Thu';
  */
 const OVERFLOW_DAY: Weekday = 'Fri';
 
-/** These survive the deep work block landing on their day. */
-const UNDISPLACEABLE = new Set(['dsa', 'job']);
+/**
+ * These survive the deep work block landing on their day. Reading is in here
+ * because the rule is twenty minutes every single day, never doubled — if it
+ * were displaceable, Thursday would lose its reading to Friday, which already
+ * has its own.
+ */
+const UNDISPLACEABLE = new Set(['read', 'dsa', 'job']);
 
 /** Minutes since midnight, so slot times can actually be compared. */
 export const minutesInto = (time: string): number => {
