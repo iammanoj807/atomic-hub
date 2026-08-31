@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { weekResources, getWeekResources } from '../../data/studyResources';
 import { PLAN_WEEKS, planWeeks } from '../../data/studyPlan';
 import { resolveSlotFocus } from '../studyToday';
@@ -32,6 +34,17 @@ describe('week resources cover the whole plan', () => {
                 expect(resource.source.trim(), `week ${week.week}`).not.toBe('');
             }
         }
+    });
+
+    it('never mentions TOEFL — this plan sits IELTS, and only once', () => {
+        // The 26-week plan handed the mornings to TOEFL from week 13. That
+        // plan is gone; ten of its entries survived in here for a while,
+        // contradicting studyPlan.ts for the same weeks.
+        const source = readFileSync(
+            fileURLToPath(new URL('../../data/studyResources.ts', import.meta.url)),
+            'utf8'
+        );
+        expect(source).not.toContain('TOEFL');
     });
 
     it('returns an empty list outside the plan rather than throwing', () => {
