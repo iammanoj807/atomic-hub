@@ -25,6 +25,7 @@ import {
     type Weekday,
 } from '../../data/studyPlan';
 import { getWeekResources } from '../../data/studyResources';
+import { projects } from '../../data/studyPlan';
 import { dsaCurriculum } from '../../data/dsaCurriculum';
 import { subscribeToDSAProgress, type DSATopicProgress } from '../../services/firebaseService';
 import DeepWorkDayPicker from './DeepWorkDayPicker';
@@ -32,6 +33,10 @@ import WeekSchedule from './WeekSchedule';
 import ResourceList from './ResourceList';
 import WeekLogDialog from './WeekLogDialog';
 import WeekStrip from './WeekStrip';
+import StageBanner from './StageBanner';
+import ReadingCard from './ReadingCard';
+import GateCard from './GateCard';
+import ArtifactPipeline from './ArtifactPipeline';
 
 /** The pattern this week's DSA target belongs to, matched by its plan weeks. */
 const patternForWeek = (week: number) =>
@@ -120,11 +125,16 @@ const ThisWeekPage = () => {
         ? (dsaProgress[pattern.topicId]?.completedProblems ?? []).length
         : 0;
 
+    // The artifact this week is working towards — the first one not yet past
+    // its due week, so a slipped artifact keeps its place rather than vanishing.
+    const currentArtifact =
+        projects.find(project => project.byWeek >= featuredWeek.week) ?? projects[projects.length - 1];
+
     const headline =
         phase === 'before'
             ? daysToStart === 1 ? 'Week 1 starts tomorrow.' : `Week 1 starts in ${daysToStart} days.`
             : phase === 'after'
-                ? 'Twenty-six weeks done.'
+                ? 'Fifty-two weeks done.'
                 : `Week ${currentWeekNumber} of ${PLAN_WEEKS}.`;
 
     return (
@@ -137,6 +147,51 @@ const ThisWeekPage = () => {
                     style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 2000 }}
                 />
             )}
+
+            {/* What this week is FOR, before anything about how it is going. */}
+            <StageBanner week={featuredWeek} />
+
+            <ReadingCard weekNumber={featuredWeek.week} today={today} />
+
+            {featuredWeek.gate && (
+                <GateCard
+                    stage={featuredWeek.stage}
+                    stageName={featuredWeek.stageName}
+                    gate={featuredWeek.gate}
+                    today={today}
+                />
+            )}
+
+            {/* BUILD is a quarter of the artifact. The other three steps are
+                the half anyone else ever sees, so they are on the main page. */}
+            <Box
+                sx={{
+                    p: { xs: 2, sm: 2.5 },
+                    borderRadius: 3,
+                    mb: 4,
+                    bgcolor: 'rgba(255,255,255,0.02)',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                }}
+            >
+                <Typography
+                    variant="caption"
+                    sx={{ color: '#4dd0e1', letterSpacing: 1.4, fontWeight: 800, fontSize: '0.68rem' }}
+                >
+                    ARTIFACT {currentArtifact.number} · DUE WEEK {currentArtifact.byWeek}
+                </Typography>
+                <Typography variant="body1" sx={{ color: 'text.primary', fontWeight: 600, mt: 0.5, mb: 1.5 }}>
+                    {currentArtifact.name}
+                </Typography>
+                <ArtifactPipeline project={currentArtifact} compact />
+                <Button
+                    onClick={() => navigate('/study/artifacts')}
+                    size="small"
+                    endIcon={<ChevronRightRoundedIcon />}
+                    sx={{ mt: 1, color: '#4dd0e1', px: 0, '&:hover': { bgcolor: 'transparent' } }}
+                >
+                    All nine artifacts
+                </Button>
+            </Box>
 
             {/* Hero — the phase colour is the week's identity, top to bottom */}
             <Box

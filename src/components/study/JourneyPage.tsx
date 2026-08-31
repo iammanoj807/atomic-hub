@@ -19,6 +19,8 @@ import RadioButtonUncheckedRoundedIcon from '@mui/icons-material/RadioButtonUnch
 import ChevronRightRoundedIcon from '@mui/icons-material/ChevronRightRounded';
 import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
 import FlagRoundedIcon from '@mui/icons-material/FlagRounded';
+import LockRoundedIcon from '@mui/icons-material/LockRounded';
+import ReplayRoundedIcon from '@mui/icons-material/ReplayRounded';
 import { useTaskContext } from '../../context/TaskContext';
 import {
     planWeeks,
@@ -29,9 +31,9 @@ import {
     PHASE_COLORS,
     PROJECT_WEIGHT_LABELS,
     PROJECT_WEIGHT_COLORS,
-    THEORY_TRACK_LAST_WEEK,
     type PlanWeek,
 } from '../../data/studyPlan';
+import { getGateStatus } from '../../utils/studyProgress';
 import { getWeekResources } from '../../data/studyResources';
 import { dsaCurriculum } from '../../data/dsaCurriculum';
 import { subscribeToDSAProgress, type DSATopicProgress } from '../../services/firebaseService';
@@ -50,25 +52,69 @@ for (const phase of dsaCurriculum) {
 
 const TAB_ORDER = ['weeks', 'projects', 'dsa'];
 
-/** Groups consecutive weeks that share a phase, preserving order. */
-const groupByPhase = (weeks: PlanWeek[]): { phase: string; weeks: PlanWeek[] }[] => {
-    const groups: { phase: string; weeks: PlanWeek[] }[] = [];
+interface StageGroup {
+    key: string;
+    stage: number;
+    stageName: string;
+    /** Only the last week of a stage carries one, so it is lifted to the group. */
+    gate?: string;
+    isConsolidation: boolean;
+    weeks: PlanWeek[];
+}
+
+interface PartGroup {
+    part: string;
+    stages: StageGroup[];
+}
+
+/**
+ * The year as five parts, each a run of stages.
+ *
+ * Grouping is done by walking the weeks in order rather than by sorting on
+ * stage number, because a consolidation week carries the number of the stage
+ * it reviews and would otherwise fold back into it.
+ */
+const groupByPart = (weeks: PlanWeek[]): PartGroup[] => {
+    const parts: PartGroup[] = [];
+
     for (const week of weeks) {
-        const current = groups[groups.length - 1];
-        if (current && current.phase === week.phase) current.weeks.push(week);
-        else groups.push({ phase: week.phase, weeks: [week] });
+        let part = parts[parts.length - 1];
+        if (!part || part.part !== week.part) {
+            part = { part: week.part, stages: [] };
+            parts.push(part);
+        }
+
+        const isConsolidation = week.phaseKey === 'consolidation';
+        const key = `${week.part}-${week.stageName}`;
+        let stage = part.stages[part.stages.length - 1];
+        if (!stage || stage.key !== key) {
+            stage = {
+                key,
+                stage: week.stage,
+                stageName: week.stageName,
+                isConsolidation,
+                weeks: [],
+            };
+            part.stages.push(stage);
+        }
+
+        stage.weeks.push(week);
+        if (week.gate) stage.gate = week.gate;
     }
-    return groups;
+
+    return parts;
 };
 
 /**
- * The whole six months in one place: the weeks, the nine things you will have
- * to show at the end, and the 150 problems. Three views of one journey rather
- * than three pages.
+ * The whole year in one place: five parts of weeks, the nine things you will
+ * have to show at the end, and the 150 problems. Three views of one journey
+ * rather than three pages.
  */
 const JourneyPage = () => {
     const navigate = useNavigate();
-    const { currentWeekNumber, studyWeekLogs, completedProjectIds, toggleProject } = useTaskContext();
+    const {
+        currentWeekNumber, studyWeekLogs, completedProjectIds, toggleProject, gateAttempts,
+    } = useTaskContext();
 
     // ?tab=projects / ?tab=dsa, so a number elsewhere in the app can link
     // straight to the view that explains it. An unrecognised value falls back
@@ -114,7 +160,7 @@ const JourneyPage = () => {
                 title={
                     currentWeekNumber
                         ? <>You are <Box component="span" sx={{ color: 'primary.main' }}>{Math.round(((currentWeekNumber - 1) / planWeeks.length) * 100)}%</Box> through.</>
-                        : 'Six months, laid out.'
+                        : 'A year, laid out.'
                 }
                 subtitle="Every week, everything you have to show for it, and the 150 problems underneath."
             />
@@ -129,7 +175,7 @@ const JourneyPage = () => {
                     '& .MuiTab-root': { textTransform: 'none', fontWeight: 700, '&:focus': { outline: 'none' } },
                 }}
             >
-                <Tab label={`26 weeks`} />
+                <Tab label={`${planWeeks.length} weeks`} />
                 <Tab label={`Projects · ${completedProjectIds.length}/${projects.length}`} />
                 <Tab label={`DSA · ${totalDone}/${totalProblems}`} />
             </Tabs>
@@ -137,125 +183,194 @@ const JourneyPage = () => {
             {/* ---- WEEKS ---- */}
             {tab === 0 && (
                 <Box>
-                    {groupByPhase(planWeeks).map(group => {
-                        const accent = PHASE_COLORS[group.weeks[0].phaseKey];
+                    {groupByPart(planWeeks).map(part => (
+                        <Box key={part.part} sx={{ mb: 5 }}>
+                            <Typography
+                                variant="h6"
+                                fontWeight="bold"
+                                sx={{
+                                    color: 'text.primary',
+                                    letterSpacing: 1.2,
+                                    fontSize: '0.95rem',
+                                    pb: 1,
+                                    mb: 2.5,
+                                    borderBottom: '1px solid rgba(255,255,255,0.1)',
+                                }}
+                            >
+                                {part.part}
+                            </Typography>
 
-                        return (
-                            <Box key={`${group.phase}-${group.weeks[0].week}`} sx={{ mb: 4 }}>
-                                <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 1.5 }}>
-                                    <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: accent }} />
-                                    <Typography
-                                        variant="caption"
-                                        sx={{ color: accent, letterSpacing: 1.5, fontWeight: 800, fontSize: '0.7rem' }}
-                                    >
-                                        {group.phase.replace(/\*/g, '').trim().toUpperCase()}
-                                    </Typography>
-                                </Stack>
+                            {part.stages.map(stageGroup => {
+                                const accent = PHASE_COLORS[stageGroup.weeks[0].phaseKey];
+                                const status = stageGroup.isConsolidation
+                                    ? null
+                                    : getGateStatus(gateAttempts, stageGroup.stage);
+                                // A stage is only done when its gate is passed.
+                                // Logging the hours is not the same as knowing it.
+                                const stageComplete = status === 'passed';
 
-                                <Stack spacing={1}>
-                                    {group.weeks.map(week => {
-                                        // Theory ends here and TOEFL takes the
-                                        // mornings, which is an edge in the plan
-                                        // rather than just the next week along.
-                                        const endsTheoryTrack = week.week === THEORY_TRACK_LAST_WEEK;
-                                        const isOpen = openWeek === week.week;
-                                        const isCurrent = week.week === currentWeekNumber;
-                                        const isLogged = loggedWeeks.has(week.week);
-
-                                        return (
-                                            <Box
-                                                key={week.week}
-                                                ref={isCurrent ? currentWeekRef : undefined}
+                                return (
+                                    <Box key={stageGroup.key} sx={{ mb: 4 }}>
+                                        <Stack
+                                            direction="row"
+                                            alignItems="center"
+                                            spacing={1.5}
+                                            sx={{ mb: 1 }}
+                                            flexWrap="wrap"
+                                            useFlexGap
+                                        >
+                                            <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: accent }} />
+                                            <Typography
+                                                variant="caption"
+                                                sx={{ color: accent, letterSpacing: 1.5, fontWeight: 800, fontSize: '0.7rem' }}
                                             >
-                                                <Box
-                                                    onClick={() => setOpenWeek(isOpen ? null : week.week)}
+                                                {stageGroup.isConsolidation
+                                                    ? stageGroup.stageName.toUpperCase()
+                                                    : `STAGE ${stageGroup.stage} · ${stageGroup.stageName.toUpperCase()}`}
+                                            </Typography>
+
+                                            {status === 'passed' && (
+                                                <Chip
+                                                    size="small"
+                                                    icon={<CheckCircleRoundedIcon sx={{ fontSize: 14 }} />}
+                                                    label="PASSED"
                                                     sx={{
-                                                        p: 1.75,
-                                                        borderRadius: 3,
-                                                        cursor: 'pointer',
-                                                        bgcolor: isCurrent ? 'rgba(41, 121, 255, 0.06)' : 'background.paper',
-                                                        border: '1px solid',
-                                                        borderColor: isCurrent ? 'primary.main' : 'rgba(255,255,255,0.08)',
-                                                        borderLeft: '4px solid',
-                                                        borderLeftColor: accent,
-                                                        '&:hover': { borderColor: 'primary.main' },
+                                                        height: 20, fontSize: '0.6rem', fontWeight: 800,
+                                                        color: '#66bb6a', bgcolor: 'rgba(102,187,106,0.14)',
+                                                        '& .MuiChip-icon': { color: '#66bb6a' },
                                                     }}
-                                                >
-                                                    <Stack direction="row" alignItems="center" spacing={2}>
+                                                />
+                                            )}
+                                            {status === 'failed' && (
+                                                <Chip
+                                                    size="small"
+                                                    icon={<ReplayRoundedIcon sx={{ fontSize: 14 }} />}
+                                                    label="REPEAT THE STAGE"
+                                                    sx={{
+                                                        height: 20, fontSize: '0.6rem', fontWeight: 800,
+                                                        color: '#ff8a65', bgcolor: 'rgba(255,138,101,0.14)',
+                                                        '& .MuiChip-icon': { color: '#ff8a65' },
+                                                    }}
+                                                />
+                                            )}
+                                            {status === 'unattempted' && (
+                                                <Chip
+                                                    size="small"
+                                                    icon={<LockRoundedIcon sx={{ fontSize: 14 }} />}
+                                                    label="GATE NOT SAT"
+                                                    sx={{
+                                                        height: 20, fontSize: '0.6rem', fontWeight: 800,
+                                                        color: 'text.disabled', bgcolor: 'rgba(255,255,255,0.06)',
+                                                        '& .MuiChip-icon': { color: 'inherit' },
+                                                    }}
+                                                />
+                                            )}
+                                        </Stack>
+
+                                        {stageGroup.gate && (
+                                            <Typography
+                                                variant="body2"
+                                                sx={{
+                                                    color: stageComplete ? 'text.secondary' : 'text.primary',
+                                                    fontStyle: 'italic',
+                                                    mb: 1.5,
+                                                    pl: 2.5,
+                                                    lineHeight: 1.55,
+                                                }}
+                                            >
+                                                {stageGroup.gate}
+                                            </Typography>
+                                        )}
+
+                                        <Stack spacing={1}>
+                                            {stageGroup.weeks.map(week => {
+                                                const isOpen = openWeek === week.week;
+                                                const isCurrent = week.week === currentWeekNumber;
+                                                const isLogged = loggedWeeks.has(week.week);
+                                                // Hours logged fills the square; only a passed
+                                                // gate fills it in the stage's own colour.
+                                                const solid = isLogged && (stageComplete || stageGroup.isConsolidation);
+
+                                                return (
+                                                    <Box
+                                                        key={week.week}
+                                                        ref={isCurrent ? currentWeekRef : undefined}
+                                                    >
                                                         <Box
+                                                            onClick={() => setOpenWeek(isOpen ? null : week.week)}
                                                             sx={{
-                                                                width: 30,
-                                                                height: 30,
-                                                                borderRadius: 1.5,
-                                                                flexShrink: 0,
-                                                                display: 'flex',
-                                                                alignItems: 'center',
-                                                                justifyContent: 'center',
-                                                                fontSize: '0.72rem',
-                                                                fontWeight: 800,
-                                                                fontVariantNumeric: 'tabular-nums',
-                                                                bgcolor: isLogged ? accent : `${accent}1a`,
-                                                                color: isLogged ? '#0B0E14' : accent,
+                                                                p: 1.75,
+                                                                borderRadius: 3,
+                                                                cursor: 'pointer',
+                                                                bgcolor: isCurrent ? 'rgba(41, 121, 255, 0.06)' : 'background.paper',
+                                                                border: '1px solid',
+                                                                borderColor: isCurrent ? 'primary.main' : 'rgba(255,255,255,0.08)',
+                                                                borderLeft: '4px solid',
+                                                                borderLeftColor: accent,
+                                                                '&:hover': { borderColor: 'primary.main' },
                                                             }}
                                                         >
-                                                            {week.week}
+                                                            <Stack direction="row" alignItems="center" spacing={2}>
+                                                                <Box
+                                                                    sx={{
+                                                                        width: 30,
+                                                                        height: 30,
+                                                                        borderRadius: 1.5,
+                                                                        flexShrink: 0,
+                                                                        display: 'flex',
+                                                                        alignItems: 'center',
+                                                                        justifyContent: 'center',
+                                                                        fontSize: '0.72rem',
+                                                                        fontWeight: 800,
+                                                                        fontVariantNumeric: 'tabular-nums',
+                                                                        bgcolor: solid ? accent : `${accent}1a`,
+                                                                        color: solid ? '#0B0E14' : accent,
+                                                                        border: isLogged && !solid ? '1px dashed' : 'none',
+                                                                        borderColor: `${accent}80`,
+                                                                    }}
+                                                                >
+                                                                    {week.week}
+                                                                </Box>
+
+                                                                <Box sx={{ flex: 1, minWidth: 0 }}>
+                                                                    <Typography
+                                                                        variant="body2"
+                                                                        sx={{ color: 'text.primary', fontWeight: 600, lineHeight: 1.4 }}
+                                                                        noWrap={!isOpen}
+                                                                    >
+                                                                        {week.theory}
+                                                                    </Typography>
+                                                                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                                                                        {week.dates} · {week.targetHours}h · {week.reading}
+                                                                    </Typography>
+                                                                </Box>
+
+                                                                {week.milestone && (
+                                                                    <Tooltip title={week.milestone.replace(/\*/g, '').trim()}>
+                                                                        <FlagRoundedIcon sx={{ fontSize: 18, color: accent, flexShrink: 0 }} />
+                                                                    </Tooltip>
+                                                                )}
+                                                                {isOpen
+                                                                    ? <ExpandLessRoundedIcon sx={{ color: 'text.disabled' }} />
+                                                                    : <ExpandMoreRoundedIcon sx={{ color: 'text.disabled' }} />}
+                                                            </Stack>
                                                         </Box>
 
-                                                        <Box sx={{ flex: 1, minWidth: 0 }}>
-                                                            <Typography
-                                                                variant="body2"
-                                                                sx={{ color: 'text.primary', fontWeight: 600, lineHeight: 1.4 }}
-                                                                noWrap={!isOpen}
-                                                            >
-                                                                {week.theory}
-                                                            </Typography>
-                                                            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                                                                {week.dates} · {week.targetHours}h · {week.dsa}
-                                                            </Typography>
-                                                        </Box>
-
-                                                        {week.milestone && (
-                                                            <Tooltip title={week.milestone.replace(/\*/g, '').trim()}>
-                                                                <FlagRoundedIcon sx={{ fontSize: 18, color: accent, flexShrink: 0 }} />
-                                                            </Tooltip>
-                                                        )}
-                                                        {isOpen
-                                                            ? <ExpandLessRoundedIcon sx={{ color: 'text.disabled' }} />
-                                                            : <ExpandMoreRoundedIcon sx={{ color: 'text.disabled' }} />}
-                                                    </Stack>
-                                                </Box>
-
-                                                <Collapse in={isOpen} timeout="auto" unmountOnExit>
-                                                    <Stack spacing={2} sx={{ mt: 1.5, mb: 2, pl: { sm: 2 } }}>
-                                                        <WeekCard week={week} />
-                                                        <ResourceList resources={getWeekResources(week.week)} />
-                                                    </Stack>
-                                                </Collapse>
-
-                                                {endsTheoryTrack && (
-                                                    <Stack
-                                                        direction="row"
-                                                        alignItems="center"
-                                                        spacing={1.5}
-                                                        sx={{ mt: 1.5, mb: 0.5 }}
-                                                    >
-                                                        <Box sx={{ flex: 1, height: '1px', bgcolor: 'rgba(255,255,255,0.12)' }} />
-                                                        <Typography
-                                                            variant="caption"
-                                                            sx={{ color: 'text.disabled', fontWeight: 800, letterSpacing: 1.1, fontSize: '0.62rem' }}
-                                                        >
-                                                            THEORY ENDS · TOEFL TAKES THE MORNINGS
-                                                        </Typography>
-                                                        <Box sx={{ flex: 1, height: '1px', bgcolor: 'rgba(255,255,255,0.12)' }} />
-                                                    </Stack>
-                                                )}
-                                            </Box>
-                                        );
-                                    })}
-                                </Stack>
-                            </Box>
-                        );
-                    })}
+                                                        <Collapse in={isOpen} timeout="auto" unmountOnExit>
+                                                            <Stack spacing={2} sx={{ mt: 1.5, mb: 2, pl: { sm: 2 } }}>
+                                                                <WeekCard week={week} />
+                                                                <ResourceList resources={getWeekResources(week.week)} />
+                                                            </Stack>
+                                                        </Collapse>
+                                                    </Box>
+                                                );
+                                            })}
+                                        </Stack>
+                                    </Box>
+                                );
+                            })}
+                        </Box>
+                    ))}
                 </Box>
             )}
 
@@ -337,7 +452,7 @@ const JourneyPage = () => {
                                                 {project.proves}
                                             </Typography>
                                             <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem', mt: 0.5 }}>
-                                                {project.where}
+                                                {project.pipeline.publish}
                                             </Typography>
                                         </Box>
                                     </Stack>
