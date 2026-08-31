@@ -27,7 +27,10 @@ export const getPlanWeekNumber = (dateISO: string): number | null => {
 
 export const getPlanWeek = (dateISO: string): PlanWeek | null => {
     const week = getPlanWeekNumber(dateISO);
-    return week === null ? null : planWeeks[week - 1];
+    // PLAN_WEEKS can run ahead of the weeks actually written, so this has to
+    // cope with a week number the content does not reach yet rather than
+    // handing back undefined dressed up as a PlanWeek.
+    return week === null ? null : planWeeks[week - 1] ?? null;
 };
 
 /** Negative once the plan has started. Used for the "starts in N days" state. */

@@ -1,4 +1,4 @@
-// The 26-week study plan — 24 Aug 2026 to 21 Feb 2027.
+// The 52-week study plan — 31 Aug 2026 to 29 Aug 2027.
 //
 // This is the content of Study_Tracker.xlsx, moved into the app so the plan
 // lives where the work already happens. Everything here is fixed: the schedule,
@@ -9,20 +9,22 @@
 //   A — research depth (mornings + Sunday): maths, theory, papers, reproduction
 //   B — engineering + DSA (evenings + weekends): LLM systems, RAG, evals, LeetCode
 
-export const PLAN_START_DATE = '2026-08-24'; // Monday of week 1
-export const PLAN_END_DATE = '2027-02-21';   // Sunday of week 26
-export const PLAN_WEEKS = 26;
+export const PLAN_START_DATE = '2026-08-31'; // Monday of week 1
+export const PLAN_END_DATE = '2027-08-29';   // Sunday of week 52
+export const PLAN_WEEKS = 52;
 
 /** Hours a normal week asks for. The routine below adds up to exactly this. */
-export const FULL_WEEK_TARGET_HOURS = 29;
+export const FULL_WEEK_TARGET_HOURS = 26;
 /** Consolidation and holiday weeks are deliberately lighter. */
-export const LIGHT_WEEK_TARGET_HOURS = 10;
+export const LIGHT_WEEK_TARGET_HOURS = 12;
 
 // ============ START HERE — the strategy before the schedule ============
 
 export const workPattern =
-    'Shifts 10:00-18:00 Mon, Tue, Wed and Fri, 10:00-14:00 Sat and Sun, Thursday off. ' +
-    'The deep work block sits on the day off, and moves with it when the rota changes.';
+    'Shifts 10:00-18:00 Mon, Tue, Wed, Fri. 10:00-14:00 Sat and Sun. ' +
+    'Thursday off. Weekend shifts end at 14:00, so Saturday and Sunday ' +
+    'afternoons are the second and third best blocks of the week after ' +
+    'Thursday - they are not tired evening time.';
 
 export interface Track {
     id: 'A' | 'B';
@@ -143,10 +145,6 @@ export const WEEKDAY_NAMES: Record<Weekday, string> = {
 };
 
 /**
- * What a slot is, for logic. `track` below is what it is called on screen.
- * 'dsa' and 'job' are the two that survive being displaced.
- */
-/**
  * Each day has one job, and naming it is what stops the daily "so what am I
  * actually doing today". The names describe the day's centre of gravity, not
  * its only slot — every day still carries DSA and applications.
@@ -161,10 +159,16 @@ export const DAY_TITLES: Record<Weekday, string> = {
     Sun: 'Light day',
 };
 
+/**
+ * What a slot is, for logic. `track` below is what it is called on screen.
+ * 'read', 'dsa' and 'job' are the ones that survive being displaced.
+ */
 export type SlotKind =
     | 'theory'
     | 'aieng'
     | 'papers'
+    | 'read'
+    | 'systems'
     | 'dsa'
     | 'job'
     | 'light'
@@ -191,6 +195,9 @@ const SLOT_COLORS: Record<SlotKind, string> = {
     theory: '#66bb6a',
     aieng: '#ffd54f',
     papers: '#b39ddb',
+    read: '#81c784',
+    // Not named in the spec; indigo keeps it apart from the DSA blue beside it.
+    systems: '#7986cb',
     dsa: '#4a90e2',
     job: '#4dd0e1',
     light: '#90a4ae',
@@ -207,41 +214,60 @@ const slot = (
     what: string
 ): RoutineSlot => ({ kind, start, end, hours, track, what, color: SLOT_COLORS[kind] });
 
-const dsaSlot = (start = '19:30', end = '20:15') =>
-    slot('dsa', start, end, 0.75, 'B - DSA', 'One NeetCode problem');
+const readSlot = () =>
+    slot('read', '19:30', '19:50', 0.33, 'A - Reading', 'Daily reading ladder');
 
-const jobSlot = (start = '20:15', end = '20:45') =>
-    slot('job', start, end, 0.5, 'B - Job applications', 'Applications and outreach');
+const dsaSlot = (what = 'One NeetCode problem') =>
+    slot('dsa', '19:50', '20:05', 0.25, 'B - DSA', what);
+
+const jobSlot = () =>
+    slot('job', '20:05', '20:35', 0.5, 'B - Job', 'Applications and outreach');
 
 /**
- * The six ordinary days. Friday looks empty of study on purpose: it is where
- * the deep work day's displaced study lands, which is what keeps the week at
- * the same total wherever the day off falls. On the current rota that means
- * Friday morning carries Thursday's AI engineering block.
+ * The four shift days are identical, so they are built rather than repeated:
+ * the stage before work, then the evening ladder — read, one problem, twenty
+ * minutes of Chip Huyen, twenty of DDIA.
+ */
+const shiftDay = (): RoutineSlot[] => [
+    slot('theory', '06:00', '08:30', 2.5, 'A - Theory', 'Stage material - watch, read, build'),
+    readSlot(),
+    dsaSlot('One NeetCode problem (Python)'),
+    slot('aieng', '20:05', '20:25', 0.33, 'B - AI Eng', 'Chip Huyen, AI Engineering'),
+    slot('systems', '20:25', '20:45', 0.33, 'A - Systems', 'Designing Data-Intensive Applications'),
+];
+
+/**
+ * The week as the rota actually gives it. Thursday holds only the habits here
+ * because the six hours of build arrive from deepWorkSlots below — that is what
+ * lets the day off move when the rota changes, without the artifact moving too.
+ *
+ * Saturday and Sunday start in the afternoon on purpose: the weekend shift ends
+ * at 14:00, so those are real blocks rather than leftover evening.
  */
 export const dailyRoutine: Record<Weekday, RoutineSlot[]> = {
-    Mon: [slot('theory', '06:00', '08:30', 2.5, 'A - Theory', 'Maths and theory'), dsaSlot(), jobSlot()],
-    Tue: [slot('theory', '06:00', '08:30', 2.5, 'A - Theory', 'Maths and theory'), dsaSlot(), jobSlot()],
-    Wed: [slot('theory', '06:00', '08:30', 2.5, 'A - Theory', 'Maths and theory'), dsaSlot(), jobSlot()],
-    Thu: [slot('aieng', '06:00', '08:30', 2.5, 'B - AI Eng', 'AI engineering'), dsaSlot(), jobSlot()],
-    Fri: [dsaSlot(), jobSlot()],
+    Mon: shiftDay(),
+    Tue: shiftDay(),
+    Wed: shiftDay(),
+    Thu: [readSlot(), dsaSlot(), jobSlot()],
+    Fri: shiftDay(),
     Sat: [
-        slot('aieng', '15:30', '18:30', 3.0, 'B - AI Eng', 'AI engineering project'),
-        slot('papers', '18:30', '19:30', 1.0, 'A - Papers', 'Read papers'),
+        slot('aieng', '16:00', '18:30', 2.5, 'B - AI Eng', 'Fruit paper with supervisor, then job project'),
+        slot('papers', '18:30', '19:30', 1.0, 'A - Papers', 'Deep read - the one long read of the week'),
+        readSlot(),
         dsaSlot(),
         jobSlot(),
     ],
-    // The light day. Three slots and nothing else — see LIGHT_DAY_NOTE.
     Sun: [
-        dsaSlot('16:00', '16:45'),
-        jobSlot('16:45', '17:15'),
-        slot('light', '17:30', '18:30', 1.0, 'A - Light review', 'Light review only'),
+        slot('theory', '16:30', '18:30', 2.0, 'A - Theory', 'Stage catch-up, or breadth topic on even weeks'),
+        slot('light', '18:30', '19:30', 1.0, 'A - Light', 'Review the week. Redo what you got wrong.'),
+        readSlot(),
+        dsaSlot(),
     ],
 };
 
-/** The block that travels. Everything else stays where it is. */
+/** The block that travels to the day off. Everything else stays where it is. */
 export const deepWorkSlots: RoutineSlot[] = [
-    slot('build', '09:00', '15:00', 5.0, 'A + B - Build', 'Build from scratch'),
+    slot('build', '09:00', '15:00', 6.0, 'A + B - Build', 'Build the artifact'),
     slot('review', '15:00', '15:15', 0.25, 'Review', 'Weekly review ritual'),
 ];
 
@@ -249,13 +275,18 @@ export const LIGHT_DAY_NOTE =
     'Re-read the week\'s notes and redo the problems you got wrong. Never new material.';
 
 export const routineRules: string[] = [
-    'Mornings are for theory. 06:00 to 08:30, before anything else can take them.',
-    'DSA every single day, no exceptions. 45 minutes. This is the habit that proves you are consistent.',
-    'Job applications every day, 30 minutes, straight after DSA. Consistency beats bursts here too.',
-    'Nothing ends after 21:00. A 06:00 wake needs a 22:30 bedtime, and the plan is worthless without it.',
-    'Deep work is 09:00-15:00 on whichever day you are off, and then you STOP.',
-    'Sunday is a light day: DSA, applications, and one hour of review. Never new material.',
+    'Mornings are for the stage. 06:00-08:30, before anything can take them.',
+    'Thursday 09:00-15:00 is the artifact. Six hours. Then you STOP.',
+    'Saturday and Sunday afternoons are real blocks - the shift ends at 14:00.',
+    'Twenty minutes of reading every single day. Never skipped, never doubled.',
+    'Nothing ends after 21:00. A 06:00 wake needs a 22:30 bedtime.',
     'Miss a day? SKIP it. Never double up. Doubling up is how plans die.',
+    'Never skip BUILD. If you cannot implement it, you do not know it.',
+    'Fail a gate? Repeat the stage. A stage passed by reading is not passed.',
+    'Bad week? Give back Sunday afternoon first - before mornings, before Thursday.',
+    'Everything is Python. DSA, theory, artifacts, kernels (Triton), profiling. ' +
+        'No C++ anywhere in this plan. If C++ is ever needed during a PhD, ' +
+        'learn it then, against a real problem.',
 ];
 
 /**
