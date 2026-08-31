@@ -72,8 +72,20 @@ describe('resolveSlotFocus', () => {
 
     it('pairs AI engineering with the week\'s aieng resource — Saturday only now', () => {
         const focus = resolveSlotFocus('Sat', 'aieng', week1);
-        expect(focus.text).toBe(week1.aiEng);
         expect(focus.resource?.kind).toBe('aieng');
+    });
+
+    it('lets saturdayFocus outrank the week\'s own Track B line', () => {
+        // Saturdays belong to the fruit paper until it is submitted, whatever
+        // else the week says it is doing.
+        expect(week1.saturdayFocus).toBeDefined();
+        expect(resolveSlotFocus('Sat', 'aieng', week1).text).toBe(week1.saturdayFocus);
+    });
+
+    it('falls back to aiEng once the paper is gone', () => {
+        const week30 = planWeeks[29];
+        expect(week30.saturdayFocus).toBeUndefined();
+        expect(resolveSlotFocus('Sat', 'aieng', week30).text).toBe(week30.aiEng);
     });
 
     it('gives the evening book slot its own text, not Saturday\'s project', () => {

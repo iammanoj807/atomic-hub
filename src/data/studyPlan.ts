@@ -539,6 +539,17 @@ export interface PlanWeek {
     aiEng: string;
     /** The daily NeetCode target for the week. */
     dsa: string;
+    /**
+     * Things done once and never again — setup, emails, alerts. They belong to
+     * the week but not to any slot in it, so they are not on the timetable.
+     */
+    oneOffTasks?: string[];
+    /**
+     * What Saturday afternoon is really for, when it outranks the week's own
+     * Track B line. Undefined once the fruit paper is submitted, and Saturday
+     * falls back to aiEng.
+     */
+    saturdayFocus?: string;
     milestone?: string;
 }
 
@@ -872,6 +883,28 @@ const WEEK_CONTENT: Record<number, Pick<WeekContent, 'theory' | 'deepWork'> & { 
     },
 };
 
+/**
+ * Week 1 only. Accounts, three emails and the Scholar alerts — an afternoon's
+ * admin that shapes the whole year, and is easy to never quite get round to.
+ */
+const WEEK_ONE_OFF_TASKS: Record<number, string[]> = {
+    1: [
+        'Set up GitHub, Colab, Overleaf, Weights & Biases (15 min, once)',
+        'Email 3 departments: does the UK MSc waive English for ADMISSION, '
+            + 'and separately for TA ELIGIBILITY? Different policies. '
+            + 'IELTS speaking 8.0 is required for TA at several schools.',
+        'Google Scholar alerts on the 10 researchers',
+        'OPTIONAL orientation: Karpathy Intro to LLMs (1hr) - on a Sunday',
+    ],
+};
+
+/** The last week the fruit paper owns Saturday. After this it is submitted. */
+const FRUIT_PAPER_LAST_WEEK = 20;
+
+const SATURDAY_FRUIT_PAPER =
+    'Fruit detection paper with your MSc supervisor. '
+    + 'The only artifact that comes with a recommendation letter.';
+
 /** Artifacts that land on a consolidation week, where the finishing steps live. */
 const CONSOLIDATION_MILESTONES: Record<number, string> = {
     43: '** ARTIFACT 6 DUE - Triton kernel suite, benchmarked **',
@@ -901,6 +934,10 @@ export const planWeeks: PlanWeek[] = Array.from({ length: PLAN_WEEKS }, (_, inde
         deepWork: content.deepWork,
         aiEng: content.aiEng,
         dsa: content.dsa,
+        oneOffTasks: WEEK_ONE_OFF_TASKS[week],
+        // Saturday belongs to the paper until it is gone; after that the
+        // week's own Track B line is the right answer again.
+        saturdayFocus: week <= FRUIT_PAPER_LAST_WEEK ? SATURDAY_FRUIT_PAPER : undefined,
         milestone: content.milestone,
     };
 });

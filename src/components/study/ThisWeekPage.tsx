@@ -34,6 +34,7 @@ import ResourceList from './ResourceList';
 import WeekLogDialog from './WeekLogDialog';
 import WeekStrip from './WeekStrip';
 import StageBanner from './StageBanner';
+import OneOffTasks from './OneOffTasks';
 import ReadingCard from './ReadingCard';
 import GateCard from './GateCard';
 import ArtifactPipeline from './ArtifactPipeline';
@@ -150,6 +151,11 @@ const ThisWeekPage = () => {
 
             {/* What this week is FOR, before anything about how it is going. */}
             <StageBanner week={featuredWeek} />
+
+            {/* Errands, not slots — they belong to the week, not to a time in it. */}
+            {featuredWeek.oneOffTasks && (
+                <OneOffTasks week={featuredWeek.week} tasks={featuredWeek.oneOffTasks} />
+            )}
 
             <ReadingCard weekNumber={featuredWeek.week} today={today} />
 
