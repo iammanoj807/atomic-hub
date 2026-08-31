@@ -337,7 +337,7 @@ const JourneyPage = () => {
                                                 {project.proves}
                                             </Typography>
                                             <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem', mt: 0.5 }}>
-                                                {project.where}
+                                                {project.pipeline.publish}
                                             </Typography>
                                         </Box>
                                     </Stack>
