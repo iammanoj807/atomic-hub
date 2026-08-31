@@ -64,7 +64,7 @@ export const weekResources: Record<number, WeekResource[]> = {
             title: 'Intro to Large Language Models (1 hour)',
             source: 'Andrej Karpathy · YouTube',
             url: 'https://www.youtube.com/@AndrejKarpathy',
-            detail: 'Then set up the accounts you will use all six months: GitHub, Colab, Overleaf, Weights & Biases.',
+            detail: 'Then set up the accounts you will use all year: GitHub, Colab, Overleaf, Weights & Biases.',
         },
     ],
     2: [
@@ -266,7 +266,7 @@ export const weekResources: Record<number, WeekResource[]> = {
         {
             kind: 'aieng',
             title: 'DECIDE YOUR SUBFIELD and commit',
-            source: 'The most important decision of the six months',
+            source: 'The most important decision of the year',
             detail: 'Interpretability / efficient inference / RLHF / reasoning / multimodal / diffusion. From week 9 every paper you read is in it.',
         },
     ],
@@ -694,7 +694,7 @@ export const weekResources: Record<number, WeekResource[]> = {
             kind: 'build',
             title: 'Draft your Statement of Purpose',
             source: 'Your own words',
-            detail: 'The six months you just did IS the statement. Reproduction, extension, published work, and a job doing it.',
+            detail: 'The year you just did IS the statement. Reproduction, extension, published work, and a job doing it.',
         },
         {
             kind: 'aieng',
@@ -732,7 +732,7 @@ export const weekResources: Record<number, WeekResource[]> = {
             kind: 'watch',
             title: 'Nothing. Look back instead.',
             source: 'Review week',
-            detail: 'Open your hours log at week 1 and read forward. Twenty-six weeks of evidence.',
+            detail: 'Open your hours log at week 1 and read forward. Fifty-two weeks of evidence.',
         },
         {
             kind: 'read',
@@ -742,7 +742,7 @@ export const weekResources: Record<number, WeekResource[]> = {
         },
         {
             kind: 'build',
-            title: 'Plan the next six months',
+            title: 'Plan the next twelve months',
             source: 'A fresh page',
             detail: 'GRE if needed, a second project, December 2027 applications.',
         },
