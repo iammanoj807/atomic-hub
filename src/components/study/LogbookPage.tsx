@@ -123,7 +123,7 @@ const LogbookPage = () => {
                         {` hours, ${studyPapers.length} ${studyPapers.length === 1 ? 'paper' : 'papers'}.`}
                     </>
                 }
-                subtitle="Written down every Sunday. In February this is the only honest record of what the six months contained."
+                subtitle="Written down every Sunday. In August 2027 this is the only honest record of what the year contained."
                 action={
                     tab === 0
                         ? currentWeekNumber !== null && (
