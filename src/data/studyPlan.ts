@@ -162,10 +162,15 @@ export const DAY_TITLES: Record<Weekday, string> = {
 /**
  * What a slot is, for logic. `track` below is what it is called on screen.
  * 'read', 'dsa' and 'job' are the ones that survive being displaced.
+ *
+ * 'aieng' and 'book' share a track name and a colour but are not the same
+ * thing: 'aieng' is Saturday's long build block and takes the week's own text,
+ * 'book' is the twenty evening minutes of Chip Huyen and always says so.
  */
 export type SlotKind =
     | 'theory'
     | 'aieng'
+    | 'book'
     | 'papers'
     | 'read'
     | 'systems'
@@ -194,6 +199,7 @@ export const LATEST_END_TIME = '21:00';
 const SLOT_COLORS: Record<SlotKind, string> = {
     theory: '#66bb6a',
     aieng: '#ffd54f',
+    book: '#ffd54f',
     papers: '#b39ddb',
     read: '#81c784',
     // Not named in the spec; indigo keeps it apart from the DSA blue beside it.
@@ -232,7 +238,7 @@ const shiftDay = (): RoutineSlot[] => [
     slot('theory', '06:00', '08:30', 2.5, 'A - Theory', 'Stage material - watch, read, build'),
     readSlot(),
     dsaSlot('One NeetCode problem (Python)'),
-    slot('aieng', '20:05', '20:25', 0.33, 'B - AI Eng', 'Chip Huyen, AI Engineering'),
+    slot('book', '20:05', '20:25', 0.33, 'B - AI Eng', 'Chip Huyen, AI Engineering'),
     slot('systems', '20:25', '20:45', 0.33, 'A - Systems', 'Designing Data-Intensive Applications'),
 ];
 

@@ -79,6 +79,11 @@ export const resolveSlotFocus = (
             return theoryFocus(day, week);
         case 'aieng':
             return { text: week.aiEng, resource: resourceOfKind(week.week, 'aieng') };
+        case 'book':
+            return {
+                text: 'Chip Huyen, AI Engineering. Twenty minutes, straight after '
+                    + 'the problem. Reading only - no building, no notes to write up.',
+            };
         case 'build':
             return { text: week.deepWork, resource: resourceOfKind(week.week, 'build') };
         case 'review':

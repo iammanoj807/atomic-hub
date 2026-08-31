@@ -65,17 +65,24 @@ describe('resolveSlotFocus', () => {
 
     it('opens the week log from the review slot, and from nothing else', () => {
         expect(resolveSlotFocus('Thu', 'review', week1).opensWeekLog).toBe(true);
-        for (const kind of ['theory', 'aieng', 'dsa', 'job', 'papers', 'light', 'build'] as const) {
+        for (const kind of ['theory', 'aieng', 'book', 'dsa', 'job', 'papers', 'light', 'build'] as const) {
             expect(resolveSlotFocus('Thu', kind, week1).opensWeekLog).toBeUndefined();
         }
     });
 
-    it('pairs AI engineering with the week\'s aieng resource on Friday and Saturday', () => {
-        for (const day of ['Fri', 'Sat'] as const) {
-            const focus = resolveSlotFocus(day, 'aieng', week1);
-            expect(focus.text).toBe(week1.aiEng);
-            expect(focus.resource?.kind).toBe('aieng');
-        }
+    it('pairs AI engineering with the week\'s aieng resource — Saturday only now', () => {
+        const focus = resolveSlotFocus('Sat', 'aieng', week1);
+        expect(focus.text).toBe(week1.aiEng);
+        expect(focus.resource?.kind).toBe('aieng');
+    });
+
+    it('gives the evening book slot its own text, not Saturday\'s project', () => {
+        // Both used to be kind 'aieng', so the twenty minutes of Chip Huyen
+        // displayed the fruit paper's text instead of its own.
+        const book = resolveSlotFocus('Mon', 'book', week1);
+        expect(book.text).toContain('Chip Huyen');
+        expect(book.text).not.toBe(week1.aiEng);
+        expect(book.resource).toBeUndefined();
     });
 
     it('points papers at the logbook and DSA at the hub', () => {
