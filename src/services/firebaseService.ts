@@ -733,9 +733,9 @@ export const deleteEvidenceEntry = async (date: string) => {
 
 // ============ STUDY PLAN ============
 //
-// The 26-week plan itself is static content (data/studyPlan.ts). What lives
-// here is only what changes: the Sunday hours entry, the papers read, and
-// which of the nine projects are finished.
+// The 52-week plan itself is static content (data/studyPlan.ts). What lives
+// here is only what changes: the weekly hours entry, the papers read, the
+// daily reading, the gate attempts, and how far each artifact has got.
 
 const STUDY_WEEKS_COLLECTION = 'study_weeks';
 const STUDY_PAPERS_COLLECTION = 'study_papers';
@@ -743,7 +743,7 @@ const STUDY_PROGRESS_COLLECTION = 'study_progress';
 const STUDY_PROJECTS_DOC = 'projects';
 
 export interface StudyWeekLog {
-    week: number;             // 1-26
+    week: number;             // 1-52
     actualHours: number | null;
     dsaProblems: number | null;
     finished: string;         // "What I finished"
@@ -759,6 +759,10 @@ export interface StudyWeekLog {
      * the week reads true; it does not move any slots — see studySchedule.ts.
      */
     secondDayOff?: string;
+    /** Set when the week's stage was signed off, so Journey can grey it out. */
+    stageCompleted?: boolean;
+    /** Whether this week's gate was passed. Only weeks that carry a gate use it. */
+    gatePassed?: boolean;
     updatedAt: Timestamp;
 }
 
@@ -882,6 +886,194 @@ export const saveStudyProjects = async (completedIds: string[]) => {
         await setDoc(docRef, { completedIds, updatedAt: Timestamp.now() }, { merge: true });
     } catch (error) {
         console.error('❌ Failed to save study projects:', error);
+        throw error;
+    }
+};
+
+// ============ DAILY READING ============
+//
+// One item a day, twenty minutes, never doubled. The entry that matters is
+// whatWouldIDoNext — asked three hundred times over a year, that is where
+// research taste comes from, so it is stored even when the notes are empty.
+
+const DAILY_READING_COLLECTION = 'dailyReading';
+
+export interface ReadingEntry {
+    id: string;              // also the document id — one entry per date
+    date: string;            // YYYY-MM-DD
+    weekNumber: number;
+    item: string;            // the ladder item this entry was against
+    level: string;           // 'blogs' | 'classics' | 'modern' | 'frontier' | 'subfield'
+    notes: string;
+    whatWouldIDoNext: string;
+    minutes: number;
+}
+
+export const subscribeToReading = (
+    callback: (entries: ReadingEntry[]) => void
+) => {
+    return onSnapshot(collection(db, DAILY_READING_COLLECTION), (snapshot: QuerySnapshot<DocumentData>) => {
+        const entries = snapshot.docs.map(doc => ({
+            ...(doc.data() as ReadingEntry),
+            id: doc.id,
+        }));
+
+        // Newest read first, the way the page shows them.
+        entries.sort((a, b) => b.date.localeCompare(a.date));
+
+        callback(entries);
+    }, (error) => {
+        console.error('❌ Reading subscription error:', error.code, error.message);
+    });
+};
+
+/** One entry per date, so logging the same day twice edits rather than duplicates. */
+export const logReading = async (entry: Omit<ReadingEntry, 'id'>) => {
+    try {
+        const docRef = doc(db, DAILY_READING_COLLECTION, entry.date);
+        await setDoc(docRef, { ...entry, updatedAt: Timestamp.now() }, { merge: true });
+    } catch (error) {
+        console.error('❌ Failed to log reading:', error);
+        throw error;
+    }
+};
+
+export const deleteReading = async (date: string) => {
+    try {
+        await deleteDoc(doc(db, DAILY_READING_COLLECTION, date));
+    } catch (error) {
+        console.error('❌ Failed to delete reading:', error);
+        throw error;
+    }
+};
+
+// ============ GATE ATTEMPTS ============
+//
+// A stage is complete only when its gate has a passed attempt. Failures are
+// kept rather than overwritten: repeating a stage is the designed outcome of
+// failing a gate, and the record of that is the point.
+
+const GATE_ATTEMPTS_COLLECTION = 'gateAttempts';
+
+export interface GateAttempt {
+    id: string;              // also the document id
+    stage: number;
+    date: string;            // YYYY-MM-DD
+    passed: boolean;
+    notes: string;
+}
+
+export const subscribeToGateAttempts = (
+    callback: (attempts: GateAttempt[]) => void
+) => {
+    return onSnapshot(collection(db, GATE_ATTEMPTS_COLLECTION), (snapshot: QuerySnapshot<DocumentData>) => {
+        const attempts = snapshot.docs.map(doc => ({
+            ...(doc.data() as GateAttempt),
+            id: doc.id,
+        }));
+
+        attempts.sort((a, b) => a.date.localeCompare(b.date));
+
+        callback(attempts);
+    }, (error) => {
+        console.error('❌ Gate attempts subscription error:', error.code, error.message);
+    });
+};
+
+/** Every attempt is its own document — a failed gate is history, not a mistake. */
+export const logGateAttempt = async (attempt: Omit<GateAttempt, 'id'>) => {
+    try {
+        const id = `stage-${String(attempt.stage).padStart(2, '0')}-${attempt.date}`;
+        await setDoc(doc(db, GATE_ATTEMPTS_COLLECTION, id), {
+            ...attempt,
+            updatedAt: Timestamp.now(),
+        }, { merge: true });
+    } catch (error) {
+        console.error('❌ Failed to log gate attempt:', error);
+        throw error;
+    }
+};
+
+// ============ ARTIFACT PROGRESS ============
+//
+// BUILD is a quarter of the work. An artifact is done only when all four
+// booleans are true, which is the whole reason the other three are stored.
+
+const ARTIFACT_PROGRESS_COLLECTION = 'artifactProgress';
+
+export interface ArtifactProgressDoc {
+    id: string;              // also the document id — the project id
+    projectId: string;
+    build: boolean;
+    write: boolean;
+    publish: boolean;
+    post: boolean;
+    repoUrl?: string;
+    postUrl?: string;
+    completedAt?: string;    // ISO date, set when the fourth step lands
+}
+
+export const subscribeToArtifactProgress = (
+    callback: (progress: Record<string, ArtifactProgressDoc>) => void
+) => {
+    return onSnapshot(collection(db, ARTIFACT_PROGRESS_COLLECTION), (snapshot: QuerySnapshot<DocumentData>) => {
+        const progress: Record<string, ArtifactProgressDoc> = {};
+        snapshot.docs.forEach(doc => {
+            const data = { ...(doc.data() as ArtifactProgressDoc), id: doc.id };
+            if (data.projectId) progress[data.projectId] = data;
+        });
+        callback(progress);
+    }, (error) => {
+        console.error('❌ Artifact progress subscription error:', error.code, error.message);
+    });
+};
+
+/**
+ * Ticking the last of the four stamps completedAt; unticking any of them
+ * clears it, because a partly finished artifact has no completion date and a
+ * stale one would quietly overstate the year.
+ */
+export const updateArtifactStage = async (
+    projectId: string,
+    stage: 'build' | 'write' | 'publish' | 'post',
+    done: boolean,
+    current?: ArtifactProgressDoc
+) => {
+    try {
+        const next = {
+            build: current?.build ?? false,
+            write: current?.write ?? false,
+            publish: current?.publish ?? false,
+            post: current?.post ?? false,
+            [stage]: done,
+        };
+        const allDone = next.build && next.write && next.publish && next.post;
+        await setDoc(doc(db, ARTIFACT_PROGRESS_COLLECTION, projectId), {
+            projectId,
+            ...next,
+            completedAt: allDone ? (current?.completedAt ?? new Date().toISOString().slice(0, 10)) : deleteField(),
+            updatedAt: Timestamp.now(),
+        }, { merge: true });
+    } catch (error) {
+        console.error('❌ Failed to update artifact stage:', error);
+        throw error;
+    }
+};
+
+/** The repo and post links, saved separately from the four ticks. */
+export const saveArtifactLinks = async (
+    projectId: string,
+    links: { repoUrl?: string; postUrl?: string }
+) => {
+    try {
+        await setDoc(doc(db, ARTIFACT_PROGRESS_COLLECTION, projectId), {
+            projectId,
+            repoUrl: links.repoUrl || deleteField(),
+            postUrl: links.postUrl || deleteField(),
+            updatedAt: Timestamp.now(),
+        }, { merge: true });
+    } catch (error) {
+        console.error('❌ Failed to save artifact links:', error);
         throw error;
     }
 };
