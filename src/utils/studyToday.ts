@@ -86,6 +86,10 @@ export const resolveSlotFocus = (
                 text: 'The weekly review ritual: what you finished, and one thing you understand now that you did not last week.',
                 opensWeekLog: true,
             };
+        case 'read':
+            return { text: 'Twenty minutes of the reading ladder. Every day, never doubled.' };
+        case 'systems':
+            return { text: 'Designing Data-Intensive Applications. Twenty minutes, straight after the problem.' };
         case 'papers':
             return {
                 text: 'Read papers. Write the main idea in your own words or it did not happen.',
@@ -112,19 +116,27 @@ export const slotState = (start: string, end: string, nowHHMM: string): SlotStat
     return 'later';
 };
 
-/** The DSA pattern a week belongs to, matched on the pattern's own week range. */
-export const patternForWeek = (week: number): DSAPatternPlan | undefined =>
-    dsaPatterns.find(pattern => {
+/**
+ * The DSA pattern a week belongs to.
+ *
+ * The patterns cover the first 26 weeks; the back half of the year is the same
+ * ladder again without the videos, so week 27 folds onto week 1 rather than
+ * leaving half the plan with no pattern at all.
+ */
+export const patternForWeek = (week: number): DSAPatternPlan | undefined => {
+    const inFirstPass = week > 26 ? week - 26 : week;
+    return dsaPatterns.find(pattern => {
         const parts = pattern.weeks.split('-').map(Number);
         return parts.length === 2
-            ? week >= parts[0] && week <= parts[1]
-            : parts[0] === week;
+            ? inFirstPass >= parts[0] && inFirstPass <= parts[1]
+            : parts[0] === inFirstPass;
     });
+};
 
 /**
  * How many theory weeks are left, counting this one. Consolidation weeks are
- * review rather than new material, so they do not count — nine of the twelve
- * are real, and that is the number worth seeing early.
+ * review rather than new material, so they do not count — 45 of the 52 are
+ * real, and that is the number worth seeing early.
  */
 export const theoryWeeksLeft = (currentWeek: number): number =>
     planWeeks.filter(
@@ -133,6 +145,6 @@ export const theoryWeeksLeft = (currentWeek: number): number =>
             && w.phaseKey !== 'consolidation'
     ).length;
 
-/** Whether the mornings still belong to theory at all. */
+/** Whether the mornings still belong to theory at all. They always do now. */
 export const isTheoryTrackWeek = (week: number): boolean =>
     week <= THEORY_TRACK_LAST_WEEK;
