@@ -244,7 +244,7 @@ const ThisWeekPage = () => {
                         {
                             label: 'PAPERS',
                             value: `${studyPapers.length}`,
-                            of: '/ ~60',
+                            of: '/ ~120',
                             to: '/study/logbook?tab=papers',
                         },
                         {

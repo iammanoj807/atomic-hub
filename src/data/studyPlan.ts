@@ -1140,7 +1140,7 @@ export const PROJECT_WEIGHT_COLORS: Record<'phd' | 'job', string> = {
     job: '#ffd54f',
 };
 
-// ============ PAPERS — 2-3 per week, ~60 over six months ============
+// ============ PAPERS — 2-3 per week, ~120 over the year ============
 
 export const PAPERS_PER_WEEK_TARGET = 2.5;
 

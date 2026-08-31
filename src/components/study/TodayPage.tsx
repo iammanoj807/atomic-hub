@@ -264,10 +264,10 @@ const TodayPage = () => {
         return (
             <Box sx={{ width: '100%', maxWidth: 720, mx: 'auto', textAlign: 'center', py: 10 }}>
                 <Typography variant="h4" sx={{ fontWeight: 800, mb: 1 }}>
-                    Twenty-six weeks done.
+                    Fifty-two weeks done.
                 </Typography>
                 <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-                    Week 26 was the honest review. Everything you did is in the logbook.
+                    Week 52 was the honest review. Everything you did is in the logbook.
                 </Typography>
                 <Button variant="contained" onClick={() => navigate('/study/logbook')} sx={{ '&:focus': { outline: 'none' } }}>
                     Read the final review
