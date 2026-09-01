@@ -75,7 +75,7 @@ export const getRoutineForWeek = (
     // Friday absorbs what the build pushed off its day, but only the parts it
     // does not already run. Every shift day now has the same shape, so moving
     // a Monday morning onto Friday wholesale would print theory twice at
-    // 06:00 and count the hours twice with it.
+    // 05:30 and count the hours twice with it.
     if (deepWorkDay !== OVERFLOW_DAY && displaced.length > 0) {
         const alreadyThere = new Set(
             week[OVERFLOW_DAY].map(s => `${s.kind}@${s.start}`)

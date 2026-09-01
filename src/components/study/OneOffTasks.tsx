@@ -19,7 +19,7 @@ const readDone = (week: number): number[] => {
  * emails, the Scholar alerts.
  *
  * They are deliberately not on the timetable: none of them belongs to a slot,
- * and putting a fifteen-minute setup task inside the 06:00 theory block would
+ * and putting a fifteen-minute setup task inside the 05:30 theory block would
  * make the routine lie about what the mornings are for. So they sit above the
  * week as their own short list, and disappear entirely on weeks that have none.
  *

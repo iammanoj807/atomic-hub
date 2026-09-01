@@ -104,6 +104,23 @@ describe('resolveSlotFocus', () => {
         expect(dsa.link?.to).toBe('/dsa');
     });
 
+    it('names this week\'s reading item rather than just "the ladder"', () => {
+        // The week already knows the item; the slot used to say only that a
+        // ladder existed, which is the one slot that did not name its work.
+        expect(resolveSlotFocus('Mon', 'read', week1).text).toBe(week1.reading);
+    });
+
+    it('alternates the evening book: Chip Huyen Mon and Wed, DDIA Tue and Fri', () => {
+        // An hour of reading after an eight-hour shift is not a thing anyone
+        // does twice, so one book a night and both still move.
+        for (const day of ['Mon', 'Wed'] as const) {
+            expect(resolveSlotFocus(day, 'book', week1).text).toContain('Chip Huyen');
+        }
+        for (const day of ['Tue', 'Fri'] as const) {
+            expect(resolveSlotFocus(day, 'book', week1).text).toContain('Data-Intensive');
+        }
+    });
+
     it('gives Sunday the light day note', () => {
         expect(resolveSlotFocus('Sun', 'light', week1).text).toBe(LIGHT_DAY_NOTE);
     });
@@ -125,12 +142,12 @@ describe('resolveSlotFocus', () => {
 
 describe('slotState', () => {
     it('marks the slot the clock is inside as now', () => {
-        expect(slotState('06:00', '08:30', '07:15')).toBe('now');
+        expect(slotState('05:30', '07:30', '06:15')).toBe('now');
     });
 
     it('counts the start minute as started and the end minute as finished', () => {
-        expect(slotState('06:00', '08:30', '06:00')).toBe('now');
-        expect(slotState('06:00', '08:30', '08:30')).toBe('done');
+        expect(slotState('05:30', '07:30', '05:30')).toBe('now');
+        expect(slotState('05:30', '07:30', '07:30')).toBe('done');
     });
 
     it('marks what has not begun as later', () => {

@@ -28,7 +28,7 @@ import { getLondonDateString } from './utils/date';
 
 /**
  * While the plan is running the app opens on Today, because that is the
- * question being asked at 06:00. Outside those 26 weeks there is no today to
+ * question being asked at 05:30. Outside those 52 weeks there is no today to
  * show, so the dashboard remains home.
  */
 function HomeRedirect() {

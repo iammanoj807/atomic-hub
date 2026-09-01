@@ -133,9 +133,9 @@ describe('summariseHours', () => {
         3: { dsaProblems: 7 }, // notes only, no hours yet
     };
 
-    it('totals the whole plan at 1254 hours', () => {
-        // 45 full weeks at 26 plus 7 consolidation weeks at 12.
-        expect(summariseHours({}, null).targetTotal).toBeCloseTo(1254, 5);
+    it('totals the whole plan at 1164 hours', () => {
+        // 45 full weeks at 24 plus 7 consolidation weeks at 12.
+        expect(summariseHours({}, null).targetTotal).toBeCloseTo(1164, 5);
     });
 
     it('targets nothing before the plan starts', () => {
@@ -144,12 +144,12 @@ describe('summariseHours', () => {
 
     it('targets only the weeks up to now', () => {
         // Weeks 1-4 are all full weeks; the first consolidation week is 7.
-        expect(summariseHours(logs, 4).targetToDate).toBeCloseTo(104, 5);
+        expect(summariseHours(logs, 4).targetToDate).toBeCloseTo(96, 5);
     });
 
     it('counts the consolidation week as the lighter one', () => {
-        // Weeks 1-7: six at 26 plus week 7 at 12.
-        expect(summariseHours(logs, 7).targetToDate).toBeCloseTo(168, 5);
+        // Weeks 1-7: six at 24 plus week 7 at 12.
+        expect(summariseHours(logs, 7).targetToDate).toBeCloseTo(156, 5);
     });
 
     it('counts a week as logged only once it has hours', () => {
@@ -160,8 +160,8 @@ describe('summariseHours', () => {
     });
 
     it('reports how far behind you are', () => {
-        // 48 done against a 78-hour target for weeks 1-3.
-        expect(summariseHours(logs, 3).diffToDate).toBeCloseTo(-30, 5);
+        // 48 done against a 72-hour target for weeks 1-3.
+        expect(summariseHours(logs, 3).diffToDate).toBeCloseTo(-24, 5);
     });
 });
 

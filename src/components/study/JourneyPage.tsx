@@ -1,3 +1,13 @@
+// Journey answers one question: where am I in the year?
+//
+//   Today     = the next hour.
+//   This week = what I owe by Sunday.
+//   Journey   = where I am in the year.
+//
+// If a component answers a different one of those three questions than the
+// page it sits on, it is on the wrong page. Week cards and resource lists
+// used to render here; they answer the second question, so they left.
+
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
@@ -18,7 +28,6 @@ import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
 import RadioButtonUncheckedRoundedIcon from '@mui/icons-material/RadioButtonUncheckedRounded';
 import ChevronRightRoundedIcon from '@mui/icons-material/ChevronRightRounded';
 import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
-import FlagRoundedIcon from '@mui/icons-material/FlagRounded';
 import LockRoundedIcon from '@mui/icons-material/LockRounded';
 import ReplayRoundedIcon from '@mui/icons-material/ReplayRounded';
 import { useTaskContext } from '../../context/TaskContext';
@@ -34,12 +43,10 @@ import {
     type PlanWeek,
 } from '../../data/studyPlan';
 import { getGateStatus } from '../../utils/studyProgress';
-import { getWeekResources } from '../../data/studyResources';
 import { dsaCurriculum } from '../../data/dsaCurriculum';
 import { subscribeToDSAProgress, type DSATopicProgress } from '../../services/firebaseService';
 import StudyPageHeader from './StudyPageHeader';
-import WeekCard from './WeekCard';
-import ResourceList from './ResourceList';
+import WeekStrip from './WeekStrip';
 
 const problemIdsByTopic: Record<string, Set<string>> = {};
 for (const phase of dsaCurriculum) {
@@ -50,7 +57,7 @@ for (const phase of dsaCurriculum) {
     }
 }
 
-const TAB_ORDER = ['weeks', 'projects', 'dsa'];
+const TAB_ORDER = ['stages', 'projects', 'dsa'];
 
 interface StageGroup {
     key: string;
@@ -125,7 +132,11 @@ const JourneyPage = () => {
     const setTab = (value: number) =>
         setSearchParams(value === 0 ? {} : { tab: TAB_ORDER[value] }, { replace: true });
 
-    const [openWeek, setOpenWeek] = useState<number | null>(currentWeekNumber);
+    // The part you are standing in opens by default; everything else is folded
+    // away, because the point of this page is orientation, not a wall of weeks.
+    const currentPart = currentWeekNumber ? planWeeks[currentWeekNumber - 1]?.part ?? null : null;
+    const [openPart, setOpenPart] = useState<string | null>(currentPart);
+    const [openStage, setOpenStage] = useState<string | null>(null);
     const [dsaProgress, setDsaProgress] = useState<Record<string, DSATopicProgress>>({});
     const currentWeekRef = useRef<HTMLDivElement>(null);
 
@@ -162,7 +173,7 @@ const JourneyPage = () => {
                         ? <>You are <Box component="span" sx={{ color: 'primary.main' }}>{Math.round(((currentWeekNumber - 1) / planWeeks.length) * 100)}%</Box> through.</>
                         : 'A year, laid out.'
                 }
-                subtitle="Every week, everything you have to show for it, and the 150 problems underneath."
+                subtitle="The whole year at a glance. Open it once a month — staring at 52 weeks while you are in week 1 does not help."
             />
 
             <Tabs
@@ -175,202 +186,212 @@ const JourneyPage = () => {
                     '& .MuiTab-root': { textTransform: 'none', fontWeight: 700, '&:focus': { outline: 'none' } },
                 }}
             >
-                <Tab label={`${planWeeks.length} weeks`} />
+                <Tab label="Stages" />
                 <Tab label={`Projects · ${completedProjectIds.length}/${projects.length}`} />
                 <Tab label={`DSA · ${totalDone}/${totalProblems}`} />
             </Tabs>
 
-            {/* ---- WEEKS ---- */}
+            {/* ---- STAGES ---- */}
             {tab === 0 && (
                 <Box>
-                    {groupByPart(planWeeks).map(part => (
-                        <Box key={part.part} sx={{ mb: 5 }}>
-                            <Typography
-                                variant="h6"
-                                fontWeight="bold"
-                                sx={{
-                                    color: 'text.primary',
-                                    letterSpacing: 1.2,
-                                    fontSize: '0.95rem',
-                                    pb: 1,
-                                    mb: 2.5,
-                                    borderBottom: '1px solid rgba(255,255,255,0.1)',
-                                }}
-                            >
-                                {part.part}
-                            </Typography>
+                    {/* The 52-square view belongs here: it answers "where am I
+                        in the year", which is this page's whole job. */}
+                    <Box sx={{ mb: 4 }}>
+                        <WeekStrip currentWeek={currentWeekNumber} loggedWeeks={loggedWeeks} />
+                    </Box>
 
-                            {part.stages.map(stageGroup => {
-                                const accent = PHASE_COLORS[stageGroup.weeks[0].phaseKey];
-                                const status = stageGroup.isConsolidation
-                                    ? null
-                                    : getGateStatus(gateAttempts, stageGroup.stage);
-                                // A stage is only done when its gate is passed.
-                                // Logging the hours is not the same as knowing it.
-                                const stageComplete = status === 'passed';
+                    {groupByPart(planWeeks).map(part => {
+                        const partOpen = openPart === part.part;
 
-                                return (
-                                    <Box key={stageGroup.key} sx={{ mb: 4 }}>
-                                        <Stack
-                                            direction="row"
-                                            alignItems="center"
-                                            spacing={1.5}
-                                            sx={{ mb: 1 }}
-                                            flexWrap="wrap"
-                                            useFlexGap
-                                        >
-                                            <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: accent }} />
-                                            <Typography
-                                                variant="caption"
-                                                sx={{ color: accent, letterSpacing: 1.5, fontWeight: 800, fontSize: '0.7rem' }}
-                                            >
-                                                {stageGroup.isConsolidation
-                                                    ? stageGroup.stageName.toUpperCase()
-                                                    : `STAGE ${stageGroup.stage} · ${stageGroup.stageName.toUpperCase()}`}
-                                            </Typography>
+                        return (
+                            <Box key={part.part} sx={{ mb: 2 }}>
+                                <Stack
+                                    direction="row"
+                                    alignItems="center"
+                                    spacing={1.5}
+                                    onClick={() => setOpenPart(partOpen ? null : part.part)}
+                                    sx={{
+                                        cursor: 'pointer',
+                                        py: 1.25,
+                                        borderBottom: '1px solid rgba(255,255,255,0.1)',
+                                    }}
+                                >
+                                    <Typography
+                                        variant="h6"
+                                        fontWeight="bold"
+                                        sx={{ color: 'text.primary', letterSpacing: 1.2, fontSize: '0.95rem', flex: 1 }}
+                                    >
+                                        {part.part}
+                                    </Typography>
+                                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
+                                        weeks {part.stages[0].weeks[0].week}-
+                                        {part.stages[part.stages.length - 1].weeks.slice(-1)[0].week}
+                                    </Typography>
+                                    {partOpen
+                                        ? <ExpandLessRoundedIcon sx={{ color: 'text.disabled' }} />
+                                        : <ExpandMoreRoundedIcon sx={{ color: 'text.disabled' }} />}
+                                </Stack>
 
-                                            {status === 'passed' && (
-                                                <Chip
-                                                    size="small"
-                                                    icon={<CheckCircleRoundedIcon sx={{ fontSize: 14 }} />}
-                                                    label="PASSED"
-                                                    sx={{
-                                                        height: 20, fontSize: '0.6rem', fontWeight: 800,
-                                                        color: '#66bb6a', bgcolor: 'rgba(102,187,106,0.14)',
-                                                        '& .MuiChip-icon': { color: '#66bb6a' },
-                                                    }}
-                                                />
-                                            )}
-                                            {status === 'failed' && (
-                                                <Chip
-                                                    size="small"
-                                                    icon={<ReplayRoundedIcon sx={{ fontSize: 14 }} />}
-                                                    label="REPEAT THE STAGE"
-                                                    sx={{
-                                                        height: 20, fontSize: '0.6rem', fontWeight: 800,
-                                                        color: '#ff8a65', bgcolor: 'rgba(255,138,101,0.14)',
-                                                        '& .MuiChip-icon': { color: '#ff8a65' },
-                                                    }}
-                                                />
-                                            )}
-                                            {status === 'unattempted' && (
-                                                <Chip
-                                                    size="small"
-                                                    icon={<LockRoundedIcon sx={{ fontSize: 14 }} />}
-                                                    label="GATE NOT SAT"
-                                                    sx={{
-                                                        height: 20, fontSize: '0.6rem', fontWeight: 800,
-                                                        color: 'text.disabled', bgcolor: 'rgba(255,255,255,0.06)',
-                                                        '& .MuiChip-icon': { color: 'inherit' },
-                                                    }}
-                                                />
-                                            )}
-                                        </Stack>
+                                <Collapse in={partOpen} timeout="auto" unmountOnExit>
+                                    <Stack spacing={1} sx={{ mt: 1.5, mb: 2 }}>
+                                        {part.stages.map(stageGroup => {
+                                            const accent = PHASE_COLORS[stageGroup.weeks[0].phaseKey];
+                                            const status = stageGroup.isConsolidation
+                                                ? null
+                                                : getGateStatus(gateAttempts, stageGroup.stage);
+                                            const first = stageGroup.weeks[0].week;
+                                            const last = stageGroup.weeks.slice(-1)[0].week;
+                                            const stageOpen = openStage === stageGroup.key;
 
-                                        {stageGroup.gate && (
-                                            <Typography
-                                                variant="body2"
-                                                sx={{
-                                                    color: stageComplete ? 'text.secondary' : 'text.primary',
-                                                    fontStyle: 'italic',
-                                                    mb: 1.5,
-                                                    pl: 2.5,
-                                                    lineHeight: 1.55,
-                                                }}
-                                            >
-                                                {stageGroup.gate}
-                                            </Typography>
-                                        )}
-
-                                        <Stack spacing={1}>
-                                            {stageGroup.weeks.map(week => {
-                                                const isOpen = openWeek === week.week;
-                                                const isCurrent = week.week === currentWeekNumber;
-                                                const isLogged = loggedWeeks.has(week.week);
-                                                // Hours logged fills the square; only a passed
-                                                // gate fills it in the stage's own colour.
-                                                const solid = isLogged && (stageComplete || stageGroup.isConsolidation);
-
-                                                return (
+                                            return (
+                                                <Box key={stageGroup.key}>
                                                     <Box
-                                                        key={week.week}
-                                                        ref={isCurrent ? currentWeekRef : undefined}
+                                                        onClick={() => setOpenStage(stageOpen ? null : stageGroup.key)}
+                                                        sx={{
+                                                            p: 1.75,
+                                                            borderRadius: 3,
+                                                            cursor: 'pointer',
+                                                            bgcolor: 'background.paper',
+                                                            border: '1px solid rgba(255,255,255,0.08)',
+                                                            borderLeft: '4px solid',
+                                                            borderLeftColor: accent,
+                                                            '&:hover': { borderColor: 'primary.main' },
+                                                        }}
                                                     >
-                                                        <Box
-                                                            onClick={() => setOpenWeek(isOpen ? null : week.week)}
-                                                            sx={{
-                                                                p: 1.75,
-                                                                borderRadius: 3,
-                                                                cursor: 'pointer',
-                                                                bgcolor: isCurrent ? 'rgba(41, 121, 255, 0.06)' : 'background.paper',
-                                                                border: '1px solid',
-                                                                borderColor: isCurrent ? 'primary.main' : 'rgba(255,255,255,0.08)',
-                                                                borderLeft: '4px solid',
-                                                                borderLeftColor: accent,
-                                                                '&:hover': { borderColor: 'primary.main' },
-                                                            }}
+                                                        <Stack
+                                                            direction="row"
+                                                            alignItems="center"
+                                                            spacing={1.5}
+                                                            flexWrap="wrap"
+                                                            useFlexGap
                                                         >
-                                                            <Stack direction="row" alignItems="center" spacing={2}>
-                                                                <Box
+                                                            <Typography
+                                                                variant="body2"
+                                                                sx={{ color: 'text.primary', fontWeight: 700, flex: 1, minWidth: 200 }}
+                                                            >
+                                                                {stageGroup.isConsolidation
+                                                                    ? stageGroup.stageName
+                                                                    : `Stage ${stageGroup.stage} · ${stageGroup.stageName}`}
+                                                            </Typography>
+
+                                                            <Typography
+                                                                variant="caption"
+                                                                color="text.secondary"
+                                                                sx={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}
+                                                            >
+                                                                {first === last ? `week ${first}` : `weeks ${first}-${last}`}
+                                                            </Typography>
+
+                                                            {status === 'passed' && (
+                                                                <Chip
+                                                                    size="small"
+                                                                    icon={<CheckCircleRoundedIcon sx={{ fontSize: 14 }} />}
+                                                                    label="PASSED"
                                                                     sx={{
-                                                                        width: 30,
-                                                                        height: 30,
-                                                                        borderRadius: 1.5,
-                                                                        flexShrink: 0,
-                                                                        display: 'flex',
-                                                                        alignItems: 'center',
-                                                                        justifyContent: 'center',
-                                                                        fontSize: '0.72rem',
-                                                                        fontWeight: 800,
-                                                                        fontVariantNumeric: 'tabular-nums',
-                                                                        bgcolor: solid ? accent : `${accent}1a`,
-                                                                        color: solid ? '#0B0E14' : accent,
-                                                                        border: isLogged && !solid ? '1px dashed' : 'none',
-                                                                        borderColor: `${accent}80`,
+                                                                        height: 20, fontSize: '0.6rem', fontWeight: 800,
+                                                                        color: '#66bb6a', bgcolor: 'rgba(102,187,106,0.14)',
+                                                                        '& .MuiChip-icon': { color: '#66bb6a' },
                                                                     }}
-                                                                >
-                                                                    {week.week}
-                                                                </Box>
+                                                                />
+                                                            )}
+                                                            {status === 'failed' && (
+                                                                <Chip
+                                                                    size="small"
+                                                                    icon={<ReplayRoundedIcon sx={{ fontSize: 14 }} />}
+                                                                    label="REPEAT THE STAGE"
+                                                                    sx={{
+                                                                        height: 20, fontSize: '0.6rem', fontWeight: 800,
+                                                                        color: '#ff8a65', bgcolor: 'rgba(255,138,101,0.14)',
+                                                                        '& .MuiChip-icon': { color: '#ff8a65' },
+                                                                    }}
+                                                                />
+                                                            )}
+                                                            {status === 'unattempted' && (
+                                                                <Chip
+                                                                    size="small"
+                                                                    icon={<LockRoundedIcon sx={{ fontSize: 14 }} />}
+                                                                    label="GATE NOT SAT"
+                                                                    sx={{
+                                                                        height: 20, fontSize: '0.6rem', fontWeight: 800,
+                                                                        color: 'text.disabled', bgcolor: 'rgba(255,255,255,0.06)',
+                                                                        '& .MuiChip-icon': { color: 'inherit' },
+                                                                    }}
+                                                                />
+                                                            )}
+                                                        </Stack>
 
-                                                                <Box sx={{ flex: 1, minWidth: 0 }}>
-                                                                    <Typography
-                                                                        variant="body2"
-                                                                        sx={{ color: 'text.primary', fontWeight: 600, lineHeight: 1.4 }}
-                                                                        noWrap={!isOpen}
-                                                                    >
-                                                                        {week.theory}
-                                                                    </Typography>
-                                                                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                                                                        {week.dates} · {week.targetHours}h · {week.reading}
-                                                                    </Typography>
-                                                                </Box>
-
-                                                                {week.milestone && (
-                                                                    <Tooltip title={week.milestone.replace(/\*/g, '').trim()}>
-                                                                        <FlagRoundedIcon sx={{ fontSize: 18, color: accent, flexShrink: 0 }} />
-                                                                    </Tooltip>
-                                                                )}
-                                                                {isOpen
-                                                                    ? <ExpandLessRoundedIcon sx={{ color: 'text.disabled' }} />
-                                                                    : <ExpandMoreRoundedIcon sx={{ color: 'text.disabled' }} />}
-                                                            </Stack>
-                                                        </Box>
-
-                                                        <Collapse in={isOpen} timeout="auto" unmountOnExit>
-                                                            <Stack spacing={2} sx={{ mt: 1.5, mb: 2, pl: { sm: 2 } }}>
-                                                                <WeekCard week={week} />
-                                                                <ResourceList resources={getWeekResources(week.week)} />
-                                                            </Stack>
-                                                        </Collapse>
+                                                        {stageGroup.gate && (
+                                                            <Typography
+                                                                variant="body2"
+                                                                color="text.secondary"
+                                                                sx={{ fontStyle: 'italic', mt: 0.75, lineHeight: 1.5 }}
+                                                            >
+                                                                {stageGroup.gate}
+                                                            </Typography>
+                                                        )}
                                                     </Box>
-                                                );
-                                            })}
-                                        </Stack>
-                                    </Box>
-                                );
-                            })}
-                        </Box>
-                    ))}
+
+                                                    {/* The weeks, as dates and milestones only. What to
+                                                        watch and read is This Week's job, not this page's. */}
+                                                    <Collapse in={stageOpen} timeout="auto" unmountOnExit>
+                                                        <Stack spacing={0.5} sx={{ mt: 1, mb: 1.5, pl: { sm: 2 } }}>
+                                                            {stageGroup.weeks.map(week => (
+                                                                <Stack
+                                                                    key={week.week}
+                                                                    ref={week.week === currentWeekNumber ? currentWeekRef : undefined}
+                                                                    direction="row"
+                                                                    spacing={1.5}
+                                                                    alignItems="baseline"
+                                                                    sx={{ py: 0.4 }}
+                                                                >
+                                                                    <Typography
+                                                                        variant="caption"
+                                                                        sx={{
+                                                                            fontWeight: 800,
+                                                                            fontVariantNumeric: 'tabular-nums',
+                                                                            minWidth: 24,
+                                                                            color: loggedWeeks.has(week.week) ? accent : 'text.disabled',
+                                                                        }}
+                                                                    >
+                                                                        {week.week}
+                                                                    </Typography>
+                                                                    <Typography
+                                                                        variant="caption"
+                                                                        color="text.secondary"
+                                                                        sx={{ minWidth: 96 }}
+                                                                    >
+                                                                        {week.dates}
+                                                                    </Typography>
+                                                                    {week.milestone && (
+                                                                        <Typography
+                                                                            variant="caption"
+                                                                            sx={{ color: accent, fontWeight: 700 }}
+                                                                        >
+                                                                            {week.milestone.replace(/\*/g, '').trim()}
+                                                                        </Typography>
+                                                                    )}
+                                                                    {week.week === currentWeekNumber && (
+                                                                        <Chip
+                                                                            size="small"
+                                                                            label="YOU ARE HERE"
+                                                                            sx={{
+                                                                                height: 18, fontSize: '0.58rem', fontWeight: 800,
+                                                                                color: 'primary.main', bgcolor: 'rgba(41,121,255,0.14)',
+                                                                            }}
+                                                                        />
+                                                                    )}
+                                                                </Stack>
+                                                            ))}
+                                                        </Stack>
+                                                    </Collapse>
+                                                </Box>
+                                            );
+                                        })}
+                                    </Stack>
+                                </Collapse>
+                            </Box>
+                        );
+                    })}
                 </Box>
             )}
 
