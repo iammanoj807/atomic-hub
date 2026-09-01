@@ -14,7 +14,7 @@ export const PLAN_END_DATE = '2027-08-29';   // Sunday of week 52
 export const PLAN_WEEKS = 52;
 
 /** Hours a normal week asks for. The routine below adds up to exactly this. */
-export const FULL_WEEK_TARGET_HOURS = 26;
+export const FULL_WEEK_TARGET_HOURS = 24;
 /** Consolidation and holiday weeks are deliberately lighter. */
 export const LIGHT_WEEK_TARGET_HOURS = 12;
 
@@ -173,7 +173,6 @@ export type SlotKind =
     | 'book'
     | 'papers'
     | 'read'
-    | 'systems'
     | 'dsa'
     | 'job'
     | 'light'
@@ -193,7 +192,7 @@ export interface RoutineSlot {
     color: string;
 }
 
-/** Nothing may end after this. A 06:00 start needs a 22:30 bedtime. */
+/** Nothing may end after this. A 05:30 start needs a 22:00 bedtime. */
 export const LATEST_END_TIME = '21:00';
 
 const SLOT_COLORS: Record<SlotKind, string> = {
@@ -202,8 +201,6 @@ const SLOT_COLORS: Record<SlotKind, string> = {
     book: '#ffd54f',
     papers: '#b39ddb',
     read: '#81c784',
-    // Not named in the spec; indigo keeps it apart from the DSA blue beside it.
-    systems: '#7986cb',
     dsa: '#4a90e2',
     job: '#4dd0e1',
     light: '#90a4ae',
@@ -221,7 +218,7 @@ const slot = (
 ): RoutineSlot => ({ kind, start, end, hours, track, what, color: SLOT_COLORS[kind] });
 
 const readSlot = () =>
-    slot('read', '19:30', '19:50', 0.33, 'A - Reading', 'Daily reading ladder');
+    slot('read', '19:30', '19:50', 0.33, 'A - Reading', "The reading ladder - this week's item");
 
 const dsaSlot = (what = 'One NeetCode problem') =>
     slot('dsa', '19:50', '20:05', 0.25, 'B - DSA', what);
@@ -231,15 +228,16 @@ const jobSlot = () =>
 
 /**
  * The four shift days are identical, so they are built rather than repeated:
- * the stage before work, then the evening ladder — read, one problem, twenty
- * minutes of Chip Huyen, twenty of DDIA.
+ * the stage before work, then the evening — the ladder, one problem, and one
+ * book. Two books used to sit back to back here; an hour of reading after an
+ * eight-hour shift is not a thing anyone does twice, so they alternate by day
+ * instead and both still move.
  */
 const shiftDay = (): RoutineSlot[] => [
-    slot('theory', '06:00', '08:30', 2.5, 'A - Theory', 'Stage material - watch, read, build'),
+    slot('theory', '05:30', '07:30', 2.0, 'A - Theory', 'Stage material - watch, read, build'),
     readSlot(),
     dsaSlot('One NeetCode problem (Python)'),
-    slot('book', '20:05', '20:25', 0.33, 'B - AI Eng', 'Chip Huyen, AI Engineering'),
-    slot('systems', '20:25', '20:45', 0.33, 'A - Systems', 'Designing Data-Intensive Applications'),
+    slot('book', '20:05', '20:25', 0.33, 'B - Books', 'Alternating: AI Engineering / DDIA'),
 ];
 
 /**
@@ -281,11 +279,17 @@ export const LIGHT_DAY_NOTE =
     'Re-read the week\'s notes and redo the problems you got wrong. Never new material.';
 
 export const routineRules: string[] = [
-    'Mornings are for the stage. 06:00-08:30, before anything can take them.',
+    'Mornings are for the stage. 05:30-07:30, before anything can take them. '
+        + 'Finishing at 07:30 leaves real room before a 10:00 shift.',
     'Thursday 09:00-15:00 is the artifact. Six hours. Then you STOP.',
     'Saturday and Sunday afternoons are real blocks - the shift ends at 14:00.',
     'Twenty minutes of reading every single day. Never skipped, never doubled.',
-    'Nothing ends after 21:00. A 06:00 wake needs a 22:30 bedtime.',
+    'Nothing ends after 21:00. A 05:30 start means a 05:00 wake. If you sleep at '
+        + '22:30 that is six and a half hours - thin. Evenings now end at 20:25 to '
+        + 'make 22:30 reachable. Protect the sleep before you protect the hours.',
+    'Three reading tracks, not one. 19:30 is the reading ladder - papers and blogs, '
+        + 'the PhD track. 20:05 is a book - AI Engineering on Mon and Wed, DDIA on '
+        + 'Tue and Fri. They are different things and only one of them is research.',
     'Miss a day? SKIP it. Never double up. Doubling up is how plans die.',
     'Never skip BUILD. If you cannot implement it, you do not know it.',
     'Fail a gate? Repeat the stage. A stage passed by reading is not passed.',
