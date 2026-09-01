@@ -25,18 +25,18 @@ const kindsOn = (day: Weekday, deepWorkDay?: Weekday): string[] =>
     getRoutineForWeek(deepWorkDay)[day].map(slot => slot.kind);
 
 describe('routineWeeklyHours', () => {
-    it('comes to 30.45 hours on the default rota', () => {
+    it('comes to 27.13 hours on the default rota', () => {
         // Twenty-minute slots are thirds of an hour, so the total is not a
         // round number and the tolerance is doing real work here.
-        expect(routineWeeklyHours()).toBeCloseTo(30.45, 2);
+        expect(routineWeeklyHours()).toBeCloseTo(27.13, 2);
     });
 
     it('OPEN: the routine asks for more than the constant it logs against', () => {
-        // FULL_WEEK_TARGET_HOURS is 26; the specified routine measures 30.45.
-        // Every week will therefore read as behind from day one. Which number
-        // is wrong is the owner's call, so this records the gap rather than
-        // hiding it — change one and this test says so.
-        expect(routineWeeklyHours() - FULL_WEEK_TARGET_HOURS).toBeCloseTo(4.45, 2);
+        // FULL_WEEK_TARGET_HOURS is 24; the routine measures 27.13. Shortening
+        // the mornings and merging the two book slots closed 3.3h of a 4.45h
+        // gap without closing it. Which number is wrong is still the owner's
+        // call, so this records what is left rather than hiding it.
+        expect(routineWeeklyHours() - FULL_WEEK_TARGET_HOURS).toBeCloseTo(3.13, 2);
     });
 
     it('OPEN: the total still moves with the deep work day', () => {
@@ -44,16 +44,16 @@ describe('routineWeeklyHours', () => {
         // costs the week nothing. Every other day gives up a full shift-day
         // shape that Friday already runs and so cannot absorb.
         for (const day of ['Thu', 'Sat', 'Sun'] as Weekday[]) {
-            expect(routineWeeklyHours(day)).toBeCloseTo(30.45, 2);
+            expect(routineWeeklyHours(day)).toBeCloseTo(27.13, 2);
         }
         for (const day of ['Mon', 'Tue', 'Wed', 'Fri'] as Weekday[]) {
-            expect(routineWeeklyHours(day)).toBeCloseTo(27.29, 2);
+            expect(routineWeeklyHours(day)).toBeCloseTo(24.80, 2);
         }
     });
 
     it('splits into the days the rota actually gives', () => {
         for (const day of ['Mon', 'Tue', 'Wed', 'Fri'] as Weekday[]) {
-            expect(hoursOnDay(day)).toBeCloseTo(3.74, 2);
+            expect(hoursOnDay(day)).toBeCloseTo(2.91, 2);
         }
         expect(hoursOnDay('Thu')).toBeCloseTo(7.33, 2);  // the day off, carrying the build
         expect(hoursOnDay('Sat')).toBeCloseTo(4.58, 2);  // the weekend shift ends at 14:00
@@ -70,16 +70,16 @@ describe('getRoutineForDay', () => {
     it('runs Friday as an ordinary shift day', () => {
         // Friday used to be empty and was where displaced study landed. It now
         // runs the same shape as Monday, which is why nothing moves onto it.
-        expect(kindsOn('Fri')).toEqual(['theory', 'read', 'dsa', 'book', 'systems']);
-        expect(getRoutineForDay('Friday')[0].start).toBe('06:00');
-        expect(getRoutineForDay('Friday')[0].end).toBe('08:30');
+        expect(kindsOn('Fri')).toEqual(['theory', 'read', 'dsa', 'book']);
+        expect(getRoutineForDay('Friday')[0].start).toBe('05:30');
+        expect(getRoutineForDay('Friday')[0].end).toBe('07:30');
     });
 
     it('does not print a block twice on Friday when the build takes a shift day', () => {
-        // Tuesday's displaced morning is the same 06:00-08:30 theory Friday
+        // Tuesday's displaced morning is the same 05:30-07:30 theory Friday
         // already runs, so it is dropped rather than drawn on top of itself.
         const friday = kindsOn('Fri', 'Tue');
-        expect(friday).toEqual(['theory', 'read', 'dsa', 'book', 'systems']);
+        expect(friday).toEqual(['theory', 'read', 'dsa', 'book']);
         expect(friday.filter(kind => kind === 'theory')).toHaveLength(1);
     });
 
@@ -95,14 +95,14 @@ describe('getRoutineForDay', () => {
         expect(getRoutineForDay('Thursday', 'Fri')[0].kind).toBe('read');
     });
 
-    it('starts the shift days on theory, at 06:00', () => {
+    it('starts the shift days on theory, at 05:30', () => {
         for (const day of ['Monday', 'Tuesday', 'Wednesday', 'Friday']) {
             const morning = getRoutineForDay(day)[0];
             expect(morning.track).toBe('A - Theory');
-            // The shift starts at 10:00, so 06:00 buys the same 2.5 hours as
-            // 05:00 did and an hour more sleep.
-            expect(morning.start).toBe('06:00');
-            expect(morning.end).toBe('08:30');
+            // The shift starts at 10:00, so finishing at 07:30 leaves real
+            // room before it rather than a scramble out of the door.
+            expect(morning.start).toBe('05:30');
+            expect(morning.end).toBe('07:30');
         }
     });
 
@@ -182,8 +182,10 @@ describe('the 21:00 rule', () => {
         }
     });
 
-    it('actually finishes at 20:45 — a 06:00 start needs the evening back', () => {
-        expect(latestEndTime()).toBe('20:45');
+    it('actually finishes at 20:35 — a 05:30 start needs the evening back', () => {
+        // One book instead of two took ten minutes off the back of the day,
+        // which is what makes a 22:30 bedtime reachable.
+        expect(latestEndTime()).toBe('20:35');
     });
 });
 
@@ -191,7 +193,7 @@ describe('the deep work day', () => {
     it('defaults to Thursday, the day the rota gives off', () => {
         expect(DEFAULT_DEEP_WORK_DAY).toBe('Thu');
         expect(kindsOn('Thu')).toContain('build');
-        expect(routineWeeklyHours()).toBeCloseTo(30.45, 2);
+        expect(routineWeeklyHours()).toBeCloseTo(27.13, 2);
     });
 
     it('moves the build when a different day is set', () => {
@@ -202,13 +204,13 @@ describe('the deep work day', () => {
     it('replaces that day\'s study but keeps the three habits', () => {
         // Wednesday's 2.5 hours of theory cannot sit beside a six-hour build,
         // but reading and the problem are twenty minutes each and survive.
-        expect(kindsOn('Wed')).toEqual(['theory', 'read', 'dsa', 'book', 'systems']);
+        expect(kindsOn('Wed')).toEqual(['theory', 'read', 'dsa', 'book']);
         expect(kindsOn('Wed', 'Wed')).toEqual(['build', 'review', 'read', 'dsa']);
     });
 
     it('moves displaced study to Friday only when Friday does not already run it', () => {
         // Wednesday's blocks are Friday's blocks, so nothing moves.
-        expect(kindsOn('Fri', 'Wed')).toEqual(['theory', 'read', 'dsa', 'book', 'systems']);
+        expect(kindsOn('Fri', 'Wed')).toEqual(['theory', 'read', 'dsa', 'book']);
         // Saturday's afternoon is at a time Friday has free, so it does move.
         expect(kindsOn('Fri', 'Sat')).toEqual(expect.arrayContaining(['aieng', 'papers']));
     });

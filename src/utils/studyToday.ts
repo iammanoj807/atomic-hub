@@ -3,7 +3,7 @@
 // The week's content lives as paragraphs on planWeeks and as structured
 // entries in weekResources; the shape of the day lives as slots in
 // dailyRoutine. Nothing joined them, so answering "it is Tuesday, what am I
-// doing at 06:00" meant reading two screens and holding both in your head.
+// doing at 05:30" meant reading two screens and holding both in your head.
 // This is that join, in one place, so the answer can be rendered rather than
 // worked out.
 
@@ -83,9 +83,14 @@ export const resolveSlotFocus = (
                 resource: resourceOfKind(week.week, 'aieng'),
             };
         case 'book':
+            // Mon and Wed are the AI Engineering days, Tue and Fri are DDIA,
+            // so twenty minutes a night keeps both books moving.
             return {
-                text: 'Chip Huyen, AI Engineering. Twenty minutes, straight after '
-                    + 'the problem. Reading only - no building, no notes to write up.',
+                text: (day === 'Mon' || day === 'Wed')
+                    ? 'Chip Huyen, AI Engineering. Twenty minutes. Reading only - '
+                      + 'no building, no notes.'
+                    : 'Designing Data-Intensive Applications. Twenty minutes. '
+                      + 'Slow burn, about a year.',
             };
         case 'build':
             return { text: week.deepWork, resource: resourceOfKind(week.week, 'build') };
@@ -95,9 +100,12 @@ export const resolveSlotFocus = (
                 opensWeekLog: true,
             };
         case 'read':
-            return { text: 'Twenty minutes of the reading ladder. Every day, never doubled.' };
-        case 'systems':
-            return { text: 'Designing Data-Intensive Applications. Twenty minutes, straight after the problem.' };
+            // The week already knows which item this is; saying "the ladder"
+            // and stopping was the one slot that did not name its own work.
+            return {
+                text: week.reading
+                    || 'Twenty minutes of the reading ladder. Every day, never doubled.',
+            };
         case 'papers':
             return {
                 text: 'Read papers. Write the main idea in your own words or it did not happen.',
