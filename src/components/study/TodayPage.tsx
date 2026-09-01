@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Box, Typography, Stack, Chip, Link, Button } from '@mui/material';
+import { Box, Typography, Stack, Chip, Link, Button, IconButton, Alert } from '@mui/material';
 import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded';
 import ChevronRightRoundedIcon from '@mui/icons-material/ChevronRightRounded';
+import ChevronLeftRoundedIcon from '@mui/icons-material/ChevronLeftRounded';
 import CheckRoundedIcon from '@mui/icons-material/CheckRounded';
 import { format, parseISO } from 'date-fns';
 import { useTaskContext } from '../../context/TaskContext';
 import { getLondonDateString, getLondonTimeString } from '../../utils/date';
-import { getPlanPhase, getPlanWeek, daysUntilPlanStart } from '../../utils/studyPlan';
+import { getPlanPhase, getPlanWeek, getPlanWeekNumber, daysUntilPlanStart } from '../../utils/studyPlan';
 import { getRoutineForDay, weekdayOf } from '../../utils/studySchedule';
 import {
     resolveSlotFocus,
@@ -18,6 +19,7 @@ import {
 } from '../../utils/studyToday';
 import {
     planWeeks,
+    WEEKDAY_NAMES,
     DAY_TITLES,
     PHASE_COLORS,
     PLAN_WEEKS,
@@ -28,6 +30,16 @@ import {
 import { dsaCurriculum } from '../../data/dsaCurriculum';
 import { subscribeToDSAProgress, type DSATopicProgress } from '../../services/firebaseService';
 import WeekLogDialog from './WeekLogDialog';
+
+/** A YYYY-MM-DD date shifted by whole days, read at UTC so nothing drifts. */
+const addDays = (dateISO: string, days: number): string => {
+    const date = new Date(`${dateISO}T00:00:00Z`);
+    date.setUTCDate(date.getUTCDate() + days);
+    return date.toISOString().slice(0, 10);
+};
+
+/** A week back is as far as looking back is useful. Forward is never allowed. */
+const MIN_DAY_OFFSET = -6;
 
 const problemCount = (topicId: string): number => {
     for (const phase of dsaCurriculum) {
@@ -60,14 +72,18 @@ const SlotCard = ({
     day,
     week,
     onOpenWeekLog,
+    readOnly = false,
 }: {
     slot: RoutineSlot;
     day: Weekday;
     week: (typeof planWeeks)[number];
     onOpenWeekLog: () => void;
+    /** A past day is for looking at. Nothing on it can be logged. */
+    readOnly?: boolean;
 }) => {
     const navigate = useNavigate();
-    const state = slotState(slot.start, slot.end, getLondonTimeString());
+    // On a past day nothing is happening now, so no slot is highlighted.
+    const state = readOnly ? 'past' : slotState(slot.start, slot.end, getLondonTimeString());
     const focus = resolveSlotFocus(day, slot.kind, week);
     const isNow = state === 'now';
 
@@ -196,7 +212,7 @@ const SlotCard = ({
                 </Button>
             )}
 
-            {focus.opensWeekLog && (
+            {focus.opensWeekLog && !readOnly && (
                 <Button
                     size="small"
                     variant="outlined"
@@ -227,6 +243,7 @@ const TodayPage = () => {
     const navigate = useNavigate();
     const { currentWeekNumber, getDeepWorkDay } = useTaskContext();
     const [editingWeek, setEditingWeek] = useState<number | null>(null);
+    const [dayOffset, setDayOffset] = useState(0);
     const [dsaProgress, setDsaProgress] = useState<Record<string, DSATopicProgress>>({});
     // Re-render on the minute so the active slot moves without a refresh.
     const [, setTick] = useState(0);
@@ -243,9 +260,18 @@ const TodayPage = () => {
 
     const today = getLondonDateString();
     const phase = getPlanPhase(today);
-    const weekday = weekdayOf(today);
-    const planWeek = getPlanWeek(today) ?? planWeeks[0];
-    const deepWorkDay = getDeepWorkDay(currentWeekNumber ?? 1);
+
+    // 0 is today, -1 yesterday, down to a week back. Never forward: there is
+    // nothing to see there, and planning ahead is This Week's job.
+    const shownDate = addDays(today, dayOffset);
+    const looking = dayOffset < 0;
+
+    const weekday = weekdayOf(shownDate);
+    // A day far enough back can sit in the previous plan week, so the week,
+    // the stage and the resources all come from the day being shown.
+    const planWeek = getPlanWeek(shownDate) ?? getPlanWeek(today) ?? planWeeks[0];
+    const shownWeekNumber = getPlanWeekNumber(shownDate) ?? currentWeekNumber;
+    const deepWorkDay = getDeepWorkDay(shownWeekNumber ?? 1);
     const accent = PHASE_COLORS[planWeek.phaseKey];
 
     // Before the plan starts, show what the first Monday will ask for.
@@ -294,8 +320,29 @@ const TodayPage = () => {
                     {/* Before the plan starts, the date that matters is the one it
                         starts on. Printing today's date here read as the start date. */}
                     <Typography variant="body1" color="text.secondary">
-                        {format(parseISO(phase === 'during' ? today : PLAN_START_DATE), 'EEEE d MMMM')}
+                        {format(parseISO(phase === 'during' ? shownDate : PLAN_START_DATE), 'EEEE d MMMM')}
                     </Typography>
+
+                    {phase === 'during' && (
+                        <Stack direction="row" alignItems="center">
+                            <IconButton
+                                size="small"
+                                aria-label="Previous day"
+                                disabled={dayOffset <= MIN_DAY_OFFSET}
+                                onClick={() => setDayOffset(offset => Math.max(MIN_DAY_OFFSET, offset - 1))}
+                            >
+                                <ChevronLeftRoundedIcon fontSize="small" />
+                            </IconButton>
+                            <IconButton
+                                size="small"
+                                aria-label="Next day"
+                                disabled={dayOffset >= 0}
+                                onClick={() => setDayOffset(offset => Math.min(0, offset + 1))}
+                            >
+                                <ChevronRightRoundedIcon fontSize="small" />
+                            </IconButton>
+                        </Stack>
+                    )}
                 </Stack>
 
                 <Typography
@@ -303,9 +350,19 @@ const TodayPage = () => {
                     sx={{ color: accent, fontWeight: 700, letterSpacing: 0.6, mt: 0.5 }}
                 >
                     {phase === 'during'
-                        ? `Week ${currentWeekNumber} of ${PLAN_WEEKS} · ${planWeek.phase.replace(/\*/g, '').trim()}`
+                        ? `Week ${shownWeekNumber} of ${PLAN_WEEKS} · ${planWeek.phase.replace(/\*/g, '').trim()}`
                         : `Week 1 · ${planWeek.dates} · ${planWeek.phase.replace(/\*/g, '').trim()}`}
                 </Typography>
+
+                {dayOffset !== 0 && (
+                    <Button
+                        size="small"
+                        onClick={() => setDayOffset(0)}
+                        sx={{ mt: 0.5, px: 0, '&:hover': { bgcolor: 'transparent' } }}
+                    >
+                        Back to today
+                    </Button>
+                )}
 
                 {phase === 'before' && (
                     <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
@@ -314,7 +371,16 @@ const TodayPage = () => {
                 )}
             </Box>
 
-            {/* Today's slots, in clock order */}
+            {/* Looking back is for information. It is not a to-do list you
+                failed, which is why this is an info note and not a warning. */}
+            {looking && (
+                <Alert severity="info" variant="outlined" sx={{ mb: 2.5, borderRadius: 3 }}>
+                    Looking back at {WEEKDAY_NAMES[weekday]}. This is for information only — if you
+                    missed it, let it go. The rule is: miss a day, skip it. Never double up.
+                </Alert>
+            )}
+
+            {/* The day's slots, in clock order */}
             <Stack spacing={1.5}>
                 {slots.map(slot => (
                     <SlotCard
@@ -322,7 +388,8 @@ const TodayPage = () => {
                         slot={slot}
                         day={shownDay}
                         week={planWeek}
-                        onOpenWeekLog={() => setEditingWeek(currentWeekNumber ?? 1)}
+                        onOpenWeekLog={() => setEditingWeek(shownWeekNumber ?? 1)}
+                        readOnly={looking}
                     />
                 ))}
             </Stack>
