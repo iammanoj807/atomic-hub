@@ -1,13 +1,15 @@
 // Putting the week's routine onto a rota.
 //
-// Six days are fixed. The deep work block sits on the day off — Thursday, on
-// the current rota — and when it lands on a day that already had study on it,
-// that study moves to Friday rather than being dropped, unless Friday already
-// runs the same block, which it now usually does.
+// Six days are fixed. The deep work block sits on the day off, and the only
+// things it pushes aside are the ones it would physically collide with.
 //
-// Three slots are never displaced: the daily twenty minutes of reading, the
-// NeetCode problem, and the applications half hour. Whatever else happens to a
-// day, it keeps all three.
+// That rule replaces an older one that stripped everything off the day and
+// tried to relocate it to Friday. The morning stage runs 05:30-07:30 and the
+// build 09:00-15:00, so they never actually clashed - the old rule moved the
+// mornings anyway, and Friday is now a full shift day with nowhere to put
+// them. What genuinely does clash, Saturday's applied ML blocks if the build
+// is ever moved onto Saturday, is dropped for that week rather than scheduled
+// somewhere it cannot happen.
 
 import {
     WEEKDAYS,
@@ -33,25 +35,9 @@ export const DEFAULT_DEEP_WORK_DAY: Weekday = 'Thu';
  */
 export const DEFAULT_SECOND_DAY_OFF: Weekday = 'Sat';
 
-/**
- * Where displaced study lands. Friday was chosen when it carried no study of
- * its own; it now runs the same shift-day shape as Monday, so most of what
- * arrives is a duplicate of what is already there — see the merge below.
- */
-const OVERFLOW_DAY: Weekday = 'Fri';
-
-/**
- * These survive the deep work block landing on their day. Reading is in here
- * because the rule is twenty minutes every single day, never doubled — if it
- * were displaceable, Thursday would lose its reading to Friday, which already
- * has its own.
- *
- * The applied ML course is in here for the opposite reason: it is on Thursday
- * BECAUSE Thursday is a day off with room for a long block. Pushing it onto a
- * shift day would put two hours of course work after an eight-hour shift,
- * which is the arrangement the whole rota exists to avoid.
- */
-const UNDISPLACEABLE = new Set(['read', 'dsa', 'job', 'mlcourse', 'applied']);
+/** Two slots clash when one starts before the other has finished. */
+const clashes = (a: RoutineSlot, b: RoutineSlot): boolean =>
+    minutesInto(a.start) < minutesInto(b.end) && minutesInto(b.start) < minutesInto(a.end);
 
 /** Minutes since midnight, so slot times can actually be compared. */
 export const minutesInto = (time: string): number => {
@@ -70,32 +56,18 @@ export const getRoutineForWeek = (
     deepWorkDay: Weekday = DEFAULT_DEEP_WORK_DAY
 ): Record<Weekday, RoutineSlot[]> => {
     const week = {} as Record<Weekday, RoutineSlot[]>;
-    let displaced: RoutineSlot[] = [];
 
     for (const day of WEEKDAYS) {
         if (day === deepWorkDay) {
-            // The build replaces this day's study; DSA and applications stay.
-            displaced = dailyRoutine[day].filter(s => !UNDISPLACEABLE.has(s.kind));
-            week[day] = [
-                ...deepWorkSlots,
-                ...dailyRoutine[day].filter(s => UNDISPLACEABLE.has(s.kind)),
-            ].sort(bySlotStart);
+            // Only what the build would sit on top of gives way. The morning
+            // stage and the evening habits are hours the build never touches,
+            // so a day off keeps them rather than losing them to a rule.
+            const survives = dailyRoutine[day].filter(
+                s => !deepWorkSlots.some(deep => clashes(s, deep))
+            );
+            week[day] = [...deepWorkSlots, ...survives].sort(bySlotStart);
         } else {
             week[day] = [...dailyRoutine[day]];
-        }
-    }
-
-    // Friday absorbs what the build pushed off its day, but only the parts it
-    // does not already run. Every shift day now has the same shape, so moving
-    // a Monday morning onto Friday wholesale would print theory twice at
-    // 05:30 and count the hours twice with it.
-    if (deepWorkDay !== OVERFLOW_DAY && displaced.length > 0) {
-        const alreadyThere = new Set(
-            week[OVERFLOW_DAY].map(s => `${s.kind}@${s.start}`)
-        );
-        const toMove = displaced.filter(s => !alreadyThere.has(`${s.kind}@${s.start}`));
-        if (toMove.length > 0) {
-            week[OVERFLOW_DAY] = [...week[OVERFLOW_DAY], ...toMove].sort(bySlotStart);
         }
     }
 

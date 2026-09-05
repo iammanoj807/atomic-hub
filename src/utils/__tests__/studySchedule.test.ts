@@ -39,16 +39,16 @@ describe('routineWeeklyHours', () => {
         expect(routineWeeklyHours() - FULL_WEEK_TARGET_HOURS).toBeCloseTo(0.13, 2);
     });
 
-    it('OPEN: the total still moves with the deep work day', () => {
-        // Thursday holds only the three habits, so taking it for the build
-        // costs the week nothing. Every other day gives up a full shift-day
-        // shape that Friday already runs and so cannot absorb.
-        for (const day of ['Thu', 'Sat', 'Sun'] as Weekday[]) {
+    it('holds the same total whichever day carries the build, bar Saturday', () => {
+        // The build only pushes aside what it would physically sit on top of,
+        // so the 05:30 mornings and the evening habits survive a day off and
+        // the week comes to the same total wherever the build lands.
+        for (const day of ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sun'] as Weekday[]) {
             expect(routineWeeklyHours(day)).toBeCloseTo(34.13, 2);
         }
-        for (const day of ['Mon', 'Tue', 'Wed', 'Fri'] as Weekday[]) {
-            expect(routineWeeklyHours(day)).toBeCloseTo(31.80, 2);
-        }
+        // Saturday is the one real exception: its applied ML blocks run
+        // 09:00-15:00, exactly where the build goes, so they cannot both happen.
+        expect(routineWeeklyHours('Sat')).toBeCloseTo(29.13, 2);
     });
 
     it('splits into the days the rota actually gives', () => {
@@ -211,18 +211,22 @@ describe('the deep work day', () => {
         expect(kindsOn('Fri', 'Wed')).not.toContain('build');
     });
 
-    it('replaces that day\'s study but keeps the three habits', () => {
-        // Wednesday's 2.5 hours of theory cannot sit beside a six-hour build,
-        // but reading and the problem are twenty minutes each and survive.
+    it('keeps everything the build does not sit on top of', () => {
+        // The morning stage is 05:30-07:30 and the build 09:00-15:00. They
+        // never overlapped, so a Wednesday day off keeps its morning instead
+        // of losing it to a rule that assumed they did.
         expect(kindsOn('Wed')).toEqual(['theory', 'read', 'dsa', 'book']);
-        expect(kindsOn('Wed', 'Wed')).toEqual(['build', 'review', 'read', 'dsa']);
+        expect(kindsOn('Wed', 'Wed')).toEqual(['theory', 'build', 'review', 'read', 'dsa', 'book']);
     });
 
-    it('moves displaced study to Friday only when Friday does not already run it', () => {
-        // Wednesday's blocks are Friday's blocks, so nothing moves.
+    it('drops only what genuinely clashes, and moves nothing to Friday', () => {
+        // Friday is a full shift day now; there is nowhere to relocate a
+        // daytime block to, so nothing is pretended into its timetable.
         expect(kindsOn('Fri', 'Wed')).toEqual(['theory', 'read', 'dsa', 'book']);
-        // Saturday's afternoon is at a time Friday has free, so it does move.
-        expect(kindsOn('Fri', 'Sat')).toEqual(expect.arrayContaining(['aieng', 'papers']));
+        expect(kindsOn('Fri', 'Sat')).toEqual(['theory', 'read', 'dsa', 'book']);
+        // Saturday's ML blocks sit exactly under the build, so they go.
+        expect(kindsOn('Sat', 'Sat')).not.toContain('mlcourse');
+        expect(kindsOn('Sat', 'Sat')).not.toContain('applied');
     });
 
     it('keeps every slot in clock order after the move', () => {
@@ -235,20 +239,27 @@ describe('the deep work day', () => {
         }
     });
 
-    it('never calls Friday a light day just because it holds the review hour', () => {
-        // Sunday's hour moves to Friday when the build takes Sunday. Friday is
-        // still a working day and must not be drawn as the week's breather.
-        expect(kindsOn('Fri', 'Sun')).toContain('light');
-        expect(isLightDay('Fri', 'Sun')).toBe(false);
-        expect(isLightDay('Sun', 'Fri')).toBe(true);
+    it('never calls a day other than Sunday the light day', () => {
+        // Nothing relocates any more, so the light hour cannot turn up on
+        // Friday at all - but the guard is cheap and the rule is Sunday only.
+        for (const deepWorkDay of WEEKDAYS) {
+            expect(isLightDay('Fri', deepWorkDay)).toBe(false);
+            expect(kindsOn('Fri', deepWorkDay)).not.toContain('light');
+        }
     });
 
-    it('takes the light day away when Sunday is chosen', () => {
+    it('keeps the light day even when Sunday carries the build', () => {
+        // The build finishes at 15:15 and Sunday's afternoon runs 16:30-19:30,
+        // so the light hour survives it. Under the old rule the whole day was
+        // stripped and Sunday silently lost its light day.
         expect(hasLightDay()).toBe(true);
-        expect(hasLightDay('Sun')).toBe(false);
-        expect(kindsOn('Sun', 'Sun')).toEqual(['build', 'review', 'read', 'dsa']);
-        // The hour of review moves rather than vanishing.
-        expect(kindsOn('Fri', 'Sun')).toContain('light');
+        expect(hasLightDay('Sun')).toBe(true);
+        // Sunday's afternoon theory and the light hour run 16:30-19:30, which
+        // is after the build finishes, so they survive it - the day is simply
+        // very long rather than stripped.
+        expect(kindsOn('Sun', 'Sun')).toEqual(
+            ['build', 'review', 'theory', 'light', 'read', 'dsa']
+        );
     });
 });
 
