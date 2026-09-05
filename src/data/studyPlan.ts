@@ -455,10 +455,78 @@ const ladderRange = (level: ReadingLevel): [number, number] => {
 };
 
 /**
- * The ladder item for a week. Levels usually have fewer items than weeks, so
- * the list cycles rather than running out — in ladder order either way.
+ * What to read tonight, week by week.
+ *
+ * This used to cycle blindly through each rung of the ladder, which put
+ * "Understanding LSTMs" in week 4 against a morning on linear regression -
+ * the exact thing the ladder's own note warns against, reading a paper you
+ * cannot yet build. Every week now names the item that matches the stage it
+ * is in, and weeks 1-9 name the actual sections rather than saying "one
+ * section daily" and leaving you to guess which.
+ */
+const READING_BY_WEEK: Record<number, string> = {
+    1: 'Deisenroth Ch 2, one subsection a night: 2.1 systems, 2.2 matrices, 2.3 solving, 2.4 vector spaces, 2.5 independence, 2.6 basis and rank, 2.7 linear mappings',
+    2: 'Deisenroth Ch 3 then Ch 4, one subsection a night: norms, inner products, orthogonality, projections, then determinant, eigenvalues, eigendecomposition, SVD',
+    3: 'Deisenroth Ch 5, one subsection a night: gradients, Jacobians, matrix calculus. Section 5.6 is backpropagation - read it twice',
+    4: 'Deisenroth Ch 9, one subsection a night: linear regression, MLE, MAP, and why the solution is a projection',
+    5: 'Murphy Ch 2, one section a night: probability, the common distributions, expectation and variance',
+    6: 'Murphy Ch 3-4, one section a night: MLE, MAP, Bayes, and the exponential family',
+    7: 'Chris Olah - Calculus on Computational Graphs. Re-read, do not add anything new this week',
+    8: 'Murphy Ch 5, one section a night: decision theory, bias and variance, model selection',
+    9: 'Murphy - the precision, recall and ROC sections. Base rates are the whole gate this week',
+    10: 'Breiman - Random Forests (2001)',
+    11: 'Cortes & Vapnik - Support-Vector Networks (1995)',
+    12: 'Hinton et al. - Distilling the Knowledge in a Neural Network (2015)',
+    13: 'Sebastian Ruder - An Overview of Gradient Descent Optimization',
+    14: 'Kingma & Ba - Adam (2014)',
+    15: 'distill.pub - Why Momentum Really Works. Play with it rather than read it',
+    16: 'Chris Olah - Calculus on Computational Graphs. This is micrograd, written out',
+    17: 'Krizhevsky et al. - AlexNet (2012)',
+    18: 'He et al. - ResNet (2015)',
+    19: 'Glorot & Bengio - Xavier initialisation (2010), then He et al. (2015)',
+    20: 'Ioffe & Szegedy - Batch Normalization (2015), then Ba et al. - Layer Normalization (2016)',
+    21: 'Srivastava et al. - Dropout (2014)',
+    22: 'Frankle & Carbin - The Lottery Ticket Hypothesis (2019)',
+    23: 'Zhang et al. - Rethinking generalization (2017)',
+    24: 'Nakkiran et al. - Deep Double Descent (2019). This is the gate, in paper form',
+    25: 'Liu et al. - Swin Transformer (2021)',
+    26: 'Dosovitskiy et al. - ViT (2021)',
+    27: 'Vaswani et al. - Attention Is All You Need (2017). Read it the week you implement it',
+    28: 'Radford et al. - GPT-2 (2019). Read ahead of building one',
+    29: 'Sennrich et al. - Subword units (BPE), the paper behind your tokeniser',
+    30: 'Su et al. - RoFormer / RoPE (2021)',
+    31: 'Hoffmann et al. - Chinchilla scaling laws (2022)',
+    32: 'Radford et al. - GPT-2, again. Third pass now that you have built one',
+    33: 'Hoffmann et al. - Chinchilla, the data sections',
+    34: 'Ouyang et al. - InstructGPT (2022)',
+    35: 'Hu et al. - LoRA (2021), then Rafailov et al. - DPO (2023)',
+    36: 'Gu & Dao - Mamba (2023). Breadth, not depth, this week',
+    37: 'Kingma & Welling - Auto-Encoding Variational Bayes (2013)',
+    38: 'Ho et al. - DDPM (2020)',
+    39: 'Schulman et al. - PPO (2017)',
+    40: 'Chen et al. - TVM (OSDI 2018)',
+    41: 'Dao et al. - FlashAttention (2022), then FlashAttention-2',
+    42: 'Tillet et al. - Triton. The paper behind the kernels you are writing',
+    43: 'Xiao et al. - StreamingLLM (2023)',
+    44: 'Dettmers et al. - LLM.int8() (2022), then QLoRA',
+    45: 'Xiao et al. - SmoothQuant (ICML 2023), then Lin et al. - AWQ (MLSys 2024)',
+    46: 'Frantar et al. - GPTQ (2023)',
+    47: 'Kwon et al. - PagedAttention / vLLM (SOSP 2023)',
+    48: 'Leviathan et al. - Speculative Decoding (2023)',
+    49: 'MLSys proceedings - sweep the last two years cover to cover',
+    50: 'OSDI / SOSP / ASPLOS - the ML systems tracks',
+    51: 'NeurIPS / ICML / ICLR - efficiency tracks only. Read for structure',
+    52: 'Scholar alerts: Song Han, Tianqi Chen, Zhihao Jia, Beidi Chen, Tri Dao, Joseph Gonzalez, Chris De Sa, Hao Zhang, Minjia Zhang, Xupeng Miao',
+};
+
+/**
+ * The ladder item for a week. The per-week table above is the answer; the
+ * cycling fallback only runs if a week is ever added without one.
  */
 export const readingForWeek = (week: number): string => {
+    const named = READING_BY_WEEK[week];
+    if (named) return named;
+
     const level =
         readingLadder.find(l => {
             const [from, to] = ladderRange(l);

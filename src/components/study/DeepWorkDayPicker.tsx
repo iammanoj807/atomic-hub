@@ -2,7 +2,7 @@ import { Box, Typography, Stack, Chip } from '@mui/material';
 import ConstructionRoundedIcon from '@mui/icons-material/ConstructionRounded';
 import WeekendRoundedIcon from '@mui/icons-material/WeekendRounded';
 import { WEEKDAYS, WEEKDAY_NAMES, type Weekday } from '../../data/studyPlan';
-import { DEFAULT_DEEP_WORK_DAY, DEFAULT_SECOND_DAY_OFF, hasLightDay } from '../../utils/studySchedule';
+import { DEFAULT_DEEP_WORK_DAY, DEFAULT_SECOND_DAY_OFF } from '../../utils/studySchedule';
 
 /** One row of seven day buttons. Set from a rota, so it has to be one tap. */
 const DayRow = ({
@@ -66,8 +66,6 @@ const DeepWorkDayPicker = ({
     onChangeDeepWorkDay: (day: Weekday) => void;
     onChangeSecondDayOff: (day: Weekday | null) => void;
 }) => {
-    const lightDayLost = !hasLightDay(deepWorkDay);
-
     return (
         <Box
             sx={{
@@ -101,14 +99,6 @@ const DeepWorkDayPicker = ({
                 disabledDay={secondDayOff ?? undefined}
             />
 
-            {lightDayLost && (
-                <Typography
-                    variant="body2"
-                    sx={{ mt: 1.5, color: '#ff8a65', fontWeight: 600, fontSize: '0.85rem' }}
-                >
-                    No light day this week — Sunday is carrying the build. Expect to feel it by Tuesday.
-                </Typography>
-            )}
 
             {/* Second day off — Saturday as standard, and it carries real blocks */}
             <Box sx={{ mt: 3, pt: 2.5, borderTop: 1, borderColor: 'rgba(255,255,255,0.08)' }}>
