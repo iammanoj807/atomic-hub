@@ -9,7 +9,7 @@
 
 import { PLAN_WEEKS } from './studyPlan';
 
-export type ResourceKind = 'watch' | 'read' | 'build' | 'aieng';
+export type ResourceKind = 'watch' | 'read' | 'build' | 'aieng' | 'mlcourse' | 'applied';
 
 export interface WeekResource {
     kind: ResourceKind;
@@ -26,6 +26,8 @@ export const RESOURCE_KIND_LABELS: Record<ResourceKind, string> = {
     read: 'READ',
     build: 'BUILD',
     aieng: 'AI ENGINEERING',
+    mlcourse: 'APPLIED ML COURSE',
+    applied: 'MESSY DATA',
 };
 
 export const RESOURCE_KIND_COLORS: Record<ResourceKind, string> = {
@@ -33,6 +35,8 @@ export const RESOURCE_KIND_COLORS: Record<ResourceKind, string> = {
     read: '#b39ddb',
     build: '#ff8a65',
     aieng: '#ffd54f',
+    mlcourse: '#26a69a',
+    applied: '#ffa726',
 };
 
 /** Keyed by week number, 1-52. */
@@ -152,6 +156,13 @@ export const weekResources: Record<number, WeekResource[]> = {
             source: 'GitHub',
             detail: 'Proper READMEs, a screenshot or a plot in each, pinned repos on your profile. This is the page a supervisor will actually open.',
         },
+        {
+            kind: 'mlcourse',
+            title: 'Course 1: Supervised ML — Regression and Classification',
+            source: 'Andrew Ng · DeepLearning.AI + Stanford Online',
+            url: 'https://www.coursera.org/specializations/machine-learning-introduction',
+            detail: 'OPTIONAL, and skim. You derive least squares and the normal equations by hand this week, so this is revision with better intuition, not new material. Watch at speed; do not let it displace Deisenroth.',
+        },
     ],
     5: [
         {
@@ -182,6 +193,13 @@ export const weekResources: Record<number, WeekResource[]> = {
             url: 'https://python.langchain.com/docs/introduction/',
             detail: 'Your documents, not a tutorial dataset. Retrieval, chunking, a real question you actually want answered.',
         },
+        {
+            kind: 'mlcourse',
+            title: 'Course 1: Supervised ML — logistic regression and regularisation',
+            source: 'Andrew Ng · DeepLearning.AI + Stanford Online',
+            url: 'https://www.coursera.org/specializations/machine-learning-introduction',
+            detail: 'Still optional. The value is the vocabulary and the framing, not the maths - you are deriving that yourself in the mornings.',
+        },
     ],
     6: [
         {
@@ -211,6 +229,13 @@ export const weekResources: Record<number, WeekResource[]> = {
             source: "Hamel Husain's blog + Ragas",
             url: 'https://hamel.dev/',
             detail: 'Golden dataset, retrieval metrics, LLM-as-judge. Almost nobody does this, which is exactly why it is the most hireable thing on this list.',
+        },
+        {
+            kind: 'mlcourse',
+            title: 'Course 1 finish, then start Course 2: Advanced Learning Algorithms',
+            source: 'Andrew Ng · DeepLearning.AI + Stanford Online',
+            url: 'https://www.coursera.org/specializations/machine-learning-introduction',
+            detail: 'Course 2 teaches neural networks in TensorFlow. Ignore the framework deliberately - the rest of this plan is PyTorch. You are here for the trees, the evaluation and the best-practice material.',
         },
     ],
     7: [
@@ -269,6 +294,20 @@ export const weekResources: Record<number, WeekResource[]> = {
             source: 'The most important decision of the year',
             detail: 'Interpretability / efficient inference / RLHF / reasoning / multimodal / diffusion. From week 9 every paper you read is in it.',
         },
+        {
+            kind: 'mlcourse',
+            title: 'Course 2 week 3: bias, variance, and the ML development process',
+            source: 'Andrew Ng · DeepLearning.AI + Stanford Online',
+            url: 'https://www.coursera.org/specializations/machine-learning-introduction',
+            detail: 'THE most important block in the specialization for you. Error analysis, what to try next when a model underperforms, and how to decide rather than guess. It sits exactly on Stage 3.',
+        },
+        {
+            kind: 'applied',
+            title: 'Designing Machine Learning Systems — data engineering chapters',
+            source: 'Chip Huyen',
+            url: 'https://huyenchip.com/books/',
+            detail: 'The production layer this plan had no entry for at all. Read it slowly across weeks 8-15; it is the difference between a model and a system.',
+        },
     ],
     9: [
         {
@@ -298,6 +337,20 @@ export const weekResources: Record<number, WeekResource[]> = {
             source: 'Hugging Face · free, hands-on',
             url: 'https://huggingface.co/learn/agents-course',
             detail: 'Build an agent with real tool use, not a demo chain.',
+        },
+        {
+            kind: 'mlcourse',
+            title: 'Course 2 week 3: skewed datasets, precision, recall and F1',
+            source: 'Andrew Ng · DeepLearning.AI + Stanford Online',
+            url: 'https://www.coursera.org/specializations/machine-learning-introduction',
+            detail: 'The gate this week asks why a 99% accurate model may be worthless. This is the material that answers it: base rates, the confusion matrix, and the precision/recall tradeoff.',
+        },
+        {
+            kind: 'applied',
+            title: 'Kaggle Learn: Intermediate Machine Learning',
+            source: 'Kaggle',
+            url: 'https://www.kaggle.com/learn',
+            detail: 'Missing values, categoricals, pipelines, cross-validation, leakage. Messy-data practice the Ng labs do not give you.',
         },
     ],
     10: [
@@ -329,6 +382,20 @@ export const weekResources: Record<number, WeekResource[]> = {
             url: 'https://hamel.dev/',
             detail: 'Document what breaks and why. The failure analysis is the interesting half.',
         },
+        {
+            kind: 'mlcourse',
+            title: 'Course 2 week 4: decision trees and tree ensembles',
+            source: 'Andrew Ng · DeepLearning.AI + Stanford Online',
+            url: 'https://www.coursera.org/specializations/machine-learning-introduction',
+            detail: 'Decision trees, random forests and XGBoost, and - more useful than any of them - when to reach for a tree instead of a neural network. Pairs with building the tree from scratch this week.',
+        },
+        {
+            kind: 'applied',
+            title: 'Kaggle Learn: Feature Engineering',
+            source: 'Kaggle',
+            url: 'https://www.kaggle.com/learn',
+            detail: 'Mutual information, target encoding, creating features. This is what actually moves a leaderboard score, and it appears nowhere else in the plan.',
+        },
     ],
     11: [
         {
@@ -358,6 +425,20 @@ export const weekResources: Record<number, WeekResource[]> = {
             url: 'https://stanford-cs336.github.io/',
             detail: 'The systems half is what makes you employable as an AI engineer rather than a notebook user.',
         },
+        {
+            kind: 'mlcourse',
+            title: 'Course 2 week 4: XGBoost in practice',
+            source: 'Andrew Ng · DeepLearning.AI + Stanford Online',
+            url: 'https://www.coursera.org/specializations/machine-learning-introduction',
+            detail: 'XGBoost and LightGBM are what wins tabular problems and what a lot of production ML actually is. Know the hyperparameters that matter and why.',
+        },
+        {
+            kind: 'applied',
+            title: 'Enter a tabular Kaggle competition',
+            source: 'Kaggle',
+            url: 'https://www.kaggle.com/competitions',
+            detail: 'START NOW, three submissions minimum by week 12. A baseline, one with real feature engineering, one tuned. Keep notes on what moved the score - that write-up is the artifact, not the rank.',
+        },
     ],
     12: [
         {
@@ -384,6 +465,20 @@ export const weekResources: Record<number, WeekResource[]> = {
             source: 'GitHub',
             detail: 'Assume they open exactly one repo. Make sure any of them would do.',
         },
+        {
+            kind: 'mlcourse',
+            title: 'Course 3: Unsupervised Learning, Recommenders, Reinforcement Learning',
+            source: 'Andrew Ng · DeepLearning.AI + Stanford Online',
+            url: 'https://www.coursera.org/specializations/machine-learning-introduction',
+            detail: 'Take anomaly detection and collaborative filtering. Skip the k-means section - you implement k-means and EM from scratch this week, which is stronger. Skip the RL week; Spinning Up covers it properly at week 39.',
+        },
+        {
+            kind: 'applied',
+            title: 'Kaggle competition: submissions two and three',
+            source: 'Kaggle',
+            url: 'https://www.kaggle.com/competitions',
+            detail: 'Feature engineering pass, then a tuned model. Compare against your own from-scratch tree and explain the gap honestly.',
+        },
     ],
     13: [
         {
@@ -405,6 +500,13 @@ export const weekResources: Record<number, WeekResource[]> = {
             title: 'Gradient descent on a convex problem, then on one that is not',
             source: 'Stage 5',
             detail: 'Implement line search. Watch what a badly conditioned problem does to plain gradient descent.',
+        },
+        {
+            kind: 'applied',
+            title: 'Designing Machine Learning Systems — training data and feature engineering',
+            source: 'Chip Huyen',
+            url: 'https://huyenchip.com/books/',
+            detail: 'Sampling, labelling, class imbalance, data leakage. Read alongside the optimisation stage rather than instead of it.',
         },
     ],
     14: [
@@ -428,6 +530,13 @@ export const weekResources: Record<number, WeekResource[]> = {
             source: 'GATE WEEK',
             detail: 'Same problem, four optimisers, one plot. Then find a case where Adam is worse than SGD.',
         },
+        {
+            kind: 'applied',
+            title: 'Designing Machine Learning Systems — model deployment and prediction service',
+            source: 'Chip Huyen',
+            url: 'https://huyenchip.com/books/',
+            detail: 'Batch vs online prediction, model compression, deployment on the edge and in the cloud.',
+        },
     ],
     15: [
         {
@@ -446,6 +555,13 @@ export const weekResources: Record<number, WeekResource[]> = {
             title: 'Ship anything unposted. WRITE, PUBLISH, POST.',
             source: 'Consolidation',
             detail: 'Consolidation weeks are for finishing, not starting.',
+        },
+        {
+            kind: 'applied',
+            title: 'Designing Machine Learning Systems — monitoring, drift and versioning',
+            source: 'Chip Huyen',
+            url: 'https://huyenchip.com/books/',
+            detail: 'Data distribution shift, monitoring, continual learning. Then WRITE UP the Kaggle competition and PUBLISH it: what you tried, what moved the score, what did not.',
         },
     ],
     16: [
