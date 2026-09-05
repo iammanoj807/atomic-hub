@@ -1,4 +1,4 @@
-// The 52-week study plan — 31 Aug 2026 to 29 Aug 2027.
+// The 52-week study plan — 7 Sep 2026 to 5 Sep 2027.
 //
 // This is the content of Study_Tracker.xlsx, moved into the app so the plan
 // lives where the work already happens. Everything here is fixed: the schedule,
@@ -9,8 +9,8 @@
 //   A — research depth (mornings + Sunday): maths, theory, papers, reproduction
 //   B — engineering + DSA (evenings + weekends): LLM systems, RAG, evals, LeetCode
 
-export const PLAN_START_DATE = '2026-08-31'; // Monday of week 1
-export const PLAN_END_DATE = '2027-08-29';   // Sunday of week 52
+export const PLAN_START_DATE = '2026-09-07'; // Monday of week 1
+export const PLAN_END_DATE = '2027-09-05';   // Sunday of week 52
 export const PLAN_WEEKS = 52;
 
 /** Hours a normal week asks for. The routine below adds up to exactly this. */
