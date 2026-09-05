@@ -26,6 +26,14 @@ import {
 export const DEFAULT_DEEP_WORK_DAY: Weekday = 'Thu';
 
 /**
+ * The other fixed day off. Saturday used to be a 10:00-14:00 shift and the
+ * second day off was an occasional bonus; the rota is settled now and Saturday
+ * carries the applied ML track, so it is a standing day off rather than
+ * something to remember to tick.
+ */
+export const DEFAULT_SECOND_DAY_OFF: Weekday = 'Sat';
+
+/**
  * Where displaced study lands. Friday was chosen when it carried no study of
  * its own; it now runs the same shift-day shape as Monday, so most of what
  * arrives is a duplicate of what is already there — see the merge below.

@@ -26,7 +26,7 @@ import type {
 } from '../services/firebaseService';
 import { getLondonDateString } from '../utils/date';
 import { getPlanWeekNumber } from '../utils/studyPlan';
-import { DEFAULT_DEEP_WORK_DAY, isWeekday } from '../utils/studySchedule';
+import { DEFAULT_DEEP_WORK_DAY, DEFAULT_SECOND_DAY_OFF, isWeekday } from '../utils/studySchedule';
 import { getArtifactProgress } from '../utils/studyProgress';
 import type { Weekday } from '../data/studyPlan';
 
@@ -92,9 +92,10 @@ export const useStudyPlan = () => {
         await saveStudyWeekSecondDayOff(week, secondDayOff);
     };
 
+    /** Falls back to Saturday, which the rota now gives off every week. */
     const getSecondDayOff = (week: number): Weekday | null => {
         const stored = studyWeekLogs[week]?.secondDayOff;
-        return isWeekday(stored) ? stored : null;
+        return isWeekday(stored) ? stored : DEFAULT_SECOND_DAY_OFF;
     };
 
     const savePaper = async (paper: Omit<StudyPaper, 'id' | 'createdAt'> & { id?: string }) => {

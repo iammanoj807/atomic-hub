@@ -2,7 +2,7 @@ import { Box, Typography, Stack, Chip } from '@mui/material';
 import ConstructionRoundedIcon from '@mui/icons-material/ConstructionRounded';
 import WeekendRoundedIcon from '@mui/icons-material/WeekendRounded';
 import { WEEKDAYS, WEEKDAY_NAMES, type Weekday } from '../../data/studyPlan';
-import { DEFAULT_DEEP_WORK_DAY, hasLightDay } from '../../utils/studySchedule';
+import { DEFAULT_DEEP_WORK_DAY, DEFAULT_SECOND_DAY_OFF, hasLightDay } from '../../utils/studySchedule';
 
 /** One row of seven day buttons. Set from a rota, so it has to be one tap. */
 const DayRow = ({
@@ -92,7 +92,7 @@ const DeepWorkDayPicker = ({
             <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5, fontSize: '0.85rem' }}>
                 The build is on {WEEKDAY_NAMES[deepWorkDay]}, 09:00–15:00
                 {deepWorkDay === DEFAULT_DEEP_WORK_DAY ? ' (the usual).' : '.'}
-                {' '}Whatever study that day had moves to Friday, so the week still comes to the same hours.
+                {' '}The reading, the problem and the applied ML course stay on it whatever else moves.
             </Typography>
             <DayRow
                 selected={deepWorkDay}
@@ -110,7 +110,7 @@ const DeepWorkDayPicker = ({
                 </Typography>
             )}
 
-            {/* Second day off — recorded, not scheduled */}
+            {/* Second day off — Saturday as standard, and it carries real blocks */}
             <Box sx={{ mt: 3, pt: 2.5, borderTop: 1, borderColor: 'rgba(255,255,255,0.08)' }}>
                 <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
                     <WeekendRoundedIcon sx={{ fontSize: 18, color: '#4dd0e1' }} />
@@ -119,13 +119,15 @@ const DeepWorkDayPicker = ({
                         color="text.secondary"
                         sx={{ letterSpacing: 1.3, fontWeight: 800, fontSize: '0.68rem' }}
                     >
-                        SECOND DAY OFF · OPTIONAL
+                        SECOND DAY OFF · APPLIED ML
                     </Typography>
                 </Stack>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5, fontSize: '0.85rem' }}>
-                    {secondDayOff
-                        ? `Also off ${WEEKDAY_NAMES[secondDayOff]}. Its slots stay as they are — a free day is time you gain, not study you lose.`
-                        : 'Only set this on the weeks the rota gives you two. Tap it again to clear it.'}
+                    {secondDayOff === DEFAULT_SECOND_DAY_OFF
+                        ? 'Also off Saturday, every week — 09:00 the course, 13:00 messy data, then the project. Change it only if the rota moves.'
+                        : secondDayOff
+                            ? `Also off ${WEEKDAY_NAMES[secondDayOff]} this week instead of Saturday. Saturday's long blocks move with it.`
+                            : 'No second day off this week. Tap a day to set one.'}
                 </Typography>
                 <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
                     <DayRow
