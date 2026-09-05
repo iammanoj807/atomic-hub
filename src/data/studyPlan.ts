@@ -1,4 +1,4 @@
-// The 52-week study plan — 31 Aug 2026 to 29 Aug 2027.
+// The 52-week study plan — 7 Sep 2026 to 5 Sep 2027.
 //
 // This is the content of Study_Tracker.xlsx, moved into the app so the plan
 // lives where the work already happens. Everything here is fixed: the schedule,
@@ -9,22 +9,23 @@
 //   A — research depth (mornings + Sunday): maths, theory, papers, reproduction
 //   B — engineering + DSA (evenings + weekends): LLM systems, RAG, evals, LeetCode
 
-export const PLAN_START_DATE = '2026-08-31'; // Monday of week 1
-export const PLAN_END_DATE = '2027-08-29';   // Sunday of week 52
+export const PLAN_START_DATE = '2026-09-07'; // Monday of week 1
+export const PLAN_END_DATE = '2027-09-05';   // Sunday of week 52
 export const PLAN_WEEKS = 52;
 
 /** Hours a normal week asks for. The routine below adds up to exactly this. */
-export const FULL_WEEK_TARGET_HOURS = 24;
+export const FULL_WEEK_TARGET_HOURS = 34;
 /** Consolidation and holiday weeks are deliberately lighter. */
 export const LIGHT_WEEK_TARGET_HOURS = 12;
 
 // ============ START HERE — the strategy before the schedule ============
 
 export const workPattern =
-    'Shifts 10:00-18:00 Mon, Tue, Wed, Fri. 10:00-14:00 Sat and Sun. ' +
-    'Thursday off. Weekend shifts end at 14:00, so Saturday and Sunday ' +
-    'afternoons are the second and third best blocks of the week after ' +
-    'Thursday - they are not tired evening time.';
+    'Shifts 10:00-18:00 Mon, Tue, Wed, Fri. 10:00-14:00 Sunday. ' +
+    'Thursday and Saturday off, both fixed. Those two days carry about ' +
+    'eight hours of learning each and are where the long blocks live; the ' +
+    'four shift days are deliberately short - two hours before work and ' +
+    'the habits after it.';
 
 export interface Track {
     id: 'A' | 'B';
@@ -155,7 +156,7 @@ export const DAY_TITLES: Record<Weekday, string> = {
     Wed: 'Build day',
     Thu: 'Deep work day',
     Fri: 'Ship day',
-    Sat: 'Project day',
+    Sat: 'Long day',
     Sun: 'Light day',
 };
 
@@ -173,6 +174,8 @@ export type SlotKind =
     | 'book'
     | 'papers'
     | 'read'
+    | 'mlcourse'
+    | 'applied'
     | 'dsa'
     | 'job'
     | 'light'
@@ -201,6 +204,8 @@ const SLOT_COLORS: Record<SlotKind, string> = {
     book: '#ffd54f',
     papers: '#b39ddb',
     read: '#81c784',
+    mlcourse: '#26a69a',
+    applied: '#ffa726',
     dsa: '#4a90e2',
     job: '#4dd0e1',
     light: '#90a4ae',
@@ -245,17 +250,25 @@ const shiftDay = (): RoutineSlot[] => [
  * because the six hours of build arrive from deepWorkSlots below — that is what
  * lets the day off move when the rota changes, without the artifact moving too.
  *
- * Saturday and Sunday start in the afternoon on purpose: the weekend shift ends
- * at 14:00, so those are real blocks rather than leftover evening.
+ * Thursday and Saturday are the two fixed days off and carry about eight hours
+ * of learning each - the artifact on Thursday, the applied ML track on both.
+ * Sunday still has a 10:00-14:00 shift, so it starts in the afternoon.
  */
 export const dailyRoutine: Record<Weekday, RoutineSlot[]> = {
     Mon: shiftDay(),
     Tue: shiftDay(),
     Wed: shiftDay(),
-    Thu: [readSlot(), dsaSlot(), jobSlot()],
+    Thu: [
+        slot('mlcourse', '16:00', '18:00', 2.0, 'B - Applied ML', 'Machine Learning Specialization - Andrew Ng'),
+        readSlot(),
+        dsaSlot(),
+        jobSlot(),
+    ],
     Fri: shiftDay(),
     Sat: [
-        slot('aieng', '16:00', '18:30', 2.5, 'B - AI Eng', 'Fruit paper with supervisor, then job project'),
+        slot('mlcourse', '09:00', '12:00', 3.0, 'B - Applied ML', 'Machine Learning Specialization - Andrew Ng'),
+        slot('applied', '13:00', '15:00', 2.0, 'B - Applied ML', 'Messy data: Kaggle, feature engineering, production'),
+        slot('aieng', '15:30', '18:00', 2.5, 'B - AI Eng', 'Fruit paper with supervisor, then job project'),
         slot('papers', '18:30', '19:30', 1.0, 'A - Papers', 'Deep read - the one long read of the week'),
         readSlot(),
         dsaSlot(),
@@ -282,7 +295,14 @@ export const routineRules: string[] = [
     'Mornings are for the stage. 05:30-07:30, before anything can take them. '
         + 'Finishing at 07:30 leaves real room before a 10:00 shift.',
     'Thursday 09:00-15:00 is the artifact. Six hours. Then you STOP.',
-    'Saturday and Sunday afternoons are real blocks - the shift ends at 14:00.',
+    'Thursday and Saturday are the two days off and they carry the week. Roughly '
+        + 'eight hours of learning on each. The four shift days are deliberately '
+        + 'short - two hours before work, then the habits. Do not try to make a '
+        + 'shift day into a day off; that is how the mornings get lost.',
+    'The applied ML course lives on the days off, never after a shift. Andrew Ng '
+        + 'on Thursday afternoon and Saturday morning, messy data on Saturday '
+        + 'after lunch. It is the layer interviews test and the plan was thin on it.',
+    'Sunday afternoon is a real block - the shift ends at 14:00.',
     'Twenty minutes of reading every single day. Never skipped, never doubled.',
     'Nothing ends after 21:00. A 05:30 start means a 05:00 wake. If you sleep at '
         + '22:30 that is six and a half hours - thin. Evenings now end at 20:25 to '

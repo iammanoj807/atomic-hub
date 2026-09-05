@@ -49,14 +49,14 @@ There is no streak here, and no warning state. A missed day shows as nothing at 
 because the app's job is to make coming back easy, not to punish a gap.
 
 ### Study Plan
-Twenty-six weeks, 18 August 2026 to 15 February 2027, running two tracks at once: research
+Fifty-two weeks, 7 September 2026 to 5 September 2027, running two tracks at once: research
 depth in the mornings, engineering and DSA in the evenings. It started as a spreadsheet with
 eight tabs, which meant the plan lived somewhere I never had open. Now it lives here, as four
 pages instead of eight.
 
 **This Week** is the one I open daily. It says which week I'm in, what the milestone is, and
 what to learn — the exact video, the exact chapter, the exact thing to build, with links. The
-26-week strip across the top fills in square by square as weeks get logged, so progress is
+52-week strip fills in square by square as weeks get logged, so progress is
 something you see rather than calculate.
 
 **The days off move.** I work shifts, so the original plan's fixed Friday was fiction. The six

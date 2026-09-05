@@ -37,8 +37,13 @@ const OVERFLOW_DAY: Weekday = 'Fri';
  * because the rule is twenty minutes every single day, never doubled — if it
  * were displaceable, Thursday would lose its reading to Friday, which already
  * has its own.
+ *
+ * The applied ML course is in here for the opposite reason: it is on Thursday
+ * BECAUSE Thursday is a day off with room for a long block. Pushing it onto a
+ * shift day would put two hours of course work after an eight-hour shift,
+ * which is the arrangement the whole rota exists to avoid.
  */
-const UNDISPLACEABLE = new Set(['read', 'dsa', 'job']);
+const UNDISPLACEABLE = new Set(['read', 'dsa', 'job', 'mlcourse', 'applied']);
 
 /** Minutes since midnight, so slot times can actually be compared. */
 export const minutesInto = (time: string): number => {

@@ -32,10 +32,10 @@ describe('the plan data itself', () => {
         }
     });
 
-    it('runs 31 Aug 2026 to 29 Aug 2027', () => {
-        expect(PLAN_START_DATE).toBe('2026-08-31');
-        expect(planWeeks[0].startDate).toBe('2026-08-31');
-        expect(planWeeks[PLAN_WEEKS - 1].endDate).toBe('2027-08-29');
+    it('runs 7 Sep 2026 to 5 Sep 2027', () => {
+        expect(PLAN_START_DATE).toBe('2026-09-07');
+        expect(planWeeks[0].startDate).toBe('2026-09-07');
+        expect(planWeeks[PLAN_WEEKS - 1].endDate).toBe('2027-09-05');
     });
 
     it('gives every week content, a stage and a reading item', () => {
@@ -68,24 +68,24 @@ describe('getPlanWeekNumber', () => {
     });
 
     it('counts the first Monday as week 1', () => {
-        expect(getPlanWeekNumber('2026-08-31')).toBe(1);
-        expect(getPlanWeekNumber('2026-08-30')).toBeNull();
+        expect(getPlanWeekNumber('2026-09-07')).toBe(1);
+        expect(getPlanWeekNumber('2026-09-06')).toBeNull();
     });
 
     it('keeps the whole first week on week 1', () => {
-        expect(getPlanWeekNumber('2026-09-06')).toBe(1);
+        expect(getPlanWeekNumber('2026-09-13')).toBe(1);
     });
 
     it('rolls over on the Monday', () => {
-        expect(getPlanWeekNumber('2026-09-07')).toBe(2);
+        expect(getPlanWeekNumber('2026-09-14')).toBe(2);
     });
 
     it('handles the last day of the plan', () => {
-        expect(getPlanWeekNumber('2027-08-29')).toBe(52);
+        expect(getPlanWeekNumber('2027-09-05')).toBe(52);
     });
 
     it('returns null after the plan ends', () => {
-        expect(getPlanWeekNumber('2027-08-30')).toBeNull();
+        expect(getPlanWeekNumber('2027-09-06')).toBeNull();
     });
 
     it('agrees with every week in the data', () => {
@@ -98,11 +98,15 @@ describe('getPlanWeekNumber', () => {
 
 describe('getPlanWeek', () => {
     it('finds the week a date falls in', () => {
-        // Week 18 runs 28 Dec-3 Jan and is where artifact 1 falls due; the
-        // date is taken from the middle so a future shift of the start date
-        // moves the week rather than breaking the assertion.
-        expect(getPlanWeek('2026-12-30')?.week).toBe(18);
-        expect(getPlanWeek('2026-12-30')?.milestone).toContain('ARTIFACT 1');
+        // Week 18 is where artifact 1 falls due. The date is taken from the
+        // middle of the week so a future shift of the start date moves the
+        // week rather than breaking the assertion.
+        const week18 = planWeeks[17];
+        const midweek = new Date(`${week18.startDate}T00:00:00Z`);
+        midweek.setUTCDate(midweek.getUTCDate() + 3);
+        const mid = midweek.toISOString().slice(0, 10);
+        expect(getPlanWeek(mid)?.week).toBe(18);
+        expect(getPlanWeek(mid)?.milestone).toContain('ARTIFACT 1');
     });
 
     it('returns null outside the plan', () => {
@@ -112,17 +116,17 @@ describe('getPlanWeek', () => {
 
 describe('daysUntilPlanStart / getPlanPhase', () => {
     it('counts down to the start', () => {
-        expect(daysUntilPlanStart('2026-08-22')).toBe(9);
-        expect(getPlanPhase('2026-08-22')).toBe('before');
+        expect(daysUntilPlanStart('2026-08-29')).toBe(9);
+        expect(getPlanPhase('2026-08-29')).toBe('before');
     });
 
     it('goes negative once running', () => {
-        expect(daysUntilPlanStart('2026-09-02')).toBe(-2);
-        expect(getPlanPhase('2026-09-02')).toBe('during');
+        expect(daysUntilPlanStart('2026-09-09')).toBe(-2);
+        expect(getPlanPhase('2026-09-09')).toBe('during');
     });
 
     it('knows when the plan is over', () => {
-        expect(getPlanPhase('2027-09-01')).toBe('after');
+        expect(getPlanPhase('2027-09-08')).toBe('after');
     });
 });
 
@@ -133,9 +137,9 @@ describe('summariseHours', () => {
         3: { dsaProblems: 7 }, // notes only, no hours yet
     };
 
-    it('totals the whole plan at 1164 hours', () => {
-        // 45 full weeks at 24 plus 7 consolidation weeks at 12.
-        expect(summariseHours({}, null).targetTotal).toBeCloseTo(1164, 5);
+    it('totals the whole plan at 1614 hours', () => {
+        // 45 full weeks at 34 plus 7 consolidation weeks at 12.
+        expect(summariseHours({}, null).targetTotal).toBeCloseTo(1614, 5);
     });
 
     it('targets nothing before the plan starts', () => {
@@ -144,12 +148,12 @@ describe('summariseHours', () => {
 
     it('targets only the weeks up to now', () => {
         // Weeks 1-4 are all full weeks; the first consolidation week is 7.
-        expect(summariseHours(logs, 4).targetToDate).toBeCloseTo(96, 5);
+        expect(summariseHours(logs, 4).targetToDate).toBeCloseTo(136, 5);
     });
 
     it('counts the consolidation week as the lighter one', () => {
-        // Weeks 1-7: six at 24 plus week 7 at 12.
-        expect(summariseHours(logs, 7).targetToDate).toBeCloseTo(156, 5);
+        // Weeks 1-7: six at 34 plus week 7 at 12.
+        expect(summariseHours(logs, 7).targetToDate).toBeCloseTo(216, 5);
     });
 
     it('counts a week as logged only once it has hours', () => {
@@ -160,8 +164,8 @@ describe('summariseHours', () => {
     });
 
     it('reports how far behind you are', () => {
-        // 48 done against a 72-hour target for weeks 1-3.
-        expect(summariseHours(logs, 3).diffToDate).toBeCloseTo(-24, 5);
+        // 48 done against a 102-hour target for weeks 1-3.
+        expect(summariseHours(logs, 3).diffToDate).toBeCloseTo(-54, 5);
     });
 });
 

@@ -25,18 +25,18 @@ const kindsOn = (day: Weekday, deepWorkDay?: Weekday): string[] =>
     getRoutineForWeek(deepWorkDay)[day].map(slot => slot.kind);
 
 describe('routineWeeklyHours', () => {
-    it('comes to 27.13 hours on the default rota', () => {
+    it('comes to 34.13 hours on the default rota', () => {
         // Twenty-minute slots are thirds of an hour, so the total is not a
         // round number and the tolerance is doing real work here.
-        expect(routineWeeklyHours()).toBeCloseTo(27.13, 2);
+        expect(routineWeeklyHours()).toBeCloseTo(34.13, 2);
     });
 
     it('OPEN: the routine asks for more than the constant it logs against', () => {
-        // FULL_WEEK_TARGET_HOURS is 24; the routine measures 27.13. Shortening
-        // the mornings and merging the two book slots closed 3.3h of a 4.45h
-        // gap without closing it. Which number is wrong is still the owner's
-        // call, so this records what is left rather than hiding it.
-        expect(routineWeeklyHours() - FULL_WEEK_TARGET_HOURS).toBeCloseTo(3.13, 2);
+        // FULL_WEEK_TARGET_HOURS is 34; the routine measures 34.13. The two
+        // fixed days off carry about eight hours each, which is what finally
+        // made the constant and the timetable agree to within a rounding of
+        // twenty-minute slots. Ten minutes is the whole remaining gap.
+        expect(routineWeeklyHours() - FULL_WEEK_TARGET_HOURS).toBeCloseTo(0.13, 2);
     });
 
     it('OPEN: the total still moves with the deep work day', () => {
@@ -44,10 +44,10 @@ describe('routineWeeklyHours', () => {
         // costs the week nothing. Every other day gives up a full shift-day
         // shape that Friday already runs and so cannot absorb.
         for (const day of ['Thu', 'Sat', 'Sun'] as Weekday[]) {
-            expect(routineWeeklyHours(day)).toBeCloseTo(27.13, 2);
+            expect(routineWeeklyHours(day)).toBeCloseTo(34.13, 2);
         }
         for (const day of ['Mon', 'Tue', 'Wed', 'Fri'] as Weekday[]) {
-            expect(routineWeeklyHours(day)).toBeCloseTo(24.80, 2);
+            expect(routineWeeklyHours(day)).toBeCloseTo(31.80, 2);
         }
     });
 
@@ -55,16 +55,24 @@ describe('routineWeeklyHours', () => {
         for (const day of ['Mon', 'Tue', 'Wed', 'Fri'] as Weekday[]) {
             expect(hoursOnDay(day)).toBeCloseTo(2.91, 2);
         }
-        expect(hoursOnDay('Thu')).toBeCloseTo(7.33, 2);  // the day off, carrying the build
-        expect(hoursOnDay('Sat')).toBeCloseTo(4.58, 2);  // the weekend shift ends at 14:00
-        expect(hoursOnDay('Sun')).toBeCloseTo(3.58, 2);
+        // The two days off carry the week; the shift days are deliberately short.
+        expect(hoursOnDay('Thu')).toBeCloseTo(9.33, 2);  // build, then the ML course
+        expect(hoursOnDay('Sat')).toBeCloseTo(9.58, 2);  // ML, messy data, project, papers
+        expect(hoursOnDay('Sun')).toBeCloseTo(3.58, 2);  // still a 10:00-14:00 shift
     });
 });
 
 describe('getRoutineForDay', () => {
-    it('gives Thursday the build and the three habits, because Thursday is off', () => {
-        expect(kindsOn('Thu')).toEqual(['build', 'review', 'read', 'dsa', 'job']);
-        expect(getRoutineForDay('Thursday')).toHaveLength(5);
+    it('gives Thursday the build, the ML course and the habits, because it is off', () => {
+        expect(kindsOn('Thu')).toEqual(['build', 'review', 'mlcourse', 'read', 'dsa', 'job']);
+        expect(getRoutineForDay('Thursday')).toHaveLength(6);
+    });
+
+    it('gives Saturday the long applied block, now that it is a day off too', () => {
+        expect(kindsOn('Sat')).toEqual(
+            ['mlcourse', 'applied', 'aieng', 'papers', 'read', 'dsa', 'job']
+        );
+        expect(getRoutineForDay('Saturday')[0].start).toBe('09:00');
     });
 
     it('runs Friday as an ordinary shift day', () => {
@@ -90,9 +98,11 @@ describe('getRoutineForDay', () => {
         expect(getRoutineForDay('Sunday')[0].start).toBe('16:30');
     });
 
-    it('leaves Thursday its habits when the build is elsewhere', () => {
-        expect(kindsOn('Thu', 'Fri')).toEqual(['read', 'dsa', 'job']);
-        expect(getRoutineForDay('Thursday', 'Fri')[0].kind).toBe('read');
+    it('keeps the ML course on Thursday even when the build is elsewhere', () => {
+        // It is on a day off because it needs a long block; pushing it onto a
+        // shift day would put two hours of course work after an eight-hour day.
+        expect(kindsOn('Thu', 'Fri')).toEqual(['mlcourse', 'read', 'dsa', 'job']);
+        expect(getRoutineForDay('Thursday', 'Fri')[0].kind).toBe('mlcourse');
     });
 
     it('starts the shift days on theory, at 05:30', () => {
@@ -193,7 +203,7 @@ describe('the deep work day', () => {
     it('defaults to Thursday, the day the rota gives off', () => {
         expect(DEFAULT_DEEP_WORK_DAY).toBe('Thu');
         expect(kindsOn('Thu')).toContain('build');
-        expect(routineWeeklyHours()).toBeCloseTo(27.13, 2);
+        expect(routineWeeklyHours()).toBeCloseTo(34.13, 2);
     });
 
     it('moves the build when a different day is set', () => {
