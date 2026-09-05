@@ -106,6 +106,19 @@ export const resolveSlotFocus = (
                 text: week.reading
                     || 'Twenty minutes of the reading ladder. Every day, never doubled.',
             };
+        case 'mlcourse':
+            return {
+                text: 'Machine Learning Specialization (Andrew Ng). The long blocks '
+                    + 'on your two days off are where this lives - it is the applied '
+                    + 'and classical layer interviews actually test.',
+                resource: resourceOfKind(week.week, 'mlcourse'),
+            };
+        case 'applied':
+            return {
+                text: 'Messy data, not clean textbook data. Kaggle, feature engineering, '
+                    + 'and the production layer: monitoring, drift, versioning.',
+                resource: resourceOfKind(week.week, 'applied'),
+            };
         case 'papers':
             return {
                 text: 'Read papers. Write the main idea in your own words or it did not happen.',
