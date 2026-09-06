@@ -338,6 +338,24 @@ export const TaskProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 coreStoryId: t.coreStoryId,
             }));
 
+            // Deduplicate tasks: same title + category (trimmed, case-insensitive)
+            // means a duplicate document in Firestore. Keep the oldest, delete the rest.
+            const seenTaskKeys = new Set<string>();
+            const duplicateTaskIds: string[] = [];
+            for (const t of mappedTasks) {
+                const key = `${(t.title || '').trim().toLowerCase()}::${(t.category || '').trim().toLowerCase()}`;
+                if (!key || key === '::') continue;
+                if (seenTaskKeys.has(key)) duplicateTaskIds.push(t.id);
+                else seenTaskKeys.add(key);
+            }
+            if (duplicateTaskIds.length > 0) {
+                // Delete duplicates from Firestore in the background
+                Promise.all(duplicateTaskIds.map((id) => deleteTaskFromFirestore(id))).catch(err =>
+                    console.error('❌ Failed to delete duplicate tasks:', err)
+                );
+            }
+            const prunedTasks = mappedTasks.filter((t) => !duplicateTaskIds.includes(t.id));
+
             // Seed default tasks if Firestore is empty and we haven't seeded yet
             if (firestoreTasks.length === 0 && !hasSeededTasks.current) {
                 hasSeededTasks.current = true;
@@ -362,7 +380,7 @@ export const TaskProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     hasSeededTasks.current = false; // Allow retry on error
                 }
             } else {
-                setTasks(mappedTasks);
+                setTasks(prunedTasks);
             }
 
             tasksLoaded = true;
@@ -393,11 +411,11 @@ export const TaskProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 else seenTitleKeys.add(key);
             }
             if (duplicateHabitIds.length > 0) {
-                try {
-                    await Promise.all(duplicateHabitIds.map((id) => deleteHabitFromFirestore(id)));
-                } catch (err) {
-                    console.error('❌ Failed to delete duplicate habits:', err);
-                }
+                // Fire-and-forget: delete extras from Firestore in the background.
+                // State is set from the pruned list below so duplicates vanish immediately.
+                Promise.all(duplicateHabitIds.map((id) => deleteHabitFromFirestore(id))).catch(err =>
+                    console.error('❌ Failed to delete duplicate habits:', err)
+                );
             }
 
             const prunedHabits = firestoreHabits.filter((h) => !duplicateHabitIds.includes(h.id!));
