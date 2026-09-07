@@ -24,6 +24,7 @@ import {
     PHASE_COLORS,
     PLAN_WEEKS,
     PLAN_START_DATE,
+    PLAN_END_DATE,
     type Weekday,
     type RoutineSlot,
 } from '../../data/studyPlan';
@@ -38,8 +39,12 @@ const addDays = (dateISO: string, days: number): string => {
     return date.toISOString().slice(0, 10);
 };
 
-/** A week back is as far as looking back is useful. Forward is never allowed. */
-const MIN_DAY_OFFSET = -6;
+/** Whole days from a to b, read at UTC so nothing drifts. */
+const daysBetween = (a: string, b: string): number =>
+    Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86_400_000);
+
+/** A week either way is as far as this is useful. */
+const DAY_WINDOW = 6;
 
 const problemCount = (topicId: string): number => {
     for (const phase of dsaCurriculum) {
@@ -263,8 +268,14 @@ const TodayPage = () => {
 
     // 0 is today, -1 yesterday, down to a week back. Never forward: there is
     // nothing to see there, and planning ahead is This Week's job.
+    // A week either way, but never outside the plan itself. On day one there is
+    // nothing behind you, so the back arrow is simply off rather than showing a
+    // date the plan does not cover.
+    const minOffset = Math.max(-DAY_WINDOW, daysBetween(today, PLAN_START_DATE));
+    const maxOffset = Math.min(DAY_WINDOW, daysBetween(today, PLAN_END_DATE));
+
     const shownDate = addDays(today, dayOffset);
-    const looking = dayOffset < 0;
+    const looking = dayOffset !== 0;
 
     const weekday = weekdayOf(shownDate);
     // A day far enough back can sit in the previous plan week, so the week,
@@ -328,16 +339,16 @@ const TodayPage = () => {
                             <IconButton
                                 size="small"
                                 aria-label="Previous day"
-                                disabled={dayOffset <= MIN_DAY_OFFSET}
-                                onClick={() => setDayOffset(offset => Math.max(MIN_DAY_OFFSET, offset - 1))}
+                                disabled={dayOffset <= minOffset}
+                                onClick={() => setDayOffset(offset => Math.max(minOffset, offset - 1))}
                             >
                                 <ChevronLeftRoundedIcon fontSize="small" />
                             </IconButton>
                             <IconButton
                                 size="small"
                                 aria-label="Next day"
-                                disabled={dayOffset >= 0}
-                                onClick={() => setDayOffset(offset => Math.min(0, offset + 1))}
+                                disabled={dayOffset >= maxOffset}
+                                onClick={() => setDayOffset(offset => Math.min(maxOffset, offset + 1))}
                             >
                                 <ChevronRightRoundedIcon fontSize="small" />
                             </IconButton>
@@ -371,12 +382,16 @@ const TodayPage = () => {
                 )}
             </Box>
 
-            {/* Looking back is for information. It is not a to-do list you
-                failed, which is why this is an info note and not a warning. */}
+            {/* Neither direction is a to-do list, which is why both are info
+                notes rather than warnings. A missed day is not an error state
+                and a day that has not happened cannot be one either. */}
             {looking && (
                 <Alert severity="info" variant="outlined" sx={{ mb: 2.5, borderRadius: 3 }}>
-                    Looking back at {WEEKDAY_NAMES[weekday]}. This is for information only — if you
-                    missed it, let it go. The rule is: miss a day, skip it. Never double up.
+                    {dayOffset < 0
+                        ? `Looking back at ${WEEKDAY_NAMES[weekday]}. This is for information only — if you
+                           missed it, let it go. The rule is: miss a day, skip it. Never double up.`
+                        : `Looking ahead to ${WEEKDAY_NAMES[weekday]}. Nothing to do yet — this is just
+                           what is coming, so you can see it before it arrives.`}
                 </Alert>
             )}
 
