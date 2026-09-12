@@ -9,7 +9,6 @@ import {
     getRoutineForWeek,
     routineWeeklyHours,
     hoursOnDay,
-    latestEndTime,
     isLightDay,
     DEFAULT_DEEP_WORK_DAY,
 } from '../../utils/studySchedule';
