@@ -9,8 +9,8 @@
 //   A — research depth (mornings + Sunday): maths, theory, papers, reproduction
 //   B — engineering + DSA (evenings + weekends): LLM systems, RAG, evals, LeetCode
 
-export const PLAN_START_DATE = '2026-09-07'; // Monday of week 1
-export const PLAN_END_DATE = '2027-09-05';   // Sunday of week 52
+export const PLAN_START_DATE = '2026-09-14'; // Monday of week 1
+export const PLAN_END_DATE = '2027-09-12';   // Sunday of week 52
 export const PLAN_WEEKS = 52;
 
 /** Hours a normal week asks for. The routine below adds up to exactly this. */
@@ -21,7 +21,7 @@ export const LIGHT_WEEK_TARGET_HOURS = 12;
 // ============ START HERE — the strategy before the schedule ============
 
 export const workPattern =
-    'Shifts 10:00-18:00 Mon, Tue, Wed, Fri. 10:00-14:00 Sunday. ' +
+    'Full shifts Mon, Tue, Wed, Fri. Half shift Sunday. ' +
     'Thursday and Saturday off, both fixed. Those two days carry about ' +
     'eight hours of learning each and are where the long blocks live; the ' +
     'four shift days are deliberately short - two hours before work and ' +
@@ -292,9 +292,9 @@ export const LIGHT_DAY_NOTE =
     'Re-read the week\'s notes and redo the problems you got wrong. Never new material.';
 
 export const routineRules: string[] = [
-    'Mornings are for the stage. 05:30-07:30, before anything can take them. '
-        + 'Finishing at 07:30 leaves real room before a 10:00 shift.',
-    'Thursday 09:00-15:00 is the artifact. Six hours. Then you STOP.',
+    'Mornings are for the stage. Before anything can take them. '
+        + 'Finish before the shift starts with real room to spare.',
+    'The day off is for the artifact. Six hours of deep work. Then you STOP.',
     'Thursday and Saturday are the two days off and they carry the week. Roughly '
         + 'eight hours of learning on each. The four shift days are deliberately '
         + 'short - two hours before work, then the habits. Do not try to make a '
@@ -302,13 +302,12 @@ export const routineRules: string[] = [
     'The applied ML course lives on the days off, never after a shift. Andrew Ng '
         + 'on Thursday afternoon and Saturday morning, messy data on Saturday '
         + 'after lunch. It is the layer interviews test and the plan was thin on it.',
-    'Sunday afternoon is a real block - the shift ends at 14:00.',
+    'Sunday afternoon is a real block - the shift ends early.',
     'Twenty minutes of reading every single day. Never skipped, never doubled.',
-    'Nothing ends after 21:00. A 05:30 start means a 05:00 wake. If you sleep at '
-        + '22:30 that is six and a half hours - thin. Evenings now end at 20:25 to '
-        + 'make 22:30 reachable. Protect the sleep before you protect the hours.',
-    'Three reading tracks, not one. 19:30 is the reading ladder - papers and blogs, '
-        + 'the PhD track. 20:05 is a book - AI Engineering on Mon and Wed, DDIA on '
+    'Nothing ends late. An early start means an early wake. '
+        + 'Protect the sleep before you protect the hours.',
+    'Three reading tracks, not one. The evening reading ladder is papers and blogs, '
+        + 'the PhD track. Then a book - AI Engineering on Mon and Wed, DDIA on '
         + 'Tue and Fri. They are different things and only one of them is research.',
     'Miss a day? SKIP it. Never double up. Doubling up is how plans die.',
     'Never skip BUILD. If you cannot implement it, you do not know it.',

@@ -118,10 +118,9 @@ const SlotCard = ({
                     sx={{
                         fontWeight: 800,
                         color: isNow ? 'primary.main' : 'text.primary',
-                        fontVariantNumeric: 'tabular-nums',
                     }}
                 >
-                    {slot.start}–{slot.end}
+                    {slot.what}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                     {durationLabel(slot.hours)}

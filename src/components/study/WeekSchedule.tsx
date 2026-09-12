@@ -140,9 +140,9 @@ const WeekSchedule = ({
                                 {slots.map(slotItem => (
                                     <Chip
                                         key={`${day}-${slotItem.kind}-${slotItem.start}`}
-                                        label={`${slotItem.start} ${slotItem.track.replace(/^[AB +]+- /, '')}`}
+                                        label={slotItem.track.replace(/^[AB +]+- /, '')}
                                         size="small"
-                                        title={`${slotItem.start}-${slotItem.end} · ${slotItem.track} · ${slotItem.what}`}
+                                        title={`${slotItem.track} · ${slotItem.what}`}
                                         sx={{
                                             height: 24,
                                             fontSize: '0.66rem',
@@ -185,7 +185,7 @@ const WeekSchedule = ({
                 sx={{ pt: 1, px: 0.5 }}
             >
                 <Typography variant="body2" color="text.secondary">
-                    Deep work on {WEEKDAY_NAMES[deepWorkDay]}. Nothing runs past {latestEndTime(deepWorkDay)}.
+                    Deep work on {WEEKDAY_NAMES[deepWorkDay]}.
                 </Typography>
                 <Typography
                     variant="body2"
