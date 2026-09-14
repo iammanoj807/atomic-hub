@@ -241,8 +241,9 @@ function MainLayout() {
             )}
             <ReactPlayer
                 ref={audioRef}
-                src="https://youtu.be/j9nhecEWMuE"
+                url="https://youtu.be/j9nhecEWMuE"
                 playing={!isMuted}
+                loop
                 volume={1}
                 width="1px"
                 height="1px"
@@ -253,11 +254,6 @@ function MainLayout() {
                         if (audioRef.current && typeof audioRef.current.seekTo === 'function') {
                             audioRef.current.seekTo(0, 'seconds');
                         }
-                    }
-                }}
-                onEnded={() => {
-                    if (audioRef.current && typeof audioRef.current.seekTo === 'function') {
-                        audioRef.current.seekTo(0, 'seconds');
                     }
                 }}
                 config={{
