@@ -241,21 +241,23 @@ function MainLayout() {
             )}
             <ReactPlayer
                 ref={audioRef}
-                url="https://youtu.be/j9nhecEWMuE"
-                playing={!isMuted}
+                src="https://youtu.be/j9nhecEWMuE"
+                autoPlay={!isMuted}
                 loop
                 volume={1}
                 width="1px"
                 height="1px"
                 style={{ position: 'fixed', bottom: 0, left: 0, opacity: 0, pointerEvents: 'none', zIndex: -1 }}
-                onProgress={(state: any) => {
-                    // Loop music after 30 minutes (1800 seconds)
-                    if (state.playedSeconds >= 1800) {
-                        if (audioRef.current && typeof audioRef.current.seekTo === 'function') {
-                            audioRef.current.seekTo(0, 'seconds');
+                {...{
+                    onProgress: (state: any) => {
+                        // Loop music after 30 minutes (1800 seconds)
+                        if (state.playedSeconds >= 1800) {
+                            if (audioRef.current && typeof audioRef.current.seekTo === 'function') {
+                                audioRef.current.seekTo(0, 'seconds');
+                            }
                         }
-                    }
-                }}
+                    },
+                } as any}
                 config={{
                     youtube: {
                         start: 0,
