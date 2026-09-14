@@ -40,7 +40,7 @@ function MainLayout() {
     const { isAdmin, verifyAdmin, isMuted, setIsMuted } = useTaskContext();
     const [code, setCode] = useState('');
     const [error, setError] = useState(false);
-    const audioRef = useRef<HTMLVideoElement>(null);
+    const audioRef = useRef<any>(null);
 
 
 
@@ -247,15 +247,17 @@ function MainLayout() {
                 width="1px"
                 height="1px"
                 style={{ position: 'fixed', bottom: 0, left: 0, opacity: 0, pointerEvents: 'none', zIndex: -1 }}
-                onReady={() => {
-                    if (audioRef.current && audioRef.current.currentTime < 0) {
-                        audioRef.current.currentTime = 0;
+                onProgress={(state: any) => {
+                    // Loop music after 30 minutes (1800 seconds)
+                    if (state.playedSeconds >= 1800) {
+                        if (audioRef.current && typeof audioRef.current.seekTo === 'function') {
+                            audioRef.current.seekTo(0, 'seconds');
+                        }
                     }
                 }}
                 onEnded={() => {
-                    if (audioRef.current) {
-                        audioRef.current.currentTime = 0;
-                        audioRef.current.play().catch(() => {});
+                    if (audioRef.current && typeof audioRef.current.seekTo === 'function') {
+                        audioRef.current.seekTo(0, 'seconds');
                     }
                 }}
                 config={{
