@@ -48,40 +48,16 @@ full screen, large text, no interface — that's what you open on a bad day.
 There is no streak here, and no warning state. A missed day shows as nothing at all,
 because the app's job is to make coming back easy, not to punish a gap.
 
-### Study Plan
-Fifty-two weeks, 7 September 2026 to 5 September 2027, running two tracks at once: research
-depth in the mornings, engineering and DSA in the evenings. It started as a spreadsheet with
-eight tabs, which meant the plan lived somewhere I never had open. Now it lives here, as four
-pages instead of eight.
+### ML Foundations
+A self-paced roadmap through machine learning and AI engineering, from scratch: eight phases
+and 97 topics, taken in order. It is also the home page. There are no dates and no weeks. The
+next thing to do is simply the first topic that is not yet confident.
 
-**This Week** is the one I open daily. It says which week I'm in, what the milestone is, and
-what to learn — the exact video, the exact chapter, the exact thing to build, with links. The
-52-week strip fills in square by square as weeks get logged, so progress is
-something you see rather than calculate.
-
-**The days off move.** I work shifts, so the original plan's fixed Friday was fiction. The six
-ordinary days are fixed — 05:00 mornings, a NeetCode problem and half an hour of applications
-every single evening, Saturday's project and papers, Sunday light — and only the five-hour
-build travels. I set which day I'm off and it follows; whatever study that day had moves to
-Friday rather than being dropped, so the week comes to 29 hours whichever day the rota gives
-me. Nothing ends after 21:00, because a 05:00 start needs the evening back.
-
-Some weeks bring a second day off. I can set that too, and it's recorded on the week — but it
-deliberately changes nothing, because a free day is time I gain, not study I lose.
-
-**The Journey** is the whole six months in one place — every week grouped by phase and
-expandable, the nine projects, and the 150 DSA problems. **The Logbook** is what I've actually
-done: the Sunday hours entry and the papers, in one place because they're the same act. The
-spreadsheet's under-pace rule now trips at 19 hours for three weeks running, and the app
-watches for it and tells me. **The Library** is every source, either by
-subject when I want to master something or week by week when I just need today's two hours.
-
-Every resource carries its exact title and author as well as a link, because a title stays
-findable long after a URL has moved.
-
-The DSA pages are the one place the spreadsheet was wrong. It had a *Done* column to tick,
-while the NeetCode hub in this app has tracked those 150 problems for months. So the column is
-gone: the plan reads the hub's own data, and ticking a problem there is what moves it.
+Every topic has a plain-English note (the idea, an analogy, where the analogy breaks, an
+example), its own resources to watch, read and code with, and one practice exercise for each
+of four checks: **Explain**, **Derive**, **Build**, **Break**. A topic counts only when all four
+are ticked without notes, and ticks come off again when an old topic fails its re-test.
+Original papers are marked optional, to come back to once the foundations are solid.
 
 ### Also
 A global Pomodoro timer that keeps running as you move between pages, daily habits with

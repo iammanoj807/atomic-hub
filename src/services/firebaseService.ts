@@ -731,349 +731,60 @@ export const deleteEvidenceEntry = async (date: string) => {
     }
 };
 
-// ============ STUDY PLAN ============
+// ============ ML FOUNDATIONS ============
 //
-// The 52-week plan itself is static content (data/studyPlan.ts). What lives
-// here is only what changes: the weekly hours entry, the papers read, the
-// daily reading, the gate attempts, and how far each artifact has got.
+// The roadmap itself is static content (data/foundations.ts). Only the ticks
+// live here. The collection name is kept from the old study plan so existing
+// progress in study_progress/foundations stays where it is.
 
-const STUDY_WEEKS_COLLECTION = 'study_weeks';
-const STUDY_PAPERS_COLLECTION = 'study_papers';
 const STUDY_PROGRESS_COLLECTION = 'study_progress';
-const STUDY_PROJECTS_DOC = 'projects';
-
-export interface StudyWeekLog {
-    week: number;             // 1-52
-    actualHours: number | null;
-    dsaProblems: number | null;
-    finished: string;         // "What I finished"
-    learned: string;          // "One thing I understand now that I didn't last week"
-    /**
-     * Which day the deep work block sat on this week ('Mon'..'Sun'). Shift work
-     * moves it, so the routine is generated from whatever is stored here rather
-     * than assuming Friday. Absent means the default, not "no deep work".
-     */
-    deepWorkDay?: string;
-    /**
-     * The other day off, when the rota gives two ('Mon'..'Sun'). Recorded so
-     * the week reads true; it does not move any slots — see studySchedule.ts.
-     */
-    secondDayOff?: string;
-    /** Set when the week's stage was signed off, so Journey can grey it out. */
-    stageCompleted?: boolean;
-    /** Whether this week's gate was passed. Only weeks that carry a gate use it. */
-    gatePassed?: boolean;
-    updatedAt: Timestamp;
-}
-
-/** Zero-padded so document ids sort the same way the weeks run. */
-const studyWeekDocId = (week: number) => `week-${String(week).padStart(2, '0')}`;
-
-/** Keyed by week number — every screen looks weeks up by number, never by id. */
-export const subscribeToStudyWeeks = (
-    callback: (logs: Record<number, StudyWeekLog>) => void
-) => {
-    return onSnapshot(collection(db, STUDY_WEEKS_COLLECTION), (snapshot: QuerySnapshot<DocumentData>) => {
-        const logs: Record<number, StudyWeekLog> = {};
-        snapshot.docs.forEach(doc => {
-            const data = doc.data() as StudyWeekLog;
-            if (typeof data.week === 'number') logs[data.week] = data;
-        });
-        callback(logs);
-    }, (error) => {
-        console.error('❌ Study weeks subscription error:', error.code, error.message);
-    });
-};
-
-export const saveStudyWeekLog = async (
-    week: number,
-    updates: Partial<Omit<StudyWeekLog, 'week' | 'updatedAt'>>
-) => {
-    try {
-        const docRef = doc(db, STUDY_WEEKS_COLLECTION, studyWeekDocId(week));
-        await setDoc(docRef, {
-            week,
-            ...updates,
-            updatedAt: Timestamp.now(),
-        }, { merge: true });
-    } catch (error) {
-        console.error('❌ Failed to save study week:', error);
-        throw error;
-    }
-};
 
 /**
- * The second day off is set and unset week to week, so clearing it has to
- * remove the field rather than write undefined — Firestore rejects undefined,
- * and a stored "none" would be indistinguishable from a real answer.
+ * ML Foundations — which of the four checks each topic has passed, and which
+ * mini-builds are done. One document holds all of it: about 100 topics × 4
+ * booleans is small, and merge writes keep two open tabs from overwriting each other.
  */
-export const saveStudyWeekSecondDayOff = async (week: number, day: string | null) => {
-    try {
-        const docRef = doc(db, STUDY_WEEKS_COLLECTION, studyWeekDocId(week));
-        await setDoc(docRef, {
-            week,
-            secondDayOff: day ?? deleteField(),
-            updatedAt: Timestamp.now(),
-        }, { merge: true });
-    } catch (error) {
-        console.error('❌ Failed to save second day off:', error);
-        throw error;
-    }
-};
+const FOUNDATIONS_DOC = 'foundations';
 
-export interface StudyPaper {
-    id: string;          // also the document id
-    date: string;        // YYYY-MM-DD
-    title: string;
-    venue: string;       // "NeurIPS 2017"
-    pass: 1 | 2 | 3;     // the three-pass method
-    mainIdea: string;    // in my own words — the point of the whole log
-    weakness: string;    // weakness + the next experiment I would run
-    createdAt: string;   // ISO, set once
+export type FoundationCheckKey = 'explain' | 'derive' | 'build' | 'break';
+
+export interface FoundationsProgress {
+    checks: Record<string, Partial<Record<FoundationCheckKey, boolean>>>;
+    builds: Record<string, boolean>;
 }
 
-export const subscribeToStudyPapers = (
-    callback: (papers: StudyPaper[]) => void
+export const subscribeToFoundations = (
+    callback: (progress: FoundationsProgress) => void
 ) => {
-    return onSnapshot(collection(db, STUDY_PAPERS_COLLECTION), (snapshot: QuerySnapshot<DocumentData>) => {
-        const papers = snapshot.docs.map(doc => ({
-            ...(doc.data() as StudyPaper),
-            id: doc.id,
-        }));
-
-        // Newest read first.
-        papers.sort((a, b) => b.date.localeCompare(a.date));
-
-        callback(papers);
+    return onSnapshot(doc(db, STUDY_PROGRESS_COLLECTION, FOUNDATIONS_DOC), (docSnap) => {
+        const data = docSnap.exists() ? docSnap.data() : {};
+        callback({ checks: data.checks ?? {}, builds: data.builds ?? {} });
     }, (error) => {
-        console.error('❌ Study papers subscription error:', error.code, error.message);
+        console.error('❌ Foundations subscription error:', error.code, error.message);
     });
 };
 
-export const saveStudyPaper = async (paper: StudyPaper) => {
-    try {
-        const docRef = doc(db, STUDY_PAPERS_COLLECTION, paper.id);
-        await setDoc(docRef, paper, { merge: true });
-    } catch (error) {
-        console.error('❌ Failed to save paper:', error);
-        throw error;
-    }
-};
-
-export const deleteStudyPaper = async (id: string) => {
-    try {
-        await deleteDoc(doc(db, STUDY_PAPERS_COLLECTION, id));
-    } catch (error) {
-        console.error('❌ Failed to delete paper:', error);
-        throw error;
-    }
-};
-
-/** Which of the nine portfolio projects are done. One tiny document. */
-export const subscribeToStudyProjects = (
-    callback: (completedIds: string[]) => void
-) => {
-    return onSnapshot(doc(db, STUDY_PROGRESS_COLLECTION, STUDY_PROJECTS_DOC), (docSnap) => {
-        callback(docSnap.exists() ? (docSnap.data().completedIds ?? []) : []);
-    }, (error) => {
-        console.error('❌ Study projects subscription error:', error.code, error.message);
-    });
-};
-
-export const saveStudyProjects = async (completedIds: string[]) => {
-    try {
-        const docRef = doc(db, STUDY_PROGRESS_COLLECTION, STUDY_PROJECTS_DOC);
-        await setDoc(docRef, { completedIds, updatedAt: Timestamp.now() }, { merge: true });
-    } catch (error) {
-        console.error('❌ Failed to save study projects:', error);
-        throw error;
-    }
-};
-
-// ============ DAILY READING ============
-//
-// One item a day, twenty minutes, never doubled. The entry that matters is
-// whatWouldIDoNext — asked three hundred times over a year, that is where
-// research taste comes from, so it is stored even when the notes are empty.
-
-const DAILY_READING_COLLECTION = 'dailyReading';
-
-export interface ReadingEntry {
-    id: string;              // also the document id — one entry per date
-    date: string;            // YYYY-MM-DD
-    weekNumber: number;
-    item: string;            // the ladder item this entry was against
-    level: string;           // 'blogs' | 'classics' | 'modern' | 'frontier' | 'subfield'
-    notes: string;
-    whatWouldIDoNext: string;
-    minutes: number;
-}
-
-export const subscribeToReading = (
-    callback: (entries: ReadingEntry[]) => void
-) => {
-    return onSnapshot(collection(db, DAILY_READING_COLLECTION), (snapshot: QuerySnapshot<DocumentData>) => {
-        const entries = snapshot.docs.map(doc => ({
-            ...(doc.data() as ReadingEntry),
-            id: doc.id,
-        }));
-
-        // Newest read first, the way the page shows them.
-        entries.sort((a, b) => b.date.localeCompare(a.date));
-
-        callback(entries);
-    }, (error) => {
-        console.error('❌ Reading subscription error:', error.code, error.message);
-    });
-};
-
-/** One entry per date, so logging the same day twice edits rather than duplicates. */
-export const logReading = async (entry: Omit<ReadingEntry, 'id'>) => {
-    try {
-        const docRef = doc(db, DAILY_READING_COLLECTION, entry.date);
-        await setDoc(docRef, { ...entry, updatedAt: Timestamp.now() }, { merge: true });
-    } catch (error) {
-        console.error('❌ Failed to log reading:', error);
-        throw error;
-    }
-};
-
-export const deleteReading = async (date: string) => {
-    try {
-        await deleteDoc(doc(db, DAILY_READING_COLLECTION, date));
-    } catch (error) {
-        console.error('❌ Failed to delete reading:', error);
-        throw error;
-    }
-};
-
-// ============ GATE ATTEMPTS ============
-//
-// A stage is complete only when its gate has a passed attempt. Failures are
-// kept rather than overwritten: repeating a stage is the designed outcome of
-// failing a gate, and the record of that is the point.
-
-const GATE_ATTEMPTS_COLLECTION = 'gateAttempts';
-
-export interface GateAttempt {
-    id: string;              // also the document id
-    stage: number;
-    date: string;            // YYYY-MM-DD
-    passed: boolean;
-    notes: string;
-}
-
-export const subscribeToGateAttempts = (
-    callback: (attempts: GateAttempt[]) => void
-) => {
-    return onSnapshot(collection(db, GATE_ATTEMPTS_COLLECTION), (snapshot: QuerySnapshot<DocumentData>) => {
-        const attempts = snapshot.docs.map(doc => ({
-            ...(doc.data() as GateAttempt),
-            id: doc.id,
-        }));
-
-        attempts.sort((a, b) => a.date.localeCompare(b.date));
-
-        callback(attempts);
-    }, (error) => {
-        console.error('❌ Gate attempts subscription error:', error.code, error.message);
-    });
-};
-
-/** Every attempt is its own document — a failed gate is history, not a mistake. */
-export const logGateAttempt = async (attempt: Omit<GateAttempt, 'id'>) => {
-    try {
-        const id = `stage-${String(attempt.stage).padStart(2, '0')}-${attempt.date}`;
-        await setDoc(doc(db, GATE_ATTEMPTS_COLLECTION, id), {
-            ...attempt,
-            updatedAt: Timestamp.now(),
-        }, { merge: true });
-    } catch (error) {
-        console.error('❌ Failed to log gate attempt:', error);
-        throw error;
-    }
-};
-
-// ============ ARTIFACT PROGRESS ============
-//
-// BUILD is a quarter of the work. An artifact is done only when all four
-// booleans are true, which is the whole reason the other three are stored.
-
-const ARTIFACT_PROGRESS_COLLECTION = 'artifactProgress';
-
-export interface ArtifactProgressDoc {
-    id: string;              // also the document id — the project id
-    projectId: string;
-    build: boolean;
-    write: boolean;
-    publish: boolean;
-    post: boolean;
-    repoUrl?: string;
-    postUrl?: string;
-    completedAt?: string;    // ISO date, set when the fourth step lands
-}
-
-export const subscribeToArtifactProgress = (
-    callback: (progress: Record<string, ArtifactProgressDoc>) => void
-) => {
-    return onSnapshot(collection(db, ARTIFACT_PROGRESS_COLLECTION), (snapshot: QuerySnapshot<DocumentData>) => {
-        const progress: Record<string, ArtifactProgressDoc> = {};
-        snapshot.docs.forEach(doc => {
-            const data = { ...(doc.data() as ArtifactProgressDoc), id: doc.id };
-            if (data.projectId) progress[data.projectId] = data;
-        });
-        callback(progress);
-    }, (error) => {
-        console.error('❌ Artifact progress subscription error:', error.code, error.message);
-    });
-};
-
-/**
- * Ticking the last of the four stamps completedAt; unticking any of them
- * clears it, because a partly finished artifact has no completion date and a
- * stale one would quietly overstate the year.
- */
-export const updateArtifactStage = async (
-    projectId: string,
-    stage: 'build' | 'write' | 'publish' | 'post',
-    done: boolean,
-    current?: ArtifactProgressDoc
+export const saveFoundationCheck = async (
+    topicId: string,
+    check: FoundationCheckKey,
+    done: boolean
 ) => {
     try {
-        const next = {
-            build: current?.build ?? false,
-            write: current?.write ?? false,
-            publish: current?.publish ?? false,
-            post: current?.post ?? false,
-            [stage]: done,
-        };
-        const allDone = next.build && next.write && next.publish && next.post;
-        await setDoc(doc(db, ARTIFACT_PROGRESS_COLLECTION, projectId), {
-            projectId,
-            ...next,
-            completedAt: allDone ? (current?.completedAt ?? new Date().toISOString().slice(0, 10)) : deleteField(),
-            updatedAt: Timestamp.now(),
-        }, { merge: true });
+        const docRef = doc(db, STUDY_PROGRESS_COLLECTION, FOUNDATIONS_DOC);
+        // A nested object with merge touches only this one flag.
+        await setDoc(docRef, { checks: { [topicId]: { [check]: done } }, updatedAt: Timestamp.now() }, { merge: true });
     } catch (error) {
-        console.error('❌ Failed to update artifact stage:', error);
+        console.error('❌ Failed to save foundation check:', error);
         throw error;
     }
 };
 
-/** The repo and post links, saved separately from the four ticks. */
-export const saveArtifactLinks = async (
-    projectId: string,
-    links: { repoUrl?: string; postUrl?: string }
-) => {
+export const saveFoundationBuild = async (buildId: string, done: boolean) => {
     try {
-        await setDoc(doc(db, ARTIFACT_PROGRESS_COLLECTION, projectId), {
-            projectId,
-            repoUrl: links.repoUrl || deleteField(),
-            postUrl: links.postUrl || deleteField(),
-            updatedAt: Timestamp.now(),
-        }, { merge: true });
+        const docRef = doc(db, STUDY_PROGRESS_COLLECTION, FOUNDATIONS_DOC);
+        await setDoc(docRef, { builds: { [buildId]: done }, updatedAt: Timestamp.now() }, { merge: true });
     } catch (error) {
-        console.error('❌ Failed to save artifact links:', error);
+        console.error('❌ Failed to save foundation build:', error);
         throw error;
     }
 };

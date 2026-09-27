@@ -26,24 +26,17 @@ import type {
     EvidenceEntry,
     EvidenceTag,
     PracticeRecord,
-    StudyWeekLog,
-    StudyPaper,
-    ReadingEntry,
-    GateAttempt,
-    ArtifactProgressDoc,
 } from '../services/firebaseService';
 import { usePomodoro, type PomodoroState } from '../hooks/usePomodoro';
 // Re-exported so existing imports of PomodoroState from this file keep working.
 export type { PomodoroState };
 import { useEvidenceLog } from '../hooks/useEvidenceLog';
 import { usePractice } from '../hooks/usePractice';
-import { useStudyPlan } from '../hooks/useStudyPlan';
 import { deleteField } from 'firebase/firestore';
 import { subDays } from 'date-fns';
 import { defaultTasks } from '../data/defaultTasks';
 import { MISSION_HABITS, parseRoleTags } from '../data/missionTypes';
 import type { Role } from '../data/missionTypes';
-import type { Weekday } from '../data/studyPlan';
 import { getLondonDateString } from '../utils/date';
 import { calculateStreak } from '../utils/streak';
 
@@ -132,28 +125,6 @@ interface TaskContextType {
     practiceRecords: Record<string, PracticeRecord>;
     recordPractice: (questionId: string, confidence: 1 | 2 | 3) => Promise<void>;
 
-    // Study Plan — the 52 weeks
-    studyWeekLogs: Record<number, StudyWeekLog>;
-    currentWeekNumber: number | null;
-    saveWeekLog: (week: number, updates: Partial<Omit<StudyWeekLog, 'week' | 'updatedAt'>>) => Promise<void>;
-    saveDeepWorkDay: (week: number, deepWorkDay: Weekday) => Promise<void>;
-    getDeepWorkDay: (week: number) => Weekday;
-    saveSecondDayOff: (week: number, secondDayOff: Weekday | null) => Promise<void>;
-    getSecondDayOff: (week: number) => Weekday | null;
-    studyPapers: StudyPaper[];
-    savePaper: (paper: Omit<StudyPaper, 'id' | 'createdAt'> & { id?: string }) => Promise<void>;
-    deletePaper: (id: string) => Promise<void>;
-    completedProjectIds: string[];
-    toggleProject: (projectId: string) => Promise<void>;
-    readingEntries: ReadingEntry[];
-    saveReading: (entry: Omit<ReadingEntry, 'id'>) => Promise<void>;
-    removeReading: (date: string) => Promise<void>;
-    gateAttempts: GateAttempt[];
-    saveGateAttempt: (attempt: Omit<GateAttempt, 'id'>) => Promise<void>;
-    artifactProgress: Record<string, ArtifactProgressDoc>;
-    toggleArtifactStage: (projectId: string, stage: 'build' | 'write' | 'publish' | 'post') => Promise<void>;
-    saveArtifactUrls: (projectId: string, links: { repoUrl?: string; postUrl?: string }) => Promise<void>;
-
     isMuted: boolean;
     setIsMuted: (muted: boolean) => void;
 
@@ -220,29 +191,6 @@ export const TaskProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         practiceRecords,
         recordPractice,
     } = usePractice();
-    const {
-        studyWeekLogs,
-        currentWeekNumber,
-        saveWeekLog,
-        saveDeepWorkDay,
-        getDeepWorkDay,
-        saveSecondDayOff,
-        getSecondDayOff,
-        studyPapers,
-        savePaper,
-        deletePaper,
-        completedProjectIds,
-        toggleProject,
-        readingEntries,
-        saveReading,
-        removeReading,
-        gateAttempts,
-        saveGateAttempt,
-        artifactProgress,
-        toggleArtifactStage,
-        saveArtifactUrls,
-    } = useStudyPlan();
-
     // History State
     const [selectedDate, setSelectedDate] = useState(() => getLondonDateString());
     const [currentDailyLog, setCurrentDailyLog] = useState<DailyLogData | null>(null);
@@ -765,26 +713,6 @@ export const TaskProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 deleteEvidence,
                 practiceRecords,
                 recordPractice,
-                studyWeekLogs,
-                currentWeekNumber,
-                saveWeekLog,
-                saveDeepWorkDay,
-                getDeepWorkDay,
-                saveSecondDayOff,
-                getSecondDayOff,
-                studyPapers,
-                savePaper,
-                deletePaper,
-                completedProjectIds,
-                toggleProject,
-                readingEntries,
-                saveReading,
-                removeReading,
-                gateAttempts,
-                saveGateAttempt,
-                artifactProgress,
-                toggleArtifactStage,
-                saveArtifactUrls,
                 isMuted,
                 setIsMuted,
                 pomodoroState,

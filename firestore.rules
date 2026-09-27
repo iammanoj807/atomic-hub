@@ -70,65 +70,11 @@ service cloud.firestore {
                        && request.resource.data.text.size() <= 500);
     }
 
-    // Study plan — the 26 weeks. The plan itself ships in the bundle; only
-    // what changes week to week is stored.
-    // The deep work day moves with the rota, so it is stored per week here.
-    // It is checked against the seven day codes rather than "is string", so a
-    // typo fails at the door instead of quietly producing a week with no
-    // deep work block in it.
-    match /study_weeks/{weekId} {
-      allow read: if true;
-      allow write: if request.resource == null
-                   || (request.resource.data.week is int
-                       && (!('deepWorkDay' in request.resource.data.keys())
-                           || request.resource.data.deepWorkDay
-                              in ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'])
-                       && (!('secondDayOff' in request.resource.data.keys())
-                           || request.resource.data.secondDayOff
-                              in ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']));
-    }
-
-    match /study_papers/{paperId} {
-      allow read: if true;
-      allow write: if request.resource == null
-                   || (request.resource.data.title is string
-                       && request.resource.data.pass in [1, 2, 3]);
-    }
-
+    // ML Foundations — which of the four checks each topic has passed. The
+    // roadmap itself ships in the bundle; only the ticks are stored, in
+    // study_progress/foundations.
     match /study_progress/{docId} {
       allow read, write: if true;
-    }
-
-    // One reading entry per date. The ladder item and the level are free text
-    // because both come from data/studyPlan.ts, which the rules cannot see.
-    match /dailyReading/{date} {
-      allow read: if true;
-      allow write: if request.resource == null
-                   || (request.resource.data.weekNumber is int
-                       && request.resource.data.weekNumber >= 1
-                       && request.resource.data.weekNumber <= 52
-                       && request.resource.data.minutes is int);
-    }
-
-    // Every sitting of a gate, pass or fail. Failures are kept on purpose.
-    match /gateAttempts/{attemptId} {
-      allow read: if true;
-      allow write: if request.resource == null
-                   || (request.resource.data.stage is int
-                       && request.resource.data.stage >= 0
-                       && request.resource.data.stage <= 16
-                       && request.resource.data.passed is bool);
-    }
-
-    // The four steps of an artifact. All four must be true for it to be done.
-    match /artifactProgress/{projectId} {
-      allow read: if true;
-      allow write: if request.resource == null
-                   || (request.resource.data.projectId is string
-                       && (!('build' in request.resource.data.keys())
-                           || request.resource.data.build is bool)
-                       && (!('post' in request.resource.data.keys())
-                           || request.resource.data.post is bool));
     }
 
     // Practice tracking

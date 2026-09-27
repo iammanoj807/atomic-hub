@@ -11,30 +11,12 @@ import InterviewDashboard from './components/InterviewDashboard';
 import CategoryPage from './components/CategoryPage';
 import DSAHubPage from './components/DSAHubPage';
 import DSATopicDetailPage from './components/DSATopicDetailPage';
+import FoundationsPage from './components/FoundationsPage';
 import EvidenceLogPage from './components/EvidenceLogPage';
 import CoreStoriesPage from './components/CoreStoriesPage';
-import TodayPage from './components/study/TodayPage';
-import ThisWeekPage from './components/study/ThisWeekPage';
-import JourneyPage from './components/study/JourneyPage';
-import LogbookPage from './components/study/LogbookPage';
-import LibraryPage from './components/study/LibraryPage';
-import ReadingPage from './components/study/ReadingPage';
-import ArtifactsPage from './components/study/ArtifactsPage';
 import IdentityBanner from './components/IdentityBanner';
 import GlobalTimer from './components/GlobalTimer';
 import ReactPlayer from 'react-player';
-import { getPlanPhase } from './utils/studyPlan';
-import { getLondonDateString } from './utils/date';
-
-/**
- * While the plan is running the app opens on Today, because that is the
- * question being asked at 05:30. Outside those 52 weeks there is no today to
- * show, so the dashboard remains home.
- */
-function HomeRedirect() {
-    const running = getPlanPhase(getLondonDateString()) === 'during';
-    return <Navigate to={running ? '/study/today' : '/dashboard'} replace />;
-}
 
 function MainLayout() {
     const { isAdmin, verifyAdmin, isMuted, setIsMuted } = useTaskContext();
@@ -208,26 +190,21 @@ function MainLayout() {
                 <Router>
                     <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default', width: '100%' }}>
                         <Sidebar />
-                        <Box component="main" sx={{ flexGrow: 1, pt: 4, pb: 3, px: { xs: '5%', md: '8%' } }}>
+                        <Box component="main" sx={{ flexGrow: 1, minWidth: 0, pt: 4, pb: 3, px: { xs: '5%', md: '8%' } }}>
                             <Toolbar sx={{ display: { md: 'none' } }} />
                             <IdentityBanner />
                             <Routes>
-                                <Route path="/" element={<HomeRedirect />} />
+                                {/* ML Foundations is the thing being worked on, so it is home. */}
+                                <Route path="/" element={<Navigate to="/foundations" replace />} />
                                 <Route path="/dashboard" element={<Dashboard />} />
                                 <Route path="/daily-tasks" element={<DailyHabitsPage />} />
                                 <Route path="/evidence" element={<EvidenceLogPage />} />
                                 <Route path="/dsa" element={<DSAHubPage />} />
                                 <Route path="/dsa/:topicId" element={<DSATopicDetailPage />} />
-                                <Route path="/study" element={<ThisWeekPage />} />
-                                <Route path="/study/today" element={<TodayPage />} />
-                                <Route path="/study/journey" element={<JourneyPage />} />
-                                <Route path="/study/logbook" element={<LogbookPage />} />
-                                <Route path="/study/library" element={<LibraryPage />} />
-                                <Route path="/study/reading" element={<ReadingPage />} />
-                                <Route path="/study/artifacts" element={<ArtifactsPage />} />
-                                {/* The plan used to be eight pages; anything bookmarked
-                                    from then lands on the week you are actually in. */}
-                                <Route path="/study/*" element={<Navigate to="/study" replace />} />
+                                <Route path="/foundations" element={<FoundationsPage />} />
+                                {/* The 52-week plan lived under /study; old bookmarks
+                                    land on the roadmap that replaced it. */}
+                                <Route path="/study/*" element={<Navigate to="/foundations" replace />} />
                                 <Route path="/interview-prep" element={<InterviewDashboard />} />
                                 <Route path="/core-stories" element={<CoreStoriesPage />} />
                                 <Route path="/category/:categoryName" element={<CategoryPage />} />
