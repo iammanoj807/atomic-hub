@@ -299,8 +299,8 @@ const TopicCard = ({
  * check, and the four checks themselves. A topic only counts once all four
  * are ticked, and ticks can come off again — the re-test rule depends on it.
  *
- * Deliberately separate from the 52-week plan: no dates, no weeks. The next
- * thing to do is simply the first topic that is not yet confident.
+ * Self-paced: no dates, no weeks. The next thing to do is simply the first
+ * topic that is not yet confident.
  */
 const FoundationsPage = () => {
     const { progress, toggleCheck, toggleBuild } = useFoundations();
@@ -339,8 +339,6 @@ const FoundationsPage = () => {
 
     return (
         <Box sx={{ width: '100%', maxWidth: 940, mx: 'auto' }}>
-            {/* Its own header rather than StudyPageHeader: that one carries the
-                52-week plan's dates, and this roadmap has none. */}
             <Box sx={{ mb: 5 }}>
                 <Box sx={{ pb: 3, mb: 4, borderBottom: 1, borderColor: 'rgba(255,255,255,0.1)' }}>
                     <Typography variant="caption" color="text.secondary" fontWeight="bold" sx={{ letterSpacing: 1.5, display: 'block', mb: 0.5 }}>

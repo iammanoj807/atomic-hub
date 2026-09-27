@@ -7,10 +7,6 @@
 //     original papers are marked optional, for later),
 //   - one practice exercise for each of the four checks. No answers, on purpose.
 //
-// This runs on its own, separate from the 52-week plan in studyPlan.ts.
-// `planWeek` records where each topic sits in that plan, so the two can be
-// joined up again later without re-mapping anything.
-//
 // Everything here is fixed content. Ticked checks and finished mini-builds live
 // in Firestore under study_progress/foundations (see firebaseService.ts).
 
@@ -116,8 +112,6 @@ export interface FoundationTopic {
     note: TopicNote;
     resources: TopicResource[];
     practice: TopicPractice;
-    /** Where the 52-week plan covers this topic. Not shown yet; kept for joining the two later. */
-    planWeek: number;
 }
 
 export interface MiniBuild {
@@ -181,7 +175,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Make a (5, 4) array of random numbers. Select the last row, the first two columns, every value above 0.5 (with a boolean mask), and the diagonal of its top-left 4 × 4 block.',
                     break: 'Try reshaping a 24-element array to (5, 5) and read the error. Then change a slice B = A[0] and check whether A changed too. Find out what a \'view\' is.',
                 },
-                planWeek: 1,
             },
             {
                 id: 'f0-t2',
@@ -204,7 +197,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Compute pairwise squared distances between the rows of X (n, d) and Y (m, d) with no loops. Compare with a double loop for small n, then time both for n = m = 1,000.',
                     break: 'Add a (3,) array to a (3, 1) array by mistake. You get a (3, 3) result and no error. Write a test that would catch this silent bug.',
                 },
-                planWeek: 1,
             },
             {
                 id: 'f0-t3',
@@ -226,7 +218,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Plot y = x², its derivative 2x, and 50 noisy samples of y on one figure, with a legend and axis titles. Save it as a PNG.',
                     break: 'Plot a loss that falls from 1,000 to 0.01, first on a normal y-axis, then on a log y-axis. Which one hides the late progress, and why?',
                 },
-                planWeek: 2,
             },
             {
                 id: 'f0-t4',
@@ -249,7 +240,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Create your roadmap repo. Commit each build separately with a clear message. Add a .gitignore for data files and notebook checkpoints.',
                     break: 'On a branch, change the same line in two different ways and merge. Resolve the merge conflict by hand.',
                 },
-                planWeek: 1,
             },
             {
                 id: 'f0-t5',
@@ -273,7 +263,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Write pytest tests for your softmax: it sums to 1, keeps the order of values, handles a (batch, classes) input, and matches a slow loop version.',
                     break: 'Call your softmax on [1000, 1001, 1002]. Do you get NaN? Fix it, and add a test so the bug can never come back.',
                 },
-                planWeek: 3,
             },
         ],
         builds: [
@@ -326,7 +315,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Write is_independent(vectors) using the rank of the stacked matrix. Test it on the example above and on the standard basis.',
                     break: 'Test two almost-parallel vectors, like [1, 0] and [1, 1e-12]. Does your function call them independent? What does this teach you about floating point?',
                 },
-                planWeek: 1,
             },
             {
                 id: 'f1-t2',
@@ -349,7 +337,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Write matmul(A, B) with three loops and no @. Test it against A @ B on random matrices. Then plot the unit square before and after a transformation.',
                     break: 'Try to multiply a (2, 3) matrix by another (2, 3) matrix. Read the error and explain which sizes must match, and why.',
                 },
-                planWeek: 1,
             },
             {
                 id: 'f1-t3',
@@ -372,7 +359,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Write det2(A) for 2 × 2 matrices and det3(A) with cofactor expansion. Check them against np.linalg.det, then check numerically that det(AB) = det(A) · det(B).',
                     break: 'Take a 3 × 3 matrix whose third row is the sum of the first two, and add tiny noise (about 1e-10). Is its determinant exactly 0? What does that mean for testing \'is it invertible?\' in code?',
                 },
-                planWeek: 1,
             },
             {
                 id: 'f1-t4',
@@ -396,7 +382,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Write Gaussian elimination to solve Ax = b, without np.linalg. Compare with np.linalg.solve on random 5 × 5 systems.',
                     break: 'Solve a system with the rank-1 matrix [[1, 2], [2, 4]]. What does your code do? What does np.linalg.solve do? What does rank 1 mean for the number of solutions?',
                 },
-                planWeek: 1,
             },
             {
                 id: 'f1-t5',
@@ -420,7 +405,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Write cosine_similarity(u, v) and project(a, b). Use them to find the most similar pair among five small word vectors you make up.',
                     break: 'Call cosine_similarity with a zero vector. What happens? Handle it properly and add a test.',
                 },
-                planWeek: 2,
             },
             {
                 id: 'f1-t6',
@@ -443,7 +427,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Write power iteration to find the largest eigenvalue and its eigenvector. Compare with np.linalg.eig.',
                     break: 'Run power iteration on the rotation matrix [[0, −1], [1, 0]]. What happens, and why does it never settle?',
                 },
-                planWeek: 2,
             },
             {
                 id: 'f1-t7',
@@ -467,7 +450,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Implement PCA with SVD on a real dataset (Iris or MNIST). Plot the data in the top 2 components, and plot the explained-variance curve.',
                     break: 'Run PCA without centring the data first. Compare the first component with the centred version. Why is it wrong?',
                 },
-                planWeek: 2,
             },
             {
                 id: 'f1-t8',
@@ -490,7 +472,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Write a numerical derivative with the central difference, and check all four answers at x = 0.5.',
                     break: 'Try step sizes h = 1e-1, 1e-5 and 1e-12 in your numerical derivative. Which is most accurate? Why do both too-big and too-small steps fail?',
                 },
-                planWeek: 3,
             },
             {
                 id: 'f1-t9',
@@ -512,7 +493,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Write numerical_gradient(f, x) for a vector x and check your hand answers. Keep this function: it becomes your gradient checker for backprop.',
                     break: 'Check the gradient of f(x) = |x| at x = 0 with your checker. What does it say, and why is the true gradient undefined there?',
                 },
-                planWeek: 3,
             },
             {
                 id: 'f1-t10',
@@ -536,7 +516,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Write gradient descent for f(w) and plot w over 50 steps. Then use it for linear regression on real data, and plot the loss.',
                     break: 'Try learning rates 0.01, 0.5, 0.9 and 1.1 on f(w) = (w − 3)². Which is slow, which is fastest, which swings from side to side, and which explodes? Use the update rule to explain why.',
                 },
-                planWeek: 4,
             },
             {
                 id: 'f1-t11',
@@ -560,7 +539,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Simulate 100,000 samples each from Bernoulli, Uniform and Gaussian distributions. Check that the sample mean and variance match your formulas.',
                     break: 'Compare the average of 10, 100 and 10,000 samples across several runs. Then try np.random.standard_cauchy. Why does its average never settle?',
                 },
-                planWeek: 5,
             },
             {
                 id: 'f1-t12',
@@ -582,7 +560,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Write bayes(prior, sensitivity, false_positive_rate). Then simulate 1,000,000 people and check the simulation matches the formula.',
                     break: 'Set the prior to 0 in your function. What happens, whatever the test says? Why is a prior of exactly 0 dangerous in real models?',
                 },
-                planWeek: 5,
             },
             {
                 id: 'f1-t13',
@@ -606,7 +583,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Fit a Gaussian to real data by maximising the log-likelihood with your own gradient descent. Compare with the formula answer.',
                     break: 'Fit the coin with only 3 flips, all heads. What does MLE say? Now pretend you also saw 1 extra head and 1 extra tail, and compare. That is MAP with a simple prior.',
                 },
-                planWeek: 6,
             },
             {
                 id: 'f1-t14',
@@ -628,7 +604,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Write a bootstrap: resample the 200 results with replacement 10,000 times and take the 95% interval. Compare it with your formula.',
                     break: 'Give two models the same accuracy gap on 50 examples, then on 5,000. When is the gap real? Try counting only the examples where the two models disagree.',
                 },
-                planWeek: 9,
             },
             {
                 id: 'f1-t15',
@@ -652,7 +627,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Write entropy(p), cross_entropy(p, q) and kl(p, q). Check that kl = cross-entropy − entropy, and that kl(p, p) = 0.',
                     break: 'Compute kl(p, q) where q has a 0 where p does not. What happens? Then compare kl(p, q) with kl(q, p) for two distributions.',
                 },
-                planWeek: 6,
             },
             {
                 id: 'f1-t16',
@@ -676,7 +650,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Write a convexity checker that tests the line-above-the-curve rule at 10,000 random points. Run it on w², |w|, eʷ, sin(w) and w³.',
                     break: 'Run gradient descent on the non-convex f(w) = w⁴ − 3w² + w from 20 random starts. Where does it end each time? Compare with the convex f(w) = w².',
                 },
-                planWeek: 13,
             },
         ],
         builds: [
@@ -735,7 +708,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Write train_val_test_split(X, y, fractions, seed). Make it reproducible, and check that no row appears in two sets.',
                     break: 'Tune a model on the test set 20 times and report the best score. Then score it on fresh data. How big is the drop?',
                 },
-                planWeek: 4,
             },
             {
                 id: 'f2-t2',
@@ -758,7 +730,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Fit linear regression on real data three ways: the normal equation, gradient descent, and np.linalg.lstsq. Check that all three agree.',
                     break: 'Add a column that is an exact copy of another feature. What happens to the normal equation? What does gradient descent do instead?',
                 },
-                planWeek: 4,
             },
             {
                 id: 'f2-t3',
@@ -782,7 +753,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Train logistic regression from scratch on a real binary dataset. Plot the loss, and the decision boundary for 2 features.',
                     break: 'Train on data that is perfectly separable and watch the weights. Why do they keep growing, and what stops them?',
                 },
-                planWeek: 6,
             },
             {
                 id: 'f2-t4',
@@ -806,7 +776,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Fit ridge and L1 regression for λ from 0.001 to 100. Plot each weight against λ.',
                     break: 'Use a huge λ and look at the predictions. Then forget to scale the features before using L2. Which features get punished unfairly?',
                 },
-                planWeek: 8,
             },
             {
                 id: 'f2-t5',
@@ -830,7 +799,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Fit polynomials of degree 1 to 15 on 30 noisy points. Plot train and validation error against degree, and mark the best degree.',
                     break: 'Repeat with 3,000 points instead of 30. Does the best degree change? Explain why more data reduces variance.',
                 },
-                planWeek: 8,
             },
             {
                 id: 'f2-t6',
@@ -854,7 +822,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Write precision, recall, F1 and ROC-AUC from scratch. For AUC, sort by score and use the trapezoid rule.',
                     break: 'Make a \'model\' that always predicts \'not fraud\' on data with 1% fraud. What are its accuracy, precision and recall? Which metric exposes it?',
                 },
-                planWeek: 9,
             },
             {
                 id: 'f2-t7',
@@ -878,7 +845,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Write k_fold(n, k, seed) and use it to report the mean and spread of a model\'s score.',
                     break: 'Create leakage on purpose: scale with all the data, or add a feature built from the label. Measure how much the score inflates. Then remove it.',
                 },
-                planWeek: 9,
             },
             {
                 id: 'f2-t8',
@@ -901,7 +867,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Write a StandardScaler class with fit and transform, and a one-hot encoder. Fit both on training data only.',
                     break: 'Train k-NN with and without scaling on data where one feature is in thousands and one in decimals. Then give your encoder a category it never saw.',
                 },
-                planWeek: 4,
             },
             {
                 id: 'f2-t9',
@@ -924,7 +889,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Implement k-NN with vectorised distances. Plot validation accuracy for k = 1 to 30 on a real dataset.',
                     break: 'Add 50 random noise features to the data and run it again. What happens to accuracy? Connect this to the curse of dimensionality.',
                 },
-                planWeek: 8,
             },
             {
                 id: 'f2-t10',
@@ -947,7 +911,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Build a decision tree from scratch with a depth limit. Train it on a real dataset and print it as nested if-statements.',
                     break: 'Grow the tree with no depth limit and compare train and validation accuracy. Then rotate the data 45° and count the splits the diagonal boundary needs.',
                 },
-                planWeek: 10,
             },
             {
                 id: 'f2-t11',
@@ -971,7 +934,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Build a random forest on your tree: bootstrap samples plus random features at each split. Then build simple gradient boosting for regression.',
                     break: 'Make every tree identical (no bootstrap, all features). Does the forest still beat one tree? Then run boosting with learning rate 1.0 and 500 trees and watch validation error.',
                 },
-                planWeek: 10,
             },
             {
                 id: 'f2-t12',
@@ -995,7 +957,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Train a linear SVM with subgradient descent on the hinge loss. Plot the boundary, the margin lines, and circle the support vectors.',
                     break: 'Add one outlier on the wrong side. Train with a very large C and a small C. How does the boundary move?',
                 },
-                planWeek: 11,
             },
             {
                 id: 'f2-t13',
@@ -1019,7 +980,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Build a Naive Bayes spam filter from scratch on a real SMS or email spam dataset, with log probabilities and add-one smoothing.',
                     break: 'Remove the smoothing and test an email with a word never seen in spam. What happens to its spam probability? Why is that a disaster?',
                 },
-                planWeek: 6,
             },
             {
                 id: 'f2-t14',
@@ -1041,7 +1001,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Implement k-means with k-means++ starting points. Run it on 2D blobs and plot the clusters after each step.',
                     break: 'Run plain k-means with random starts 20 times and record the final loss each time. Then try data shaped like two moons. Why does k-means fail there?',
                 },
-                planWeek: 12,
             },
             {
                 id: 'f2-t15',
@@ -1065,7 +1024,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Compress MNIST digits to 10, 50 and 150 components and reconstruct them. Show the images side by side with their explained variance.',
                     break: 'Make a dataset where the class difference lies in a low-variance direction. Show that PCA to 1 component destroys the separation.',
                 },
-                planWeek: 2,
             },
             {
                 id: 'f2-t16',
@@ -1089,7 +1047,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Implement EM for a 2D Gaussian mixture from scratch. Draw the ellipses after each iteration, and plot the log-likelihood rising.',
                     break: 'Start both components at exactly the same place. What happens? Then let one component sit on a single point. Why does its variance shrink to zero, and how do you stop it?',
                 },
-                planWeek: 12,
             },
             {
                 id: 'f2-t17',
@@ -1111,7 +1068,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Reproduce double descent: fit polynomial or random-feature regression with the minimum-norm solution (np.linalg.lstsq) on 100 noisy points, with 10 to 1,000 features. Plot test error against the number of features.',
                     break: 'Add more label noise and repeat. What happens to the error peak near \'number of features = number of training points\'?',
                 },
-                planWeek: 23,
             },
         ],
         builds: [
@@ -1170,7 +1126,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Write the forward pass of a 2-layer MLP in NumPy for a batch of inputs. Check every shape with assert statements.',
                     break: 'Set every weight to the same number and train for a few steps. Why do all hidden neurons stay identical?',
                 },
-                planWeek: 16,
             },
             {
                 id: 'f3-t2',
@@ -1192,7 +1147,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Train the same small MLP on a curved 2D dataset (like two moons) with no activation, with ReLU, and with tanh. Plot the three decision boundaries.',
                     break: 'Stack 20 sigmoid layers and print the gradient size at each layer. Then count dead ReLU units after training with a huge learning rate.',
                 },
-                planWeek: 21,
             },
             {
                 id: 'f3-t3',
@@ -1214,7 +1168,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Write the full backward pass for a 2-layer MLP with softmax and cross-entropy in NumPy. Check every gradient with your gradient checker.',
                     break: 'Plant a bug on purpose: forget one transpose in the backward pass. Does your gradient checker catch it? How big is the error?',
                 },
-                planWeek: 18,
             },
             {
                 id: 'f3-t4',
@@ -1237,7 +1190,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Rebuild micrograd: a Value class with +, *, tanh, exp and backward(). Train a tiny MLP with it.',
                     break: 'Use the same Value twice, as in y = x * x. Does backward give 2x? If not, you are overwriting gradients instead of adding them. Fix it.',
                 },
-                planWeek: 17,
             },
             {
                 id: 'f3-t5',
@@ -1261,7 +1213,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Implement a numerically stable softmax with cross-entropy, and train softmax regression on MNIST.',
                     break: 'Compute softmax of [1000, 1000] without subtracting the max. Then compute log(softmax) directly and with log-sum-exp. Where does each version break?',
                 },
-                planWeek: 6,
             },
             {
                 id: 'f3-t6',
@@ -1284,7 +1235,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Implement all four and race them on the same problem, such as the Rosenbrock function or MNIST. Plot the loss curves together.',
                     break: 'Run Adam with a learning rate 100 times too big, and SGD with one 100 times too small. Then remove Adam\'s bias correction and watch the first 10 steps.',
                 },
-                planWeek: 14,
             },
             {
                 id: 'f3-t7',
@@ -1308,7 +1258,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Build a 20-layer MLP. Plot the standard deviation of the activations at every layer, with tiny, He, and huge initialisation.',
                     break: 'Train the 20-layer net with std = 1.0 and with std = 0.01. Describe what happens to the gradients in each case.',
                 },
-                planWeek: 19,
             },
             {
                 id: 'f3-t8',
@@ -1331,7 +1280,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Add batch norm to your deep MLP and compare training speed with and without it. Then write layer norm and check it against torch.nn.LayerNorm.',
                     break: 'Run your batch-norm model with batch size 1 in training mode. What goes wrong? Fix it with eval mode and running statistics.',
                 },
-                planWeek: 20,
             },
             {
                 id: 'f3-t9',
@@ -1353,7 +1301,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Train an overfitting MLP on a small part of MNIST. Add dropout, then weight decay, then augmentation, then early stopping, and record validation accuracy after each.',
                     break: 'Leave dropout switched on at test time. What happens to the predictions and to accuracy? Why?',
                 },
-                planWeek: 21,
             },
             {
                 id: 'f3-t10',
@@ -1376,7 +1323,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Train an MLP on MNIST with nn.Module and a DataLoader, and add a validation loop that uses model.eval() and torch.no_grad().',
                     break: 'Remove opt.zero_grad() and train. Watch the loss. Then forget model.eval() on a model with dropout and compare validation scores.',
                 },
-                planWeek: 19,
             },
             {
                 id: 'f3-t11',
@@ -1398,7 +1344,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Write a 2D convolution with loops in NumPy, then a vectorised one. Check both against torch.nn.functional.conv2d. Then train a small CNN on CIFAR-10.',
                     break: 'Shift the test images by a few pixels and compare how an MLP and a CNN cope. Then remove pooling and see what happens to the receptive field.',
                 },
-                planWeek: 25,
             },
             {
                 id: 'f3-t12',
@@ -1421,7 +1366,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Train a 20-layer plain CNN and the same network with residual blocks on CIFAR-10. Plot both training losses.',
                     break: 'Make a residual block that changes the number of channels, with no projection. Read the shape error, then fix it with a 1 × 1 convolution.',
                 },
-                planWeek: 25,
             },
             {
                 id: 'f3-t13',
@@ -1445,7 +1389,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Write a character-level RNN and train it to generate names.',
                     break: 'Train it on sequences where the answer depends on a character far back. Measure accuracy as the gap grows, then try gradient clipping.',
                 },
-                planWeek: 26,
             },
             {
                 id: 'f3-t14',
@@ -1469,7 +1412,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Train makemore-style character embeddings with 2 dimensions and plot them. Which characters end up close together?',
                     break: 'Pass a token id bigger than the vocabulary and read the error. Then set the embedding size to 1 and see what happens to the loss.',
                 },
-                planWeek: 19,
             },
             {
                 id: 'f3-t15',
@@ -1491,7 +1433,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Write a debugging checklist script: check the initial loss, overfit one batch, plot train and validation curves, print gradient norms per layer.',
                     break: 'Plant 3 bugs in a working training script (labels shifted by one, no shuffling, learning rate × 10). Put it away for a week, then find them.',
                 },
-                planWeek: 21,
             },
             {
                 id: 'f3-t16',
@@ -1514,7 +1455,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Implement an LSTM cell in NumPy. Check it against torch.nn.LSTMCell with the same weights (copy them in PyTorch\'s gate order). Then train an LSTM on your RNN\'s long-gap task.',
                     break: 'Set the forget-gate bias to −5, so the gate starts almost closed. What happens to long-range memory? Then try +1, a common trick.',
                 },
-                planWeek: 26,
             },
         ],
         builds: [
@@ -1575,7 +1515,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Build a BPE tokenizer: train it on a text file, then write encode and decode, and check that decode(encode(text)) == text.',
                     break: 'Tokenise long numbers like 1234567, and text in a language with a non-Latin script. How many tokens does each need compared with English? Why does that matter for cost and for arithmetic?',
                 },
-                planWeek: 29,
             },
             {
                 id: 'f4-t2',
@@ -1599,7 +1538,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Implement sinusoidal position encodings and plot them as a heatmap. Then add learned position embeddings to your model.',
                     break: 'Train your small GPT with no position information at all. Compare the generated text with and without it.',
                 },
-                planWeek: 30,
             },
             {
                 id: 'f4-t3',
@@ -1623,7 +1561,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Write single-head self-attention in NumPy, then in PyTorch, and check that they match. Add the causal mask.',
                     break: 'Remove the √d scaling and use d = 512. Look at the softmax outputs. Why do they become almost one-hot, and what does that do to the gradients?',
                 },
-                planWeek: 27,
             },
             {
                 id: 'f4-t4',
@@ -1647,7 +1584,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Write multi-head attention by reshaping (batch, T, d) into (batch, heads, T, d / heads). Then build a full pre-norm transformer block.',
                     break: 'Remove the residual connections from a 6-block model and train it. Then move layer norm after the addition (post-norm) and compare stability.',
                 },
-                planWeek: 30,
             },
             {
                 id: 'f4-t5',
@@ -1671,7 +1607,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Train a small GPT on a text dataset such as Shakespeare. Write a generate() function that samples one token at a time.',
                     break: 'Remove the causal mask during training. The training loss drops fast. Why is the model useless when you generate?',
                 },
-                planWeek: 30,
             },
             {
                 id: 'f4-t6',
@@ -1693,7 +1628,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Turn your GPT into a small BERT-style model: remove the causal mask, hide 15% of the tokens, and train it to predict them.',
                     break: 'Try to generate text with the BERT-style model, one token at a time. Why does it work badly?',
                 },
-                planWeek: 27,
             },
             {
                 id: 'f4-t13',
@@ -1719,7 +1653,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Build a small ViT in PyTorch (patchify, linear embedding, positions, class token, transformer blocks) and train it on CIFAR-10. Compare it with your CNN. Then use a pretrained CLIP model for zero-shot classification on a few classes.',
                     break: 'Train your ViT on only 10% of CIFAR-10 and compare with the CNN again. Then shuffle the patch order at test time. What does each result tell you?',
                 },
-                planWeek: 27,
             },
             {
                 id: 'f4-t7',
@@ -1743,7 +1676,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Add temperature, top-k and top-p to your generate(). Generate 5 samples with each setting and compare.',
                     break: 'Generate with temperature 0.01 and with 3.0. Describe the failure at each end.',
                 },
-                planWeek: 32,
             },
             {
                 id: 'f4-t8',
@@ -1764,7 +1696,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Add a KV cache to your GPT\'s generate(). Time 500 generated tokens with and without it.',
                     break: 'Generate past the cache\'s maximum length. What breaks? Then measure memory as the number of users in a batch grows.',
                 },
-                planWeek: 48,
             },
             {
                 id: 'f4-t9',
@@ -1786,7 +1717,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Train your GPT at 3 sizes on the same data. Plot final loss against parameter count on log-log axes.',
                     break: 'Train on a dataset full of duplicated documents, then on a deduplicated version. Compare the validation losses.',
                 },
-                planWeek: 33,
             },
             {
                 id: 'f4-t12',
@@ -1811,7 +1741,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Replace the MLP in your GPT\'s blocks with a 4-expert, top-2 MoE layer. Train it and log how many tokens each expert receives.',
                     break: 'Train without any load-balancing loss and watch expert usage. Do some experts die? Then add a simple balancing loss and compare.',
                 },
-                planWeek: 33,
             },
             {
                 id: 'f4-t10',
@@ -1835,7 +1764,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Add LoRA adapters to the attention layers of your GPT. Fine-tune it on a new text style and compare with full fine-tuning.',
                     break: 'Start both A and B random instead of B = 0. What happens at step 0? Then try r = 1 on a task that needs a big change.',
                 },
-                planWeek: 35,
             },
             {
                 id: 'f4-t11',
@@ -1857,7 +1785,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Fine-tune your small model on a few hundred instruction examples with a chat template. Compare its answers before and after.',
                     break: 'Imagine a preference dataset where the chosen answer is always the longer one. What shortcut will the model learn? How would you check for it?',
                 },
-                planWeek: 34,
             },
             {
                 id: 'f4-t14',
@@ -1883,7 +1810,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'On 50 arithmetic word problems, compare: a direct answer, \'think step by step\', and self-consistency with 5 and 10 samples. Plot accuracy against tokens used.',
                     break: 'Try the same methods on simple factual questions, like capital cities. Does extra thinking still help, or just cost more? Find one case where the reasoning is wrong but the answer is right.',
                 },
-                planWeek: 34,
             },
         ],
         builds: [
@@ -1943,7 +1869,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Send 20 support tickets to an LLM API with your prompt, and parse the JSON output. Count how many parse correctly.',
                     break: 'Make the prompt vague on purpose, or remove the example. Measure how the parse rate and quality change.',
                 },
-                planWeek: 21,
             },
             {
                 id: 'f5-t10',
@@ -1967,7 +1892,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Send 30 real job adverts to an LLM with your schema. Validate every reply in code, retry once on failure, and report the success rate. Then add one tool, such as a currency converter, and handle the tool-call loop.',
                     break: 'Remove the schema from the prompt, or give an advert with no salary. What breaks? Then find a reply that is valid JSON but has a wrong value, and add a check that catches it.',
                 },
-                planWeek: 27,
             },
             {
                 id: 'f5-t2',
@@ -1990,7 +1914,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Embed 200 FAQ entries with an embedding model. Build search in NumPy that returns the top 5 for a question.',
                     break: 'Search for a product code or a rare name. Does semantic search find it? Add keyword search and combine the two scores.',
                 },
-                planWeek: 21,
             },
             {
                 id: 'f5-t11',
@@ -2014,7 +1937,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Build a simple IVF index yourself: cluster the vectors with your own k-means, then search only the nearest few clusters. Measure recall@10 and speed against brute force. Then try a real library such as FAISS.',
                     break: 'Search fewer and fewer clusters until recall drops, and plot recall against speed. Then add a metadata filter (only documents from 2026) and see what happens to recall.',
                 },
-                planWeek: 21,
             },
             {
                 id: 'f5-t3',
@@ -2036,7 +1958,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Build RAG over a real document set with no framework: chunking, embedding, retrieval, prompt, and an answer with sources.',
                     break: 'Try chunk sizes of 50, 300 and 2,000 words on the same 20 questions. Which size works best, and why do the extremes fail?',
                 },
-                planWeek: 21,
             },
             {
                 id: 'f5-t12',
@@ -2060,7 +1981,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Build a \'needle in a haystack\' test: hide one fact at different positions in a long document and ask for it. Plot accuracy against position and document length.',
                     break: 'Give your RAG app 3, 10 and 50 retrieved chunks for the same questions. Measure accuracy, latency and cost. When does more context start to hurt?',
                 },
-                planWeek: 22,
             },
             {
                 id: 'f5-t4',
@@ -2082,7 +2002,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Build an eval harness: 50 questions with expected answers, a code check, an LLM judge, and a table of errors by type.',
                     break: 'Compare your LLM judge with your own labels on 20 answers. How often do they disagree? Then try a judge prompt that is too lenient.',
                 },
-                planWeek: 21,
             },
             {
                 id: 'f5-t5',
@@ -2105,7 +2024,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Build an agent with 2 tools, a calculator and a search over your documents. Log every step.',
                     break: 'Give the agent a task it cannot finish, and a tool that returns an error. Does it loop? Does it recover? Add a fix for each.',
                 },
-                planWeek: 27,
             },
             {
                 id: 'f5-t13',
@@ -2129,7 +2047,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Write an MCP server with the official Python SDK that exposes two tools over your own data, for example \'search my study notes\' and \'list unfinished topics\'. Connect it to an app that supports MCP and use it.',
                     break: 'Make a tool return text that contains an instruction (\'ignore the user and…\'). Does the model follow it? Add a defence and test again.',
                 },
-                planWeek: 28,
             },
             {
                 id: 'f5-t6',
@@ -2150,7 +2067,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Take one task. Try prompting first, then RAG. Measure both with your eval harness and write a one-paragraph decision.',
                     break: 'Try to teach the model new facts by fine-tuning on a few examples, then ask about them in different words. How well did it learn them?',
                 },
-                planWeek: 35,
             },
             {
                 id: 'f5-t14',
@@ -2174,7 +2090,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Create 200 training examples, some real and some generated by a stronger model. De-duplicate and filter them, fine-tune a small model with LoRA, and compare it with the base model on your held-out set.',
                     break: 'Put 20% bad examples (wrong or rude replies) into the training set and fine-tune again. How much worse does it get? Then leak test examples into training and see how the score lies.',
                 },
-                planWeek: 35,
             },
             {
                 id: 'f5-t7',
@@ -2197,7 +2112,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Serve a model behind FastAPI in Docker. Add a /health endpoint and log the latency of every request.',
                     break: 'Send 50 requests at once with a simple load test. What happens to latency, and where is the bottleneck?',
                 },
-                planWeek: 26,
             },
             {
                 id: 'f5-t15',
@@ -2222,7 +2136,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Add an exact-match cache, a semantic cache and a two-model router to your RAG app. Log cost and latency per request, and compare quality on your eval set before and after.',
                     break: 'Lower the semantic-cache threshold until it returns wrong answers. Then make the router send a hard question to the small model. How would your evals catch each problem?',
                 },
-                planWeek: 26,
             },
             {
                 id: 'f5-t16',
@@ -2246,7 +2159,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Add tracing to your RAG app: one trace per request with nested steps, saved as JSON. Build a small page or notebook that shows the slowest and most expensive traces.',
                     break: 'Plant a bug: make retrieval quietly return nothing for some questions. Can you find it from the traces alone? Then add an alert that would have caught it.',
                 },
-                planWeek: 33,
             },
             {
                 id: 'f5-t8',
@@ -2267,7 +2179,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Add defences: separate instructions from retrieved text, restrict the tools, and check the output. Test your 3 attacks again.',
                     break: 'Which attacks still work against the defended version? Write down what it would take to stop them.',
                 },
-                planWeek: 27,
             },
             {
                 id: 'f5-t9',
@@ -2289,7 +2200,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Add monitoring to one of your projects: log inputs and predictions, and raise an alert when the input distribution shifts.',
                     break: 'Simulate drift: train on an early period of data and test on a later one. Measure the drop, then retrain on recent data.',
                 },
-                planWeek: 33,
             },
         ],
         builds: [
@@ -2348,7 +2258,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Time matrix multiplication at growing sizes on CPU and on GPU (Colab is fine). Plot the achieved FLOPs per second against size.',
                     break: 'Time 1,000 tiny operations against 1 big operation doing the same total work. Why are the tiny ones so slow?',
                 },
-                planWeek: 40,
             },
             {
                 id: 'f6-t2',
@@ -2372,7 +2281,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Train your GPT with torch.autocast in bf16. Compare speed, memory and final loss with fp32.',
                     break: 'Train in fp16 without a gradient scaler and watch for gradients that turn into 0 or inf. Then add the scaler.',
                 },
-                planWeek: 31,
             },
             {
                 id: 'f6-t3',
@@ -2394,7 +2302,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Measure GPU memory while training your GPT with torch.cuda.max_memory_allocated. Change batch size and sequence length, and plot the effect.',
                     break: 'Raise the batch size until you run out of memory. Then make the same effective batch fit with gradient accumulation or checkpointing.',
                 },
-                planWeek: 49,
             },
             {
                 id: 'f6-t4',
@@ -2416,7 +2323,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Run data-parallel training with PyTorch DDP on 2 GPUs, or 2 CPU processes. Check the gradients match single-device training.',
                     break: 'Make one process slower on purpose. What happens to the speed of the whole group, and why?',
                 },
-                planWeek: 49,
             },
             {
                 id: 'f6-t5',
@@ -2440,7 +2346,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Quantise your GPT\'s weights to int8, per-tensor and per-channel. Compare the error and the quality of the generated text.',
                     break: 'Put one huge outlier weight in a layer and quantise per-tensor again. What happens to the error for every other weight?',
                 },
-                planWeek: 44,
             },
             {
                 id: 'f6-t6',
@@ -2462,7 +2367,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Profile 20 training steps of your GPT with torch.profiler. Find the 3 slowest operations and speed one of them up.',
                     break: 'Time a GPU operation with time.time(), with and without torch.cuda.synchronize(). Explain why the numbers differ.',
                 },
-                planWeek: 42,
             },
             {
                 id: 'f6-t7',
@@ -2486,7 +2390,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Work through the official Triton tutorials: vector add, fused softmax, then matrix multiply. Benchmark each one against PyTorch.',
                     break: 'Remove the mask from your vector-add kernel and use a size that is not a multiple of BLOCK. What happens? Then try a very small and a very large BLOCK and compare speed.',
                 },
-                planWeek: 42,
             },
             {
                 id: 'f6-t8',
@@ -2510,7 +2413,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Distil your trained MNIST or CIFAR model into one a quarter of its size. Compare a student trained with soft labels against the same student trained on hard labels only.',
                     break: 'Prune 50%, 80% and 95% of the weights by magnitude, with and without retraining. Plot accuracy against sparsity. Then time the pruned model: is it actually faster?',
                 },
-                planWeek: 46,
             },
             {
                 id: 'f6-t9',
@@ -2533,7 +2435,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Implement greedy speculative decoding with two sizes of your own GPT, or two small open models. Check the output is identical to the big model alone, and measure the speed-up.',
                     break: 'Use a draft model trained on very different text. Measure the acceptance rate and the speed-up. At what acceptance rate does it become slower than normal decoding?',
                 },
-                planWeek: 48,
             },
         ],
         builds: [
@@ -2588,7 +2489,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Build a VAE on MNIST in PyTorch with a 2D latent space. Plot the latent space coloured by digit, and decode a grid of points into images.',
                     break: 'Remove the KL term, then multiply it by 10. What happens to the samples and to the latent space in each case?',
                 },
-                planWeek: 37,
             },
             {
                 id: 'f7-t2',
@@ -2612,7 +2512,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Train a small DDPM on MNIST or on 2D toy data like a spiral. Save samples at several points during generation to watch the noise disappear.',
                     break: 'Generate with only 10 steps instead of 1,000, using the same sampler. What goes wrong? Then try a noise schedule that rises too fast.',
                 },
-                planWeek: 38,
             },
             {
                 id: 'f7-t3',
@@ -2636,7 +2535,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Implement tabular Q-learning on a small grid world or FrozenLake. Plot the reward per episode, and print the learned policy as arrows.',
                     break: 'Turn exploration off from the start, so the agent always picks the best-known action. What happens? Then set γ = 0 and see what the agent cares about.',
                 },
-                planWeek: 39,
             },
             {
                 id: 'f7-t4',
@@ -2661,7 +2559,6 @@ export const foundationPhases: FoundationPhase[] = [
                     build: 'Implement REINFORCE with a baseline on CartPole, then PPO\'s clipped loss. Compare how fast and how smoothly each one learns.',
                     break: 'Remove the baseline from REINFORCE and compare the noise in the learning curve. Then remove PPO\'s clipping and take large updates.',
                 },
-                planWeek: 39,
             },
         ],
         builds: [
