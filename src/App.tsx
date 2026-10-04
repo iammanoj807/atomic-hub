@@ -12,6 +12,7 @@ import CategoryPage from './components/CategoryPage';
 import DSAHubPage from './components/DSAHubPage';
 import DSATopicDetailPage from './components/DSATopicDetailPage';
 import FoundationsPage from './components/FoundationsPage';
+import SystemDesignPage from './components/SystemDesignPage';
 import EvidenceLogPage from './components/EvidenceLogPage';
 import CoreStoriesPage from './components/CoreStoriesPage';
 import IdentityBanner from './components/IdentityBanner';
@@ -202,6 +203,7 @@ function MainLayout() {
                                 <Route path="/dsa" element={<DSAHubPage />} />
                                 <Route path="/dsa/:topicId" element={<DSATopicDetailPage />} />
                                 <Route path="/foundations" element={<FoundationsPage />} />
+                                <Route path="/system-design" element={<SystemDesignPage />} />
                                 {/* The 52-week plan lived under /study; old bookmarks
                                     land on the roadmap that replaced it. */}
                                 <Route path="/study/*" element={<Navigate to="/foundations" replace />} />

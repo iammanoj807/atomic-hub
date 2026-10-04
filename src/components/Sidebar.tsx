@@ -36,6 +36,7 @@ import PsychologyRoundedIcon from '@mui/icons-material/PsychologyRounded';
 import LeaderboardRoundedIcon from '@mui/icons-material/LeaderboardRounded';
 import GroupsRoundedIcon from '@mui/icons-material/GroupsRounded';
 import SchoolRoundedIcon from '@mui/icons-material/SchoolRounded';
+import ArchitectureRoundedIcon from '@mui/icons-material/ArchitectureRounded';
 import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
 import BusinessRoundedIcon from '@mui/icons-material/BusinessRounded';
 import FitnessCenterRoundedIcon from '@mui/icons-material/FitnessCenterRounded';
@@ -376,6 +377,36 @@ const Sidebar = () => {
                                 <SchoolRoundedIcon />
                             </ListItemIcon>
                             {!isCollapsed && <ListItemText primary="ML Foundations" />}
+                        </ListItemButton>
+                    </Tooltip>
+                </ListItem>
+
+                {/* SYSTEM DESIGN — HLD, LLD and AI/ML system design */}
+                <ListItem disablePadding>
+                    <Tooltip title="System Design" placement="right" disableHoverListener={!isCollapsed}>
+                        <ListItemButton
+                            onClick={() => handleNavigation('/system-design')}
+                            selected={isActive('/system-design')}
+                            sx={{
+                                borderRadius: 2,
+                                mb: 0.5,
+                                mx: isCollapsed ? 0 : 2,
+                                justifyContent: isCollapsed ? 'center' : 'flex-start',
+                                px: isCollapsed ? 2 : 2,
+                                '&.Mui-selected': {
+                                    bgcolor: 'rgba(41, 121, 255, 0.1)',
+                                    color: 'primary.main',
+                                    '&:hover': { bgcolor: 'rgba(41, 121, 255, 0.15)' },
+                                    '& .MuiListItemIcon-root': {
+                                        color: 'primary.main',
+                                    },
+                                },
+                            }}
+                        >
+                            <ListItemIcon sx={{ minWidth: isCollapsed ? 0 : 40, mr: isCollapsed ? 0 : 0, justifyContent: 'center' }}>
+                                <ArchitectureRoundedIcon />
+                            </ListItemIcon>
+                            {!isCollapsed && <ListItemText primary="System Design" />}
                         </ListItemButton>
                     </Tooltip>
                 </ListItem>

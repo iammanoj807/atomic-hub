@@ -15,7 +15,9 @@ import {
     Timestamp,
 } from 'firebase/firestore';
 import type { QuerySnapshot, DocumentData } from 'firebase/firestore';
+import type { FirebaseError } from 'firebase/app';
 import { db } from '../firebase';
+import type { SDCheckKey } from '../data/systemDesign';
 
 // Collection names
 const TASKS_COLLECTION = 'tasks';
@@ -99,7 +101,8 @@ export const addTaskToFirestore = async (task: Omit<FirestoreTask, 'id' | 'creat
         });
 
         return docRef.id;
-    } catch (error: any) {
+    } catch (caught) {
+        const error = caught as FirebaseError;
         console.error('❌ Failed to add task:', error.code, error.message);
         throw error;
     }
@@ -111,7 +114,8 @@ export const updateTaskInFirestore = async (id: string, updates: Partial<Firesto
         const taskRef = doc(db, TASKS_COLLECTION, id);
         await updateDoc(taskRef, updates);
 
-    } catch (error: any) {
+    } catch (caught) {
+        const error = caught as FirebaseError;
         console.error('❌ Failed to update task:', error.code, error.message);
         throw error;
     }
@@ -123,7 +127,8 @@ export const deleteTaskFromFirestore = async (id: string) => {
         const taskRef = doc(db, TASKS_COLLECTION, id);
         await deleteDoc(taskRef);
 
-    } catch (error: any) {
+    } catch (caught) {
+        const error = caught as FirebaseError;
         console.error('❌ Failed to delete task:', error.code, error.message);
         throw error;
     }
@@ -158,7 +163,8 @@ export const addCompanyToFirestore = async (name: string) => {
         });
 
         return docRef.id;
-    } catch (error: any) {
+    } catch (caught) {
+        const error = caught as FirebaseError;
         console.error('❌ Failed to add company:', error.code, error.message);
         throw error;
     }
@@ -168,7 +174,8 @@ export const updateCompanyInFirestore = async (id: string, name: string) => {
     try {
         const companyRef = doc(db, COMPANIES_COLLECTION, id);
         await updateDoc(companyRef, { name });
-    } catch (error: any) {
+    } catch (caught) {
+        const error = caught as FirebaseError;
         console.error('❌ Failed to update company:', error.code, error.message);
         throw error;
     }
@@ -180,7 +187,8 @@ export const deleteCompanyFromFirestore = async (id: string) => {
         const companyRef = doc(db, COMPANIES_COLLECTION, id);
         await deleteDoc(companyRef);
 
-    } catch (error: any) {
+    } catch (caught) {
+        const error = caught as FirebaseError;
         console.error('❌ Failed to delete company:', error.code, error.message);
         throw error;
     }
@@ -230,7 +238,8 @@ export const addHabitToFirestore = async (
         const docRef = await addDoc(collection(db, DAILY_HABITS_COLLECTION), data);
 
         return docRef.id;
-    } catch (error: any) {
+    } catch (caught) {
+        const error = caught as FirebaseError;
         console.error('❌ Failed to add habit:', error.code, error.message);
         throw error;
     }
@@ -242,7 +251,8 @@ export const updateHabitInFirestore = async (id: string, updates: Record<string,
         const habitRef = doc(db, DAILY_HABITS_COLLECTION, id);
         await updateDoc(habitRef, updates as DocumentData);
 
-    } catch (error: any) {
+    } catch (caught) {
+        const error = caught as FirebaseError;
         console.error('❌ Failed to update habit:', error.code, error.message);
         throw error;
     }
@@ -254,7 +264,8 @@ export const deleteHabitFromFirestore = async (id: string) => {
         const habitRef = doc(db, DAILY_HABITS_COLLECTION, id);
         await deleteDoc(habitRef);
 
-    } catch (error: any) {
+    } catch (caught) {
+        const error = caught as FirebaseError;
         console.error('❌ Failed to delete habit:', error.code, error.message);
         throw error;
     }
@@ -286,7 +297,7 @@ export const updateDailyLog = async (date: string, habitId: string, data: { comp
 
         // We need to use updateDoc with dot notation for nested fields map access
         // habits.habitId.completed
-        const updates: any = {};
+        const updates: Record<string, boolean | string> = {};
         if (data.completed !== undefined) {
             updates[`habits.${habitId}.completed`] = data.completed;
         }
@@ -297,12 +308,13 @@ export const updateDailyLog = async (date: string, habitId: string, data: { comp
         // Try update first
         try {
             await updateDoc(logRef, updates);
-        } catch (error: any) {
+        } catch (caught) {
+            const error = caught as FirebaseError;
             // If doc doesn't exist, we must create it with setDoc and merge
             if (error.code === 'not-found') {
                 const { setDoc } = await import('firebase/firestore');
                 // Construct full object for setDoc merge
-                const newLogData: any = { habits: {} };
+                const newLogData: { habits: Record<string, { completed?: boolean; note?: string }> } = { habits: {} };
                 newLogData.habits[habitId] = {};
                 if (data.completed !== undefined) newLogData.habits[habitId].completed = data.completed;
                 if (data.note !== undefined) newLogData.habits[habitId].note = data.note;
@@ -313,7 +325,8 @@ export const updateDailyLog = async (date: string, habitId: string, data: { comp
             }
         }
 
-    } catch (error: any) {
+    } catch (caught) {
+        const error = caught as FirebaseError;
         console.error('❌ Failed to update daily log:', error.code, error.message);
         throw error;
     }
@@ -382,7 +395,8 @@ export const updateStreakInFirestore = async (stats: UserStats) => {
         await setDoc(statsRef, stats, { merge: true });
 
 
-    } catch (error: any) {
+    } catch (caught) {
+        const error = caught as FirebaseError;
         console.error('❌ Failed to update streak:', error.code, error.message);
         throw error;
     }
@@ -433,7 +447,8 @@ export const addDSAReviewLog = async (topicId: string, text: string) => {
                 updatedAt: Timestamp.now()
             });
         }
-    } catch (error: any) {
+    } catch (caught) {
+        const error = caught as FirebaseError;
         console.error('❌ Failed to add DSA review log:', error.code, error.message);
         throw error;
     }
@@ -455,7 +470,8 @@ export const deleteDSAReviewLog = async (topicId: string, logId: string) => {
                 });
             }
         }
-    } catch (error: any) {
+    } catch (caught) {
+        const error = caught as FirebaseError;
         console.error('❌ Failed to delete DSA review log:', error.code, error.message);
         throw error;
     }
@@ -489,7 +505,8 @@ export const updateDSATopicProgress = async (
             ...updates,
             updatedAt: Timestamp.now()
         }, { merge: true });
-    } catch (error: any) {
+    } catch (caught) {
+        const error = caught as FirebaseError;
         console.error('❌ Failed to update DSA progress:', error.code, error.message);
         throw error;
     }
@@ -509,7 +526,7 @@ export const toggleDSAProblemCompletion = async (
         const docSnap = await getDoc(topicRef);
 
         if (docSnap.exists()) {
-            const updates: any = {};
+            const updates: Record<string, string[] | Timestamp> = {};
 
             if (isCompleted) {
                 newCompletedProblems = currentCompletedProblems.filter(id => id !== problemId);
@@ -536,7 +553,8 @@ export const toggleDSAProblemCompletion = async (
         }
 
         return { completed: newCompletedProblems };
-    } catch (error: any) {
+    } catch (caught) {
+        const error = caught as FirebaseError;
         console.error('❌ Failed to toggle DSA problem:', error.code, error.message);
         throw error;
     }
@@ -572,7 +590,8 @@ export const setPracticeDateForProblem = async (
                 updatedAt: Timestamp.now(),
             });
         }
-    } catch (error: any) {
+    } catch (caught) {
+        const error = caught as FirebaseError;
         console.error('❌ Failed to set practice date:', error.code, error.message);
         throw error;
     }
@@ -617,7 +636,8 @@ export const saveDailyOutreach = async (date: string, entries: OutreachEntry[]) 
             entries,
             updatedAt: Timestamp.now(),
         }, { merge: true });
-    } catch (error: any) {
+    } catch (caught) {
+        const error = caught as FirebaseError;
         console.error('❌ Failed to save outreach:', error.code, error.message);
         throw error;
     }
@@ -653,7 +673,8 @@ export const savePracticeRecord = async (record: PracticeRecord) => {
     try {
         const docRef = doc(db, PRACTICE_RECORDS_COLLECTION, record.questionId);
         await setDoc(docRef, record, { merge: true });
-    } catch (error: any) {
+    } catch (caught) {
+        const error = caught as FirebaseError;
         console.error('❌ Failed to save practice record:', error.code, error.message);
         throw error;
     }
@@ -715,7 +736,8 @@ export const saveEvidenceEntry = async (entry: EvidenceEntry) => {
             tag: entry.tag ?? deleteField(),
             createdAt: entry.createdAt,
         }, { merge: true });
-    } catch (error: any) {
+    } catch (caught) {
+        const error = caught as FirebaseError;
         console.error('❌ Failed to save evidence entry:', error.code, error.message);
         throw error;
     }
@@ -725,7 +747,8 @@ export const deleteEvidenceEntry = async (date: string) => {
     try {
         const docRef = doc(db, EVIDENCE_LOG_COLLECTION, date);
         await deleteDoc(docRef);
-    } catch (error: any) {
+    } catch (caught) {
+        const error = caught as FirebaseError;
         console.error('❌ Failed to delete evidence entry:', error.code, error.message);
         throw error;
     }
@@ -789,6 +812,43 @@ export const saveFoundationBuild = async (buildId: string, done: boolean) => {
     }
 };
 
+// ============ SYSTEM DESIGN ============
+//
+// Same shape as ML Foundations: the content is static (data/systemDesign.ts),
+// and one document holds every ticked check.
+
+const SYSTEM_DESIGN_DOC = 'system_design';
+
+export interface SystemDesignProgress {
+    checks: Record<string, Partial<Record<SDCheckKey, boolean>>>;
+}
+
+export const subscribeToSystemDesign = (
+    callback: (progress: SystemDesignProgress) => void
+) => {
+    return onSnapshot(doc(db, STUDY_PROGRESS_COLLECTION, SYSTEM_DESIGN_DOC), (docSnap) => {
+        const data = docSnap.exists() ? docSnap.data() : {};
+        callback({ checks: data.checks ?? {} });
+    }, (error) => {
+        console.error('❌ System design subscription error:', error.code, error.message);
+    });
+};
+
+export const saveSystemDesignCheck = async (
+    topicId: string,
+    check: SDCheckKey,
+    done: boolean
+) => {
+    try {
+        const docRef = doc(db, STUDY_PROGRESS_COLLECTION, SYSTEM_DESIGN_DOC);
+        // A nested object with merge touches only this one flag.
+        await setDoc(docRef, { checks: { [topicId]: { [check]: done } }, updatedAt: Timestamp.now() }, { merge: true });
+    } catch (error) {
+        console.error('❌ Failed to save system design check:', error);
+        throw error;
+    }
+};
+
 // ============ WEEKLY GOALS ============
 
 const WEEKLY_GOALS_COLLECTION = 'weekly_goals';
@@ -831,7 +891,8 @@ export const saveWeeklyGoals = async (
             goals,
             updatedAt: Timestamp.now(),
         }, { merge: true });
-    } catch (error: any) {
+    } catch (caught) {
+        const error = caught as FirebaseError;
         console.error('❌ Failed to save weekly goals:', error.code, error.message);
         throw error;
     }
