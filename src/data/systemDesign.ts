@@ -6,7 +6,8 @@
 //     design walk-through (design questions), a spoken interview answer, and follow-up
 //     questions WITH answers, for quick revision before an interview,
 //   - a plain-English explanation with an analogy and where it breaks (concepts),
-//   - the problem it solves, how it works step by step, and common mistakes,
+//   - the problem it solves, a diagram, how it works step by step, and common mistakes,
+//   - (every technical word is explained in systemDesignGlossary.ts),
 //   - free resources only, as optional extras (papers marked optional),
 //   - one practice exercise for each of the four checks. No answers, on purpose.
 //
@@ -46,7 +47,7 @@ export const SD_PRIORITY_LABELS: Record<SDPriority, string> = {
 /** Suggested order through the phases. */
 export const sdHowToStudy: string[] = [
     'The notes on every topic are written to be enough on their own. The free resources are optional: a second explanation and extra practice.',
-    'Start with Phase 0: the step-by-step answer frameworks for high-level and low-level design.',
+    'Start with Phase 0. Its first topic is a map of every building block; then learn the step-by-step answer frameworks.',
     'HLD track: Phases 1 → 2 → 3 → 4, then practise with Phase 8.',
     'LLD track: Phases 5 → 6, then practise with Phase 7. You can run it alongside the HLD track.',
     'AI/ML track: Phase 9, once the core concepts and the ML Foundations AI-engineering topics feel solid.',
@@ -67,6 +68,12 @@ export interface SDResource {
     url?: string;
 }
 
+/** A picture of the idea, in Mermaid syntax, and a sentence on how to read it. */
+export interface SDDiagram {
+    code: string;
+    caption: string;
+}
+
 export interface SDFollowUp {
     q: string;
     a: string;
@@ -83,6 +90,7 @@ interface SDTopicBase {
     problem: string;
     /** Common mistakes and misunderstandings to avoid. */
     mistakes: string[];
+    diagram: SDDiagram;
     /** A 20–40 second spoken answer for the interview. */
     interviewAnswer: string;
     /** Likely follow-up questions, with short answers for revision. */
@@ -151,12 +159,74 @@ export const systemDesignPhases: SDPhase[] = [
         bigPicture: 'Interviewers grade how you think: do you ask the right questions, size the problem, start simple and then improve the weak spots? A clear method shows all of that, even when you don\'t know every technology.',
         topics: [
             {
+                id: 'sd0-t4',
+                kind: 'concept',
+                name: 'Meet the building blocks: a map of a typical web system',
+                priority: 'must',
+                definition: 'Most large web systems are built from the same dozen parts — clients, DNS, a CDN, load balancers, app servers, caches, databases, queues, workers and object storage — connected in a familiar shape.',
+                problem: 'System design questions use many technical words at once. If you don\'t know what each part does, answers sound like a list of jargon. Learning the map first makes every later topic easier, because each one is a closer look at one box on this map.',
+                diagram: {
+                    code: 'flowchart LR\n  U["Client<br/>(phone or browser)"] -->|"1 where is api.example.com?"| DNS["DNS"]\n  U -->|"photos, scripts"| CDN["CDN<br/>(nearby copies)"]\n  U -->|"2 API request"| LB["Load balancer"]\n  LB --> A1["App server"]\n  LB --> A2["App server"]\n  A1 --> C[("Cache")]\n  A1 --> DB[("Database")]\n  A1 -->|"slow job"| Q[["Queue"]]\n  Q --> W["Worker"]\n  A1 --> OS[("Object storage")]\n  CDN -.->|"on a miss"| OS',
+                    caption: 'Follow the numbers. The client finds the servers through DNS, then sends its request to the load balancer. App servers read the cache and database, hand slow jobs to the queue, and keep files in object storage, which the CDN serves to users.',
+                },
+                idea: 'A user\'s app (the client) sends a request over the internet. DNS finds your servers\' address, a CDN serves files like photos from somewhere nearby, and a load balancer spreads the other requests across many identical app servers. App servers run your code: they read quick copies of data from a cache and the real data from a database. Slow jobs go onto a queue for background workers, and big files live in object storage.',
+                howItWorks: [
+                    'Client: the phone app is the client. It sends a request: \'upload this photo with this caption\'.',
+                    'DNS: the app asks DNS for the address of api.example.com and gets back an IP address — like a phone number for a server.',
+                    'Load balancer: the request reaches the load balancer, which picks one of many app servers that is healthy and not too busy.',
+                    'App server: your code checks who the user is, gets an upload link from object storage, and saves the caption and photo details in the database.',
+                    'Database: the permanent record of users, posts and likes. It\'s the source of truth.',
+                    'Queue and workers: the app server puts a message \'make thumbnails for photo 42\' on a queue and replies straight away. A background worker picks it up and makes the thumbnails.',
+                    'Cache: when friends open the post, the app server checks the cache (fast memory) first, and only reads the database on a miss.',
+                    'CDN: the photo itself is downloaded from a CDN server near each friend, not from your own servers.',
+                ],
+                analogy: 'A big restaurant chain. The phone book tells you where the nearest branch is (DNS). A host at the door sends you to a free waiter (load balancer). Waiters take orders and serve them (app servers). The pantry holds everything (database), but cooks keep the most-used ingredients on the counter (cache). Washing up happens in the back without making customers wait (queue and workers). The cold store holds big, bulky stock (object storage), and takeaway hatches around town hand out popular items fast (CDN).',
+                breaks: 'A waiter remembers your table. Good app servers deliberately remember nothing between requests (they\'re \'stateless\'), so any server can handle your next request. That\'s exactly what makes it easy to add more servers.',
+                example: 'Netflix, Instagram, Uber and a small startup all share this shape. What changes is the size of each box and which boxes matter most: Netflix leans on its CDN, Uber on live location, a bank on its database and transactions.',
+                keyPoints: [
+                    'Client: the app or browser the user holds.',
+                    'DNS: turns a name (example.com) into a server\'s address.',
+                    'CDN: servers around the world that keep copies of files close to users.',
+                    'Load balancer: spreads requests across many servers and skips broken ones.',
+                    'App server: runs your code; usually stateless, so you can add more.',
+                    'Cache: fast memory holding copies of often-read data (often Redis).',
+                    'Database: the permanent, trusted store of your data.',
+                    'Queue and workers: a waiting line of jobs, and the background programs that do them.',
+                    'Object storage: cheap, huge storage for files like photos and videos (for example Amazon S3).',
+                ],
+                mistakes: [
+                    'Learning tool names (Redis, Kafka) before knowing what job each box does.',
+                    'Thinking every system needs every box. A small app may only need one server and one database.',
+                    'Treating the cache as the place where data really lives. The database is the source of truth.',
+                ],
+                interviewAnswer: 'Most designs start from the same shape. Clients reach us through DNS; files come from a CDN; a load balancer spreads requests across stateless app servers; those servers read from a cache and a database, push slow work onto a queue for workers, and keep large files in object storage. Then I scale whichever box the requirements stress most.',
+                followUps: [
+                    { q: 'Which box is usually the hardest to scale?', a: 'The database, because it holds data that must stay correct. App servers are easy to copy; data is not.' },
+                    { q: 'Why put a queue between the app server and the workers?', a: 'So the user doesn\'t wait for slow work, and so a burst of jobs waits in line instead of overloading the workers.' },
+                ],
+                practice: {
+                    explain: 'Name the nine building blocks and say what each one does, in one sentence each, from memory.',
+                    draw: 'Draw the map from memory: client, DNS, CDN, load balancer, app servers, cache, database, queue, workers and object storage, with arrows.',
+                    apply: 'Pick an app you use every day, such as a food-delivery app. For one action, like placing an order, say which boxes the request passes through and why.',
+                    tradeoffs: 'For a tiny app with 100 users, which boxes would you leave out, and why?',
+                },
+                resources: [
+                    { kind: 'read', title: 'The System Design Primer', source: 'Donne Martin · GitHub, free', url: 'https://github.com/donnemartin/system-design-primer' },
+                    { kind: 'watch', title: 'System Design for Beginners (full course)', source: 'freeCodeCamp · free on YouTube', url: 'https://www.youtube.com/results?search_query=freeCodeCamp+system+design+for+beginners+course' },
+                    { kind: 'watch', title: 'ByteByteGo: system design concepts for beginners', source: 'ByteByteGo · YouTube', url: 'https://www.youtube.com/results?search_query=ByteByteGo+system+design+concepts+for+beginners' },
+                ],
+            },
+            {
                 id: 'sd0-t1',
                 kind: 'concept',
                 name: 'The high-level design interview: a step-by-step answer framework',
                 priority: 'must',
                 definition: 'A repeatable order of steps for answering any \'Design X\' question in about 45 minutes.',
                 problem: 'Under pressure, most people either freeze or start drawing boxes before they understand the question. Both lose marks. A fixed method gives you something to do in every minute, and shows the interviewer how you think.',
+                diagram: {
+                    code: 'flowchart LR\n  R["1 Requirements<br/>about 5 min"] --> E["2 Estimates<br/>about 3 min"] --> A["3 API<br/>about 3 min"] --> D["4 Data model<br/>about 3 min"]\n  D --> H["5 High-level design<br/>about 10 min"] --> X["6 Deep dives<br/>10–15 min"] --> W["7 Wrap-up<br/>trade-offs"]',
+                    caption: 'Work left to right. Each box is one stage of the interview, with roughly how long to spend on it.',
+                },
                 idea: 'Interviewers judge how you think, not whether you reach one \'right\' design. A framework stops you jumping straight to boxes and arrows. The usual order: clarify requirements, estimate the scale, define the API, sketch the data model, draw a simple design that works, then go deep on the hardest parts and discuss trade-offs.',
                 howItWorks: [
                     'Requirements: ask who uses the system and what the 3–4 core features are. For a URL shortener: \'Do we need custom aliases? Expiry? Click analytics?\' Then the non-functional side: \'How many users? Is a slightly stale read acceptable?\' Write the answers in a corner of the board.',
@@ -213,6 +283,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'must',
                 definition: 'Quick, rough maths to estimate traffic, storage and bandwidth, so your design decisions are based on scale.',
                 problem: 'Without numbers you can\'t tell whether one server is enough or you need a hundred. Estimation turns a vague \'big app\' into numbers that decide the design.',
+                diagram: {
+                    code: 'flowchart TD\n  U["Daily users<br/>10 million"] --> A["× actions per user<br/>20 reads, 1 post"]\n  A --> R["Reads per day<br/>200 million"] --> RS["÷ 100,000 seconds<br/>≈ 2,000 reads/s"]\n  A --> W["Writes per day<br/>10 million"] --> WS["÷ 100,000 seconds<br/>≈ 100 writes/s"]\n  W --> S["× 1 KB each<br/>≈ 10 GB a day"] --> Y["× 365 days × 3 copies<br/>≈ 11 TB a year"]\n  RS --> P["× 2–5 for the peak"]',
+                    caption: 'Start from users, multiply by actions, divide by about 100,000 seconds in a day for per-second numbers, and multiply by item size for storage.',
+                },
                 idea: 'You turn the number of users into requests per second (QPS), storage per day and per year, and bandwidth. Rough is fine. A day has 86,400 seconds, about 100,000, so 1 million requests a day is about 12 per second. Peak traffic is often 2–5 times the average.',
                 howItWorks: [
                     'Start from users: daily active users × actions per user per day = actions per day.',
@@ -263,6 +337,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'must',
                 definition: 'A repeatable way to answer \'Design the classes for X\' (a parking lot, an elevator, Splitwise) and write the key code.',
                 problem: 'LLD questions are open-ended: \'design a parking lot\' could mean almost anything. Without a method you write random classes, or code that breaks the moment the interviewer adds a requirement.',
+                diagram: {
+                    code: 'flowchart LR\n  U["Use cases"] -->|"nouns"| E["Entities<br/>(classes)"]\n  U -->|"verbs"| M["Methods"]\n  E --> CD["Class diagram"]\n  M --> CD\n  CD --> P["Patterns where<br/>behaviour varies"]\n  P --> C["Code the<br/>main flows"]\n  C --> T["Stress-test: concurrency,<br/>edge cases, new features"]',
+                    caption: 'Nouns in the use cases become classes and verbs become methods. Draw them, add patterns where things vary, code the main flow, then test the design against harder situations.',
+                },
                 idea: 'Low-level design (LLD) tests object-oriented design: clear classes, good relationships, sensible patterns, and code that is easy to extend. Clarify the scope, list the entities, draw a class diagram, pick patterns where things vary, code the main flows, then discuss concurrency and how you\'d add new features.',
                 howItWorks: [
                     'Clarify: write 4–6 use cases as short sentences (\'a car enters\', \'the system assigns a spot\', \'the driver pays on exit\'). Agree what\'s out of scope.',
@@ -324,6 +402,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'must',
                 definition: 'Clients (browsers, apps) send requests; servers process them and send responses. DNS turns a name like example.com into an IP address the client can connect to.',
                 problem: 'Computers find each other by IP address, but people remember names. Between typing a name and seeing a page there are several steps, and each can be slow or fail. Knowing them lets you explain latency, failover and where caching helps.',
+                diagram: {
+                    code: 'sequenceDiagram\n  participant B as Browser\n  participant R as DNS resolver\n  participant S as Web server\n  B->>R: Where is example.com?\n  R-->>B: 203.0.113.10 (kept for its TTL)\n  B->>S: TCP handshake (SYN, SYN-ACK, ACK)\n  B->>S: TLS handshake (certificate and keys)\n  B->>S: GET / (Host example.com)\n  S-->>B: 200 OK and the page',
+                    caption: 'Time runs from top to bottom. First the browser finds the address, then it opens a connection, secures it, and only then asks for the page.',
+                },
                 idea: 'When you type a URL, the browser asks DNS for the server\'s IP address (often from a cache), opens a TCP connection, does a TLS handshake for HTTPS, and sends an HTTP request. The request usually reaches a load balancer, which passes it to an application server. That server may read a cache or database, then sends the response back.',
                 howItWorks: [
                     'You type example.com. The browser checks its own DNS cache, then the operating system\'s.',
@@ -375,6 +457,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'must',
                 definition: 'HTTP is the request–response protocol of the web. REST is a style of API design built around resources (nouns) and standard methods (GET, POST, PUT, PATCH, DELETE).',
                 problem: 'Clients and servers are often built by different teams, or even different companies. They need a clear, stable contract for asking and answering; otherwise every change breaks somebody.',
+                diagram: {
+                    code: 'sequenceDiagram\n  participant C as Client\n  participant S as Server\n  participant D as Database\n  C->>S: POST /v1/orders (Idempotency-Key k1)\n  S->>D: save the order and key k1\n  S-->>C: 201 Created\n  Note over C,S: the reply gets lost, so the client retries\n  C->>S: POST /v1/orders (Idempotency-Key k1)\n  S->>D: has key k1 been used?\n  D-->>S: yes, for order 77\n  S-->>C: 201 Created (the same order 77, no duplicate)',
+                    caption: 'A retried request carries the same idempotency key, so the server recognises it and returns the first result instead of creating a second order.',
+                },
                 idea: 'A good API is predictable. Resources have clear URLs like /users/42/orders, methods mean what they say, and status codes tell the client what happened. Lists are paginated, the API is versioned, and requests that may be retried are made idempotent so a retry can\'t do the work twice.',
                 howItWorks: [
                     'Name resources as nouns: /users, /users/42, /users/42/orders. Avoid verbs in URLs, like /getUserOrders.',
@@ -430,6 +516,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'should',
                 definition: 'Ways for a server to get new data to a client quickly: the client keeps asking (polling), waits on an open request (long polling), keeps a two-way connection open (WebSockets), or receives a one-way stream (server-sent events, SSE).',
                 problem: 'Normal HTTP lets the client ask but not the server tell. Chat, notifications, live prices and multiplayer games need updates pushed to the user within a fraction of a second.',
+                diagram: {
+                    code: 'flowchart LR\n  A["User A"] <-->|"WebSocket"| G1["Gateway 1"]\n  B["User B"] <-->|"WebSocket"| G2["Gateway 2"]\n  G1 -->|"1 message for B"| CS["Chat service"]\n  CS -->|"2 where is B connected?"| R[("Redis<br/>user → gateway")]\n  CS -->|"3 forward"| G2',
+                    caption: 'Each user keeps an open connection to one gateway. To reach B, the chat service looks up B\'s gateway in Redis and forwards the message there.',
+                },
                 idea: 'Normal HTTP is \'the client asks, the server answers\'. Chat, live scores and notifications need the server to push. Polling is simple but wasteful. Long polling holds a request open until there\'s news. WebSockets keep one connection open for messages in both directions. SSE is a simpler one-way stream from server to client.',
                 howItWorks: [
                     'Short polling: the client asks \'anything new?\' every few seconds. Simple, but most answers are \'no\'.',
@@ -477,6 +567,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'must',
                 definition: 'A network of servers around the world that caches static content (images, video, scripts) close to users.',
                 problem: 'Distance costs time: a user in Sydney fetching from London waits around a quarter of a second for each round trip, and every byte you send costs bandwidth. Big files and users all over the world make this much worse.',
+                diagram: {
+                    code: 'flowchart LR\n  U1["User in Sydney"] --> E1["Edge server<br/>Sydney"]\n  U2["User in London"] --> E2["Edge server<br/>London"]\n  E1 -.->|"miss: fetch once"| O["Origin server<br/>(yours)"]\n  E2 -.->|"miss: fetch once"| O',
+                    caption: 'Users talk to the edge server near them. Only on a miss does the edge fetch the file from your origin; after that, everyone nearby gets the fast local copy.',
+                },
                 idea: 'Instead of every user fetching a video from your one datacentre, copies are served from a nearby \'edge\' server. This cuts latency, takes load off your servers and absorbs traffic spikes. Content is pulled into the CDN on the first request (pull CDN) or uploaded in advance (push CDN).',
                 howItWorks: [
                     'You point a hostname, like cdn.example.com, at the CDN provider.',
@@ -523,6 +617,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'should',
                 definition: 'A reverse proxy sits in front of your servers and receives requests on their behalf. An API gateway is a reverse proxy with API features: authentication, rate limiting and routing to the right service.',
                 problem: 'With many services, every client would need to know every service\'s address, and every service would repeat the same login checks, rate limits and logging. That\'s duplicated, inconsistent work.',
+                diagram: {
+                    code: 'flowchart LR\n  C["Clients"] --> G["API gateway<br/>TLS · auth · rate limit · logging"]\n  G -->|"/users/..."| US["User service"]\n  G -->|"/orders/..."| OS["Order service"]\n  G -->|"/payments/..."| PS["Payment service"]',
+                    caption: 'Every request goes through one front door. The gateway checks and logs it, then sends it to the right service based on its path.',
+                },
                 idea: 'Clients talk to one entry point instead of many servers. That entry point can handle TLS, compress responses, cache, check tokens, apply rate limits, and send /orders to the order service and /users to the user service.',
                 howItWorks: [
                     'The client sends every request to one address, for example api.example.com.',
@@ -579,6 +677,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'must',
                 definition: 'Scalability is a system\'s ability to handle more load by adding resources.',
                 problem: 'A system that works for 100 users can fall over at 100,000. You need a way to add capacity without rewriting everything.',
+                diagram: {
+                    code: 'flowchart TD\n  LB["Load balancer"] --> S1["App server"]\n  LB --> S2["App server"]\n  LB --> S3["App server<br/>(added by auto-scaling)"]\n  S1 & S2 & S3 --> R[("Redis<br/>sessions")]\n  S1 & S2 & S3 --> P[("Database leader")]\n  P --> RR[("Read replica")]',
+                    caption: 'Horizontal scaling: identical, stateless app servers behind a load balancer. Because sessions live in Redis, any server can handle any user, so adding a server is easy.',
+                },
                 idea: 'Vertical scaling means a bigger machine (more CPU and memory). It\'s simple, but there\'s a ceiling, and that one machine can fail. Horizontal scaling means more machines behind a load balancer. It has no hard ceiling and survives failures, but needs stateless app servers and shared storage. The key trick: keep app servers stateless, and keep sessions and data in shared stores.',
                 howItWorks: [
                     'Find the bottleneck first: is the CPU at 100%, the database slow, memory full, or the network saturated?',
@@ -631,6 +733,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'must',
                 definition: 'Availability is the share of time a system works and responds correctly, usually written in \'nines\', like 99.9%.',
                 problem: 'Machines, disks, networks and whole datacentres fail. If your system has only one copy of anything important, that one failure takes everything down.',
+                diagram: {
+                    code: 'flowchart TD\n  LB["Load balancer (redundant pair)"]\n  subgraph ZA["Availability zone A"]\n    A1["App server"]\n    DBA[("Database leader")]\n  end\n  subgraph ZB["Availability zone B"]\n    B1["App server"]\n    DBB[("Database standby")]\n  end\n  LB --> A1\n  LB --> B1\n  DBA -->|"copies every change"| DBB',
+                    caption: 'Everything has a copy in a second zone. If zone A goes down, the load balancer sends traffic to zone B and the standby database takes over.',
+                },
                 idea: '99.9% (\'three nines\') allows about 8.8 hours of downtime a year; 99.99% about 53 minutes. You raise availability by removing single points of failure: run several copies across machines and zones, with health checks and automatic failover. An SLO is your internal target; an SLA is the promise to customers, often with refunds if you miss it.',
                 howItWorks: [
                     'Agree the target. 99.9% means about 43 minutes of downtime a month.',
@@ -683,6 +789,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'must',
                 definition: 'Fault tolerance means the system keeps working, perhaps in a reduced way, when parts of it fail.',
                 problem: 'In a system of many services, something is always slow or broken. Without protection, one slow dependency makes its callers wait, they run out of threads, and the failure spreads until everything is down.',
+                diagram: {
+                    code: 'stateDiagram-v2\n  [*] --> Closed\n  Closed --> Open: too many failures\n  Open --> HalfOpen: after a cool-down\n  HalfOpen --> Closed: test calls succeed\n  HalfOpen --> Open: test calls fail\n  Closed: Closed - calls go through\n  Open: Open - fail fast, use the fallback\n  HalfOpen: Half-open - a few test calls',
+                    caption: 'The three states of a circuit breaker. Arrows show what makes it switch from one state to another.',
+                },
                 idea: 'In distributed systems something is always failing: a server, a network link, a slow dependency. The defences: timeouts (never wait forever), retries with exponential backoff and jitter (try again, gently), circuit breakers (stop calling a broken service for a while), fallbacks (return cached or default data), and bulkheads (separate resources so one failure can\'t sink everything).',
                 howItWorks: [
                     'Timeout: decide how long a call may take, say 300 ms. After that, give up instead of waiting forever.',
@@ -733,6 +843,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'must',
                 definition: 'A load balancer spreads incoming requests across several servers and stops sending traffic to unhealthy ones.',
                 problem: 'One server can only handle so much, and if it dies, everyone using it is affected. You need to spread requests across many servers and route around the broken ones.',
+                diagram: {
+                    code: 'flowchart LR\n  C["Clients"] --> LB["Load balancer"]\n  LB -->|"request 1"| S1["Server 1 ✓"]\n  LB -->|"request 2"| S2["Server 2 ✓"]\n  LB -.->|"failed health check:<br/>no traffic"| S3["Server 3 ✗"]',
+                    caption: 'Requests are shared between healthy servers. Server 3 failed its health check, so it gets no traffic until it recovers.',
+                },
                 idea: 'It makes many servers look like one, enables horizontal scaling and hides failures. Layer 4 balancers route by IP address and port (fast). Layer 7 balancers read the HTTP request, so they can route by path, header or cookie. Common algorithms: round robin, least connections, and hashing (the same user always goes to the same server).',
                 howItWorks: [
                     'Clients connect to the load balancer\'s address, never directly to a server.',
@@ -781,6 +895,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'must',
                 definition: 'A cache keeps a copy of frequently used data in fast storage, usually memory, so it can be served without repeating slow work.',
                 problem: 'Reading from a database on disk, or recalculating a result, is slow and expensive compared with reading memory. When the same data is read again and again, repeating the work is waste.',
+                diagram: {
+                    code: 'sequenceDiagram\n  participant A as App server\n  participant C as Cache (Redis)\n  participant D as Database\n  A->>C: get product 42\n  alt cache hit\n    C-->>A: product (under 1 ms)\n  else cache miss\n    C-->>A: nothing\n    A->>D: read product 42\n    D-->>A: product (5–20 ms)\n    A->>C: store product 42 for 5 minutes\n  end',
+                    caption: 'Cache-aside. The app always asks the cache first. On a miss it reads the database and saves a copy in the cache for next time.',
+                },
                 idea: 'Caches exist at many layers: the browser, the CDN, the application (Redis or Memcached) and the database. The usual pattern is cache-aside: read from the cache; on a miss, read the database and store the result with a TTL. The hard parts are keeping the cache in step with the database (invalidation) and choosing what to remove when it\'s full (eviction, often LRU).',
                 howItWorks: [
                     'A request needs product 42. The app asks Redis for the key \'product:42\'.',
@@ -833,6 +951,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'must',
                 definition: 'Consistency (in distributed systems) means every read sees the latest write. The CAP theorem says that during a network partition, a system must choose between consistency and availability.',
                 problem: 'To survive failures and be fast for users everywhere, you keep copies of data on several machines. But copies can\'t all change at exactly the same instant, and the network between them can break. You must decide what users see in that gap.',
+                diagram: {
+                    code: 'flowchart TD\n  U["User withdraws £80 in London"] --> L["London copy<br/>balance £100"]\n  L ---|"network broken ✗"| P["Paris copy<br/>balance £100"]\n  L --> CP["CP choice: refuse until Paris confirms<br/>always correct, some requests fail"]\n  L --> AP["AP choice: accept, London shows £20<br/>always answers, copies may disagree"]',
+                    caption: 'The network between the two copies is broken. The system must either refuse (stay consistent) or accept and risk the copies disagreeing (stay available).',
+                },
                 idea: 'When data is copied across machines, the copies can briefly disagree. Strong consistency makes every read return the latest value, but may have to refuse requests when machines can\'t talk to each other. Eventual consistency always answers, but a read can be briefly out of date. Network partitions will happen, so the real choice is C or A during a partition. PACELC adds: else (normally), you trade latency against consistency.',
                 howItWorks: [
                     'Picture two replicas, in London and Paris, each holding a balance of £100.',
@@ -885,6 +1007,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'must',
                 definition: 'Rate limiting caps how many requests a client can make in a time window. Backpressure is a system telling the senders upstream to slow down when it\'s overloaded.',
                 problem: 'Without limits, one buggy script, scraper or attacker can send so many requests that everyone else gets errors. And a system that accepts more work than it can do eventually collapses for everyone.',
+                diagram: {
+                    code: 'flowchart LR\n  R["Request from key K"] --> G["Gateway"]\n  G --> D{"Token left in K\'s bucket?<br/>(kept in Redis)"}\n  D -->|"yes: take 1"| S["Service handles it"]\n  D -->|"no"| X["429 Too Many Requests"]\n  T["Refill: +10 tokens a second,<br/>max 20"] -.-> D',
+                    caption: 'Each client has a bucket of tokens. A request spends one token; an empty bucket means the request is rejected until the bucket refills.',
+                },
                 idea: 'Rate limits protect services from abuse, bugs and traffic spikes, and enforce fair use, like 100 requests per minute per user. Requests over the limit get HTTP 429. Common algorithms: token bucket, leaky bucket, fixed window and sliding window. Backpressure goes further: queues have size limits, and when they fill, senders are told to wait or requests are dropped on purpose, instead of the whole system falling over.',
                 howItWorks: [
                     'Choose the rule: for example, 10 requests per second per API key, with bursts of up to 20.',
@@ -936,6 +1062,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'must',
                 definition: 'Asynchronous processing means doing slow work later, outside the user\'s request. A message queue holds the work, or events, between the service that produces them and the services that consume them.',
                 problem: 'Some work is slow (encoding video, sending emails) or comes in bursts (a sale doubles traffic). Doing it inside the user\'s request makes them wait, and a burst can overwhelm the services behind it.',
+                diagram: {
+                    code: 'flowchart LR\n  API["API server"] -->|"1 put message"| Q[["Queue"]]\n  API -->|"2 reply: 202 Accepted"| U["User"]\n  Q -->|"3 pull a job"| W1["Worker"]\n  Q --> W2["Worker"]\n  W1 -->|"4 done: acknowledge"| Q\n  Q -.->|"failed too often"| DLQ[["Dead-letter queue"]]',
+                    caption: 'The API replies at once and leaves the slow work on the queue. Workers take jobs at their own pace; a job is removed only after the worker says it\'s done.',
+                },
                 idea: 'Instead of making a user wait while you send emails, resize images and update analytics, you put a message on a queue and reply straight away. Workers process messages at their own pace. Queues absorb spikes, decouple services and let you retry failures. SQS-style queues give each message to one worker; Kafka keeps an ordered log that many groups of consumers can read, and re-read.',
                 howItWorks: [
                     'A user uploads a video. The API stores the file and puts a message {video_id: 42} on a queue.',
@@ -989,6 +1119,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'must',
                 definition: 'Observability is how well you can understand what a system is doing from the outside, using logs, metrics and traces.',
                 problem: 'When something goes wrong in a system of many services, you can\'t attach a debugger to production. Without data coming out of the system, you\'re guessing.',
+                diagram: {
+                    code: 'flowchart LR\n  C["Request<br/>trace ID abc123"] --> G["Gateway<br/>12 ms"]\n  G --> O["Order service<br/>40 ms"]\n  O --> P["Payment service<br/>1,600 ms ⚠"]\n  O & P --> M["Metrics<br/>dashboards and alerts"]\n  O & P --> L["Logs<br/>tagged with the trace ID"]',
+                    caption: 'One request\'s trace shows the time spent in each service, which points straight at the slow one. Metrics and logs from every service carry the same trace ID.',
+                },
                 idea: 'Metrics are numbers over time (requests per second, error rate, latency percentiles), used for dashboards and alerts. Logs are detailed records of events, used for investigating. Traces follow one request across many services and show where the time went. Alert on symptoms users feel (errors, latency against your SLO), not on every CPU blip.',
                 howItWorks: [
                     'Metrics: every service counts requests, errors and latency, and exports them every few seconds. Dashboards show trends; an alert fires when, say, the error rate stays above 1% for 5 minutes.',
@@ -1047,6 +1181,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'must',
                 definition: 'SQL (relational) databases store data in tables with a fixed schema and support joins and transactions. NoSQL is a family of other models: key-value, document, wide-column and graph.',
                 problem: 'Different data and different access patterns need different storage. A wrong choice hurts later: slow queries, joins you can\'t do, or a database that can\'t keep up with the writes.',
+                diagram: {
+                    code: 'flowchart TD\n  Q{"What do the main reads<br/>and writes look like?"}\n  Q -->|"joins, transactions"| SQL["SQL<br/>PostgreSQL, MySQL"]\n  Q -->|"one key, very fast"| KV["Key-value<br/>Redis, DynamoDB"]\n  Q -->|"self-contained records"| DOC["Document<br/>MongoDB"]\n  Q -->|"huge writes, read by one key"| WC["Wide-column<br/>Cassandra"]\n  Q -->|"relationships"| GR["Graph<br/>Neo4j"]',
+                    caption: 'Start from how the data is used, then follow the matching arrow to a kind of database.',
+                },
                 idea: 'Start from your data and how it\'s accessed. Relational databases (PostgreSQL, MySQL) suit structured data with relationships and strong consistency. Key-value stores (Redis, DynamoDB) give fast lookups by key. Document stores (MongoDB) hold flexible JSON-like records. Wide-column stores (Cassandra) handle huge write volumes. Graph databases (Neo4j) suit highly connected data like social networks.',
                 howItWorks: [
                     'List the main queries: \'get a user\'s last 20 orders\', \'find all messages in a chat by time\', \'count the likes on a post\'.',
@@ -1100,6 +1238,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'must',
                 definition: 'A transaction groups several operations so they succeed or fail together. ACID stands for Atomic, Consistent, Isolated, Durable.',
                 problem: 'Real operations change several things at once: take money from A, give it to B. If the system crashes halfway, or two users act at the same moment, money can be created or destroyed.',
+                diagram: {
+                    code: 'sequenceDiagram\n  participant App\n  participant DB as Database\n  App->>DB: BEGIN\n  App->>DB: take £100 from A (only if A has it)\n  App->>DB: add £100 to B\n  alt everything worked\n    App->>DB: COMMIT - both changes are saved\n  else something failed\n    App->>DB: ROLLBACK - neither change happens\n  end',
+                    caption: 'A transfer is one transaction: it either commits completely or rolls back completely, so money is never lost or created.',
+                },
                 idea: 'Atomic: all or nothing. Consistent: the database moves from one valid state to another, so its rules always hold. Isolated: transactions running at the same time don\'t see each other\'s half-finished work. Durable: once committed, the change survives a crash. Isolation comes in levels — read committed, repeatable read, serializable — trading safety for speed.',
                 howItWorks: [
                     'BEGIN starts a transaction. Changes are made, but other users can\'t see them yet (isolation).',
@@ -1150,6 +1292,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'must',
                 definition: 'An index is an extra data structure that lets the database find rows without scanning the whole table.',
                 problem: 'Finding one row among 100 million by checking every row takes seconds. Users and other services can\'t wait that long, and the database burns CPU doing it.',
+                diagram: {
+                    code: 'flowchart TD\n  R["Root<br/>A–L · M–Z"] --> L1["A–F · G–L"]\n  R --> L2["M–S · T–Z"]\n  L1 --> P1["leaf: emails a…f<br/>→ where each row is"]\n  L1 --> P2["leaf: g…l"]\n  L2 --> P3["leaf: m…s"]\n  L2 --> P4["leaf: t…z"]',
+                    caption: 'A B-tree index. To find an email, start at the root and take one branch per level; a few steps reach the leaf that says where the row is.',
+                },
                 idea: 'Most databases use B-tree indexes: sorted, balanced trees that find a value in a few steps and also support ranges and sorting. Indexes make reads fast but writes slower, because every index must be updated, and they use extra storage. Composite indexes cover several columns, and the column order matters.',
                 howItWorks: [
                     'Without an index, WHERE email = \'a@b.com\' reads every row: a full table scan.',
@@ -1201,6 +1347,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'must',
                 definition: 'Replication keeps copies of the same data on several machines.',
                 problem: 'One copy of your data is a single point of failure, and one machine can only answer so many reads. You need copies — and then you have to keep them in agreement.',
+                diagram: {
+                    code: 'flowchart LR\n  W["Writes"] --> L[("Leader")]\n  L -->|"synchronous copy"| F1[("Follower 1<br/>another zone")]\n  L -.->|"asynchronous copy<br/>(may lag)"| F2[("Follower 2")]\n  R["Reads"] --> F1\n  R --> F2',
+                    caption: 'All writes go to the leader, which copies them to the followers. Reads can be spread across the followers, but an asynchronous follower may be slightly behind.',
+                },
                 idea: 'Copies give you availability (another copy takes over when one fails), durability, and more read capacity. In leader–follower replication, all writes go to the leader and the followers copy them; reads can go to followers. Copying can be synchronous (safe but slower) or asynchronous (fast, but followers can lag behind). Multi-leader and leaderless designs allow writes in several places but must resolve conflicts.',
                 howItWorks: [
                     'A write arrives at the leader. The leader saves it and adds it to its replication log.',
@@ -1249,6 +1399,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'must',
                 definition: 'Sharding splits a large dataset across several databases (shards), each holding part of the data.',
                 problem: 'Even the biggest single database has limits on storage and write speed. When your data or writes outgrow it, you have to split the data across machines.',
+                diagram: {
+                    code: 'flowchart TD\n  Q["Query for user_id 42"] --> RT{"shard = hash of user_id, mod 4"}\n  RT --> S0[("Shard 0")]\n  RT --> S1[("Shard 1")]\n  RT -->|"user 42 lives here"| S2[("Shard 2")]\n  RT --> S3[("Shard 3")]',
+                    caption: 'The shard key decides which database holds each user. A query by user ID goes straight to one shard.',
+                },
                 idea: 'When one database can\'t handle the writes or the data size, you split it by a shard key. Range sharding (A–M, N–Z) keeps neighbouring keys together but can create hot spots. Hash sharding spreads data evenly but makes range queries harder. The shard key is the biggest decision: it decides balance, which queries stay on one shard, and how hard it is to add shards later.',
                 howItWorks: [
                     'Choose a shard key that matches your main query, such as user_id.',
@@ -1297,6 +1451,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'should',
                 definition: 'Consistent hashing assigns keys to servers so that adding or removing a server moves only a small share of the keys.',
                 problem: 'If you place keys with hash(key) % N, adding or removing one server changes N and almost every key moves. For a cache, that means almost every request suddenly misses at once.',
+                diagram: {
+                    code: 'flowchart LR\n  A(("Server A")) --> B(("Server B")) --> C(("Server C")) --> A\n  k1["key 1"] -.->|"next server clockwise"| B\n  k2["key 2"] -.-> C\n  k3["key 3"] -.-> A',
+                    caption: 'Picture the arrows between servers as a circle. Each key belongs to the next server clockwise; a new server only takes keys from its neighbour.',
+                },
                 idea: 'With simple hash(key) % N, changing N from 4 to 5 moves almost every key, which is a disaster for a cache. Consistent hashing places both servers and keys on a ring; each key belongs to the next server clockwise. Adding a server only takes keys from its neighbour. Virtual nodes, where each server appears many times on the ring, keep the load even.',
                 howItWorks: [
                     'Picture a ring of numbers from 0 up to a huge maximum.',
@@ -1346,6 +1504,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'must',
                 definition: 'Object storage keeps files (\'objects\') such as images, videos and backups as a key pointing to bytes plus metadata, in a cheap, very durable, almost unlimited store like Amazon S3.',
                 problem: 'Photos, videos, backups and documents are big and numerous. Storing them in a database bloats it, slows backups and costs a lot; storing them on one server\'s disk breaks scaling.',
+                diagram: {
+                    code: 'sequenceDiagram\n  participant C as Client\n  participant API as API server\n  participant S3 as Object storage\n  participant DB as Database\n  C->>API: I want to upload a photo\n  API->>S3: create a pre-signed upload URL\n  S3-->>API: URL, valid for 5 minutes\n  API-->>C: here is the URL\n  C->>S3: upload the file directly\n  C->>API: upload finished\n  API->>DB: save the key users/42/photo.jpg',
+                    caption: 'The file goes straight from the client to storage. Your servers only hand out the upload link and record where the file is.',
+                },
                 idea: 'Databases are bad at holding big files. Instead, store the file in object storage and keep only its key or URL in the database. Clients can upload straight to storage with a pre-signed URL, so big files never pass through your servers. Put a CDN in front for fast downloads.',
                 howItWorks: [
                     'The client asks your API: \'I want to upload a photo\'.',
@@ -1393,6 +1555,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'should',
                 definition: 'Full-text search finds the documents that contain some words and ranks them by relevance. It\'s built on an inverted index: a map from each word to the documents containing it.',
                 problem: 'Users type words, not IDs, and they expect the best matches first, even with typos. Normal database indexes can\'t do that efficiently.',
+                diagram: {
+                    code: 'flowchart LR\n  D1["Doc 1: red running shoes"] --> IX["Inverted index"]\n  D2["Doc 2: blue shoes"] --> IX\n  D3["Doc 3: red hat"] --> IX\n  IX --> T1["red → docs 1, 3"]\n  IX --> T2["shoe → docs 1, 2"]\n  T1 & T2 --> AND["search \'red shoes\'<br/>docs in both lists = doc 1"]',
+                    caption: 'Documents are broken into words, and each word points to the documents containing it. A search intersects the lists for its words.',
+                },
                 idea: 'A SQL query like LIKE \'%shoe%\' scans every row. A search engine builds an inverted index in advance (\'shoe\' → documents 3, 17, 42), so lookups are fast. It also handles word forms (running → run), typos, and ranking (for example BM25). Search engines like Elasticsearch are usually a second store, filled from the main database.',
                 howItWorks: [
                     'Indexing: each document\'s text is split into words, lowercased, and reduced to stems (\'Running Shoes\' → \'run\', \'shoe\').',
@@ -1442,6 +1608,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'should',
                 definition: 'Generating IDs that are unique across many servers, without one shared database counter.',
                 problem: 'Every order, message and user needs an ID that never repeats. With many servers creating records at the same moment, one shared counter becomes a bottleneck and a single point of failure.',
+                diagram: {
+                    code: 'flowchart LR\n  T["Timestamp<br/>41 bits<br/>milliseconds"] --- M["Machine ID<br/>10 bits"] --- S["Sequence<br/>12 bits<br/>0–4,095"]',
+                    caption: 'One 64-bit Snowflake ID, read left to right. The time comes first, so later IDs are bigger and sort by time.',
+                },
                 idea: 'A single auto-increment counter becomes a bottleneck at scale. Options: UUIDs (random, no coordination, 128-bit, but version 4 isn\'t ordered by time), a ticket server that hands out ranges of numbers, or Snowflake-style IDs: 64-bit numbers made from a timestamp, a machine ID and a sequence number. They\'re unique, roughly ordered by time, and generated locally.',
                 howItWorks: [
                     'A Snowflake ID is built as: timestamp (41 bits), then machine ID (10 bits), then sequence (12 bits).',
@@ -1500,6 +1670,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'must',
                 definition: 'A monolith is one deployable application. Microservices split the system into small services, each owning one business capability and its own data, talking over the network.',
                 problem: 'As a product and team grow, one big codebase becomes slow to build, risky to deploy and hard for many teams to work on at once. But splitting it creates network and data problems.',
+                diagram: {
+                    code: 'flowchart TD\n  G["API gateway"] --> U["User service"]\n  G --> O["Order service"]\n  G --> C["Catalogue service"]\n  U --> UD[("Users DB")]\n  O --> OD[("Orders DB")]\n  C --> CD[("Catalogue DB")]\n  O -->|"event: order placed"| K[["Event stream"]]\n  K --> P["Payment service"] --> PD[("Payments DB")]\n  K --> N["Notification service"]',
+                    caption: 'Each service owns its own database. Services that don\'t need an immediate answer react to events instead of calling each other directly.',
+                },
                 idea: 'A monolith is simpler to build, test and deploy at first. Microservices let teams deploy independently and scale parts separately, but add network calls, partial failures, distributed data and running costs. A good path: start with a well-structured (modular) monolith, and split off services when there\'s a clear reason.',
                 howItWorks: [
                     'Find boundaries around business capabilities: users, catalogue, orders, payments.',
@@ -1551,6 +1725,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'should',
                 definition: 'A saga runs a business process across several services as a series of local transactions, with a compensating action to undo each step if a later step fails.',
                 problem: 'An order needs stock reserved, a card charged and a shipment booked, in three different services with three databases. No single transaction can cover all three, but you still can\'t leave an order half done.',
+                diagram: {
+                    code: 'sequenceDiagram\n  participant O as Orchestrator\n  participant S as Stock service\n  participant P as Payment service\n  O->>S: reserve stock\n  S-->>O: reserved\n  O->>P: charge the card\n  P-->>O: declined\n  O->>S: compensate - release the stock\n  S-->>O: released\n  Note over O: the order is marked FAILED',
+                    caption: 'Each step is a local transaction. When the payment fails, the orchestrator undoes the earlier step instead of leaving the order half done.',
+                },
                 idea: 'Across services you can\'t wrap everything in one ACID transaction. A saga runs steps one by one — reserve stock, charge the card, create the shipment — and if charging fails, it runs compensations, like releasing the stock. Steps are coordinated by choreography (services react to each other\'s events) or orchestration (a central coordinator tells each step what to do). The outbox pattern makes \'update my database and publish an event\' reliable: write the event into an outbox table in the same transaction, then publish it.',
                 howItWorks: [
                     'The orchestrator starts the saga: \'reserve stock\'. The stock service reserves it and replies OK.',
@@ -1598,6 +1776,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'bonus',
                 definition: 'Consensus is getting several machines to agree on a value — such as who the leader is, or the order of operations — even when some of them fail.',
                 problem: 'Several machines need to agree, even when some crash or messages are delayed. If two of them both believe they\'re in charge, data gets corrupted.',
+                diagram: {
+                    code: 'sequenceDiagram\n  participant C as Client\n  participant L as Leader\n  participant F1 as Follower 1\n  participant F2 as Follower 2\n  C->>L: write x = 5\n  L->>F1: append x = 5\n  L->>F2: append x = 5\n  F1-->>L: stored\n  Note over L: 2 of 3 nodes have it, a majority, so it is committed\n  L-->>C: done',
+                    caption: 'A write counts once a majority of the nodes have stored it, even if one follower is slow or down.',
+                },
                 idea: 'Many systems need exactly one leader, or one agreed order of changes. Raft does this: nodes elect a leader by majority vote; the leader adds commands to its log and copies them to the others; an entry is committed once a majority has it. With 5 nodes, the cluster survives 2 failures. Tools like etcd and ZooKeeper give you this, so you don\'t build it yourself.',
                 howItWorks: [
                     'Every node starts as a follower. If a follower hears nothing from a leader for a random timeout (say 150–300 ms), it becomes a candidate.',
@@ -1646,6 +1828,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'must',
                 definition: 'Authentication checks who you are. Authorisation checks what you\'re allowed to do.',
                 problem: 'Every system must know who is calling and what they may do, and must keep data safe even if something leaks. Mistakes here are the most expensive kind.',
+                diagram: {
+                    code: 'sequenceDiagram\n  participant U as App\n  participant A as Login server\n  participant G as Gateway\n  participant S as Service\n  U->>A: password and one-time code\n  A-->>U: access token (15 min) and refresh token\n  U->>G: request with the access token\n  G->>G: check the signature and expiry\n  G->>S: forward, as user 42\n  S->>S: does user 42 own this account?\n  S-->>U: result',
+                    caption: 'Authentication happens once at login. After that, every request carries a token, and the service still checks permissions on every request.',
+                },
                 idea: 'A user logs in once and gets a session ID or a token that proves who they are on later requests. A JWT is a signed token that services can check without a database lookup. OAuth 2.0 lets one app act on another service for a user without seeing their password; \'Sign in with Google\' adds OpenID Connect on top. Also essential: HTTPS everywhere, passwords stored with a slow salted hash, least privilege, encryption at rest, and no secrets in code.',
                 howItWorks: [
                     'Login: the user sends their password over HTTPS. The server hashes it with the stored salt and compares the result with the stored hash.',
@@ -1706,6 +1892,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'must',
                 definition: 'Object-oriented programming organises code into objects that bundle data and behaviour. Its four pillars are encapsulation, abstraction, inheritance and polymorphism.',
                 problem: 'Large programs written as one long list of functions and shared variables become impossible to change safely. OOP groups data with the code that\'s allowed to change it.',
+                diagram: {
+                    code: 'classDiagram\n  class PaymentMethod {\n    <<abstract>>\n    +pay(amount)\n  }\n  class CardPayment {\n    -card_number\n    +pay(amount)\n  }\n  class PayPalPayment {\n    -email\n    +pay(amount)\n  }\n  PaymentMethod <|-- CardPayment\n  PaymentMethod <|-- PayPalPayment',
+                    caption: 'The arrow with a hollow triangle means \'is a kind of\'. Both payment types share the pay() method (polymorphism) and hide their details (the minus sign means private).',
+                },
                 idea: 'Encapsulation hides an object\'s internal data behind methods, so it can\'t be put into an invalid state. Abstraction shows callers only what they need. Inheritance lets one class reuse and extend another. Polymorphism lets different classes be used through the same interface, each behaving in its own way.',
                 howItWorks: [
                     'Group related data and behaviour into a class: a BankAccount holds a balance and has deposit() and withdraw().',
@@ -1753,6 +1943,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'must',
                 definition: 'Composition means building a class out of other objects it has (\'has-a\'), instead of inheriting from a parent (\'is-a\').',
                 problem: 'Inheritance looks like free reuse, but every subclass is tied to its parent\'s details. With several independent features, the number of subclasses explodes.',
+                diagram: {
+                    code: 'classDiagram\n  class Duck {\n    +perform()\n  }\n  class Flyer {\n    <<interface>>\n    +fly()\n  }\n  class Quacker {\n    <<interface>>\n    +quack()\n  }\n  Duck o-- Flyer : has a\n  Duck o-- Quacker : has a\n  Flyer <|.. Wings\n  Flyer <|.. NoFly\n  Quacker <|.. Squeak',
+                    caption: 'A Duck has a flyer and a quacker (the diamond means \'has a\'). Dashed arrows mean \'implements\': any flyer or quacker can be plugged in.',
+                },
                 idea: 'Inheritance ties a child class closely to its parent\'s internals, so changes ripple down and deep trees get rigid. Composition plugs behaviour in through small objects behind interfaces, so you can swap them at runtime and test each alone. Rule of thumb: inherit for a true \'is-a\' with shared behaviour; otherwise, compose.',
                 howItWorks: [
                     'With inheritance, 3 kinds of flying × 3 kinds of sound = 9 subclasses, and every new kind multiplies them again.',
@@ -1799,6 +1993,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'must',
                 definition: 'A class should have one reason to change: one job.',
                 problem: 'When one class does several jobs, unrelated changes collide: a change to the email wording risks breaking the tax calculation, and every change means retesting everything.',
+                diagram: {
+                    code: 'classDiagram\n  class InvoiceService {\n    +process(invoice)\n  }\n  class Invoice {\n    +total()\n  }\n  class InvoiceRepository {\n    +save(invoice)\n  }\n  class InvoiceEmailer {\n    +send(invoice)\n  }\n  InvoiceService --> Invoice\n  InvoiceService --> InvoiceRepository\n  InvoiceService --> InvoiceEmailer',
+                    caption: 'After splitting: each class has one job, and a small service connects them.',
+                },
                 idea: 'If one class holds the business rules, the database saving and the email sending, a change to any one of them risks breaking the others. Split it so each class does one thing well and changes for one reason.',
                 howItWorks: [
                     'List what the class does, and who asks for changes to each part (finance, the database team, marketing).',
@@ -1842,6 +2040,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'must',
                 definition: 'Code should be open for extension but closed for modification: add new behaviour by adding code, not by editing code that already works.',
                 problem: 'Every time a new type of thing appears (a new payment method, a new discount), developers edit the same big if/else, and each edit risks breaking cases that already worked.',
+                diagram: {
+                    code: 'classDiagram\n  class DiscountRule {\n    <<interface>>\n    +apply(price)\n  }\n  DiscountRule <|.. SaleDiscount\n  DiscountRule <|.. StudentDiscount\n  DiscountRule <|.. AnyNewRule\n  PriceCalculator --> DiscountRule : uses a list of',
+                    caption: 'The calculator only knows the DiscountRule interface. A new discount is a new class plugged in at the bottom; the calculator never changes.',
+                },
                 idea: 'A long if/elif chain on type (\'if card … elif paypal …\') must be edited every time a new case appears, which risks breaking the old cases. Instead, depend on an interface and add one new class for each new case.',
                 howItWorks: [
                     'Find the code that switches on a type: if kind == \'sale\' … elif kind == \'student\' …',
@@ -1886,6 +2088,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'must',
                 definition: 'Objects of a subclass must work anywhere the parent class is expected, without breaking the program.',
                 problem: 'Polymorphism only works if every subtype really behaves like its parent. One misbehaving subclass forces callers to add special cases, and bugs appear far away from their cause.',
+                diagram: {
+                    code: 'classDiagram\n  class Shape {\n    <<interface>>\n    +area()\n  }\n  class Rectangle {\n    +width\n    +height\n    +area()\n  }\n  class Square {\n    +side\n    +area()\n  }\n  Shape <|.. Rectangle\n  Shape <|.. Square',
+                    caption: 'The fixed design. Square no longer pretends to be a changeable Rectangle; both are simply Shapes, so neither can break the other\'s promises.',
+                },
                 idea: 'A subclass must keep its parent\'s promises. It can\'t demand more (stricter inputs) or deliver less (weaker results), and it shouldn\'t throw surprises. If calling code has to check \'is this the special subclass?\', the principle is broken.',
                 howItWorks: [
                     'Write down what callers rely on: \'after set_width(5), the width is 5 and the height hasn\'t changed\'.',
@@ -1929,6 +2135,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'must',
                 definition: 'Clients shouldn\'t be forced to depend on methods they don\'t use. Prefer several small, focused interfaces over one big one.',
                 problem: 'Big \'do-everything\' interfaces force classes to implement methods that make no sense for them, and every change to the big interface touches classes that don\'t care.',
+                diagram: {
+                    code: 'classDiagram\n  class Printer {\n    <<interface>>\n    +print(doc)\n  }\n  class Scanner {\n    <<interface>>\n    +scan()\n  }\n  Printer <|.. BasicPrinter\n  Printer <|.. OfficeMachine\n  Scanner <|.. OfficeMachine',
+                    caption: 'Small interfaces. The basic printer implements only Printer; the office machine implements both.',
+                },
                 idea: 'A giant interface forces every class that implements it to write methods it doesn\'t need (often empty, or throwing errors), and changes ripple into classes that don\'t care. Split interfaces by what their users actually need.',
                 howItWorks: [
                     'Look for implementations full of empty methods or \'not supported\' errors.',
@@ -1972,6 +2182,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'must',
                 definition: 'High-level code should depend on abstractions, not on concrete low-level details.',
                 problem: 'When business logic creates its own database connection or email client, it\'s welded to them. You can\'t test it without a real database, and switching providers means rewriting business code.',
+                diagram: {
+                    code: 'classDiagram\n  class OrderService {\n    +place(order)\n  }\n  class OrderRepository {\n    <<interface>>\n    +save(order)\n  }\n  OrderService --> OrderRepository : depends on\n  OrderRepository <|.. PostgresOrderRepository\n  OrderRepository <|.. InMemoryOrderRepository',
+                    caption: 'The service depends only on the interface. The real database version and the test version both plug in underneath it.',
+                },
                 idea: 'If OrderService creates a MySQLDatabase directly, you can\'t swap the database or test without one. Instead, OrderService depends on an OrderRepository interface, and the concrete repository — MySQL in production, an in-memory one in tests — is passed in.',
                 howItWorks: [
                     'Find a high-level class that creates a low-level one: OrderService creates PostgresRepository() inside itself.',
@@ -2018,6 +2232,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'should',
                 definition: 'A class diagram shows the classes, their fields and methods, and how they relate to each other.',
                 problem: 'In an interview, you need to show the structure of your design quickly, before coding. A clear diagram lets the interviewer follow you and correct you early.',
+                diagram: {
+                    code: 'classDiagram\n  ParkingLot "1" *-- "many" Floor : composition\n  Floor "1" *-- "many" Spot : composition\n  Spot "1" --> "0..1" Vehicle : association\n  Vehicle <|-- Car\n  Vehicle <|-- Truck\n  PaymentMethod <|.. CardPayment : implements',
+                    caption: 'A filled diamond means \'owns\'; a plain arrow means \'uses\'; a hollow triangle means \'is a kind of\'; a dashed triangle means \'implements\'. The numbers say how many.',
+                },
                 idea: 'In LLD interviews you sketch the main classes and relationships before coding. The relationships: association (uses or knows about), aggregation (has, but the part can exist alone), composition (owns; the part dies with the whole), inheritance (is-a) and realisation (implements an interface). Multiplicity (1, 0..1, *) says how many.',
                 howItWorks: [
                     'Draw a box for each class: its name at the top, key fields in the middle, key methods at the bottom.',
@@ -2062,6 +2280,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'should',
                 definition: 'Concurrency is several tasks making progress at the same time. A race condition is a bug where the result depends on the exact timing between them.',
                 problem: 'Real systems serve many users at once. When two of them change the same data at the same moment, results can be silently wrong, like one seat sold twice.',
+                diagram: {
+                    code: 'sequenceDiagram\n  participant A as Thread A\n  participant S as seats_left\n  participant B as Thread B\n  A->>S: read - 1 seat left\n  B->>S: read - 1 seat left\n  A->>S: write 0 (seat sold)\n  B->>S: write 0 (seat sold again!)\n  Note over A,B: two tickets for one seat. A lock makes read, check and write one step.',
+                    caption: 'Both threads read before either writes, so both think the seat is free. That\'s a race condition.',
+                },
                 idea: 'LLD questions like seat booking or elevators often ask: what if two users act at once? If two threads read a counter, add one and write it back at the same moment, one update is lost. Locks (mutexes) make a critical section run one thread at a time; atomic operations and thread-safe queues avoid manual locks. Watch out for deadlock: two threads each waiting for a lock the other one holds.',
                 howItWorks: [
                     'Thread A reads seats_left = 1. Thread B also reads seats_left = 1.',
@@ -2121,6 +2343,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'must',
                 definition: 'Makes sure a class has only one instance, and gives one global way to reach it.',
                 problem: 'Some things should exist exactly once per program, like one configuration or one connection pool. Creating several wastes resources or causes conflicting settings.',
+                diagram: {
+                    code: 'flowchart LR\n  A["Code A"] -->|"Config()"| G{"Instance exists?"}\n  B["Code B"] -->|"Config()"| G\n  G -->|"no, first call"| N["Create it and store it"]\n  G -->|"yes"| S["Return the stored one"]\n  N --> S',
+                    caption: 'Whoever asks, and however often, they all get the same single object.',
+                },
                 idea: 'Used for a shared resource like a configuration object or a connection pool. The class controls its own creation. Downsides: it\'s global state, hides dependencies, makes testing harder, and needs care with threads.',
                 howItWorks: [
                     'The class keeps a hidden class-level variable for its single instance.',
@@ -2165,6 +2391,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'must',
                 definition: 'A factory creates objects for you, so the calling code asks for \'a notifier\' without knowing which concrete class gets built.',
                 problem: 'If the code that uses an object also decides which concrete class to create, every new type means editing that code in many places.',
+                diagram: {
+                    code: 'classDiagram\n  class Notifier {\n    <<interface>>\n    +send(msg)\n  }\n  class NotifierFactory {\n    +create(channel) Notifier\n  }\n  Notifier <|.. EmailNotifier\n  Notifier <|.. SmsNotifier\n  Notifier <|.. PushNotifier\n  NotifierFactory ..> Notifier : creates\n  OrderService --> NotifierFactory : asks',
+                    caption: 'The order service asks the factory for a notifier and only ever sees the Notifier interface. Only the factory knows the concrete classes.',
+                },
                 idea: 'Factory Method: one method decides which class to create. Abstract Factory: creates whole families of related objects that must match, such as all dark-theme or all light-theme UI parts. Both keep \'new ConcreteClass()\' in one place.',
                 howItWorks: [
                     'Define a common interface: Notifier with send(message).',
@@ -2210,6 +2440,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'must',
                 definition: 'Builds a complex object step by step, instead of using a constructor with a dozen parameters.',
                 problem: 'Objects with many optional settings lead to long, confusing constructors, where it\'s easy to pass arguments in the wrong order.',
+                diagram: {
+                    code: 'flowchart LR\n  B0["PizzaBuilder(\'large\')"] --> B1[".add(\'mushroom\')"] --> B2[".add(\'olive\')"] --> B3[".with_extra_cheese()"] --> B4[".build()<br/>checks it\'s valid"] --> P["Pizza ✓"]',
+                    caption: 'Each step sets one part; build() checks everything and returns the finished object.',
+                },
                 idea: 'When an object has many optional parts, a constructor like Pizza(size, cheese, olives, ham, …) is unreadable and easy to get wrong. A builder sets each part with a clearly named method, then build() checks everything and returns the finished object.',
                 howItWorks: [
                     'Create a builder with sensible defaults for every setting.',
@@ -2254,6 +2488,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'must',
                 definition: 'Lets two incompatible interfaces work together, by wrapping one so it looks like the other.',
                 problem: 'You often need a library or old system whose interface doesn\'t match the one your code expects, and you can\'t (or shouldn\'t) change either side.',
+                diagram: {
+                    code: 'flowchart LR\n  C["Our checkout code"] -->|"pay(20.00)"| A["LegacyBankAdapter"]\n  A -->|"make_payment(2000, \'GBP\')"| L["LegacyBankSDK"]\n  L -->|"\'OK\'"| A\n  A -->|"True"| C',
+                    caption: 'The adapter translates in both directions: pounds into pence on the way in, \'OK\' into True on the way out.',
+                },
                 idea: 'Your code expects pay(amount_in_pounds), but a third-party SDK offers make_payment(pence, currency). An adapter wraps the SDK and translates the calls, so your code doesn\'t change.',
                 howItWorks: [
                     'Write down the interface your code expects: pay(pounds) returning True or False.',
@@ -2297,6 +2535,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'must',
                 definition: 'Adds behaviour to an object by wrapping it in another object with the same interface, without changing the original class.',
                 problem: 'You want to add extras like logging, caching or retries to some objects, in different combinations, without writing a subclass for every combination.',
+                diagram: {
+                    code: 'flowchart LR\n  C["Caller"] -->|"read()"| L["LoggingSource<br/>adds a log line"] -->|"read()"| U["UpperCaseSource<br/>upper-cases"] -->|"read()"| D["DataSource<br/>the real data"]',
+                    caption: 'Each wrapper adds one feature and passes the call inward. The caller only sees read().',
+                },
                 idea: 'Instead of a subclass for every combination (LoggedCachedRetryingClient and so on), you stack small wrappers: a retry wrapper around a cache wrapper around the real client. Each wrapper adds one feature and passes the call along.',
                 howItWorks: [
                     'Start with an object that implements an interface: read().',
@@ -2342,6 +2584,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'should',
                 definition: 'Gives one simple interface to a complicated set of classes.',
                 problem: 'Using a complex subsystem directly means every caller must know many classes and the right order to call them, and that knowledge gets copied everywhere.',
+                diagram: {
+                    code: 'flowchart LR\n  C["Caller"] -->|"place_order()"| F["CheckoutFacade"]\n  F --> I["Inventory"]\n  F --> P["Payments"]\n  F --> S["Shipping"]\n  F --> N["Notifier"]',
+                    caption: 'One simple call from the caller; the facade deals with the four subsystems in the right order.',
+                },
                 idea: 'Placing an order may involve inventory, payment, shipping and notification classes. A CheckoutFacade with one place_order() method hides those steps, so callers use one method.',
                 howItWorks: [
                     'Identify the task callers keep repeating: placing an order.',
@@ -2385,6 +2631,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'must',
                 definition: 'Puts a family of interchangeable algorithms behind one interface, so you can choose one at runtime.',
                 problem: 'When an algorithm can vary (pricing, sorting, routing), putting every variant in one method with if/else makes it long, hard to test and risky to extend.',
+                diagram: {
+                    code: 'classDiagram\n  class Ride {\n    -pricing\n    +fare(km)\n  }\n  class PricingStrategy {\n    <<interface>>\n    +price(km)\n  }\n  Ride o-- PricingStrategy\n  PricingStrategy <|.. NormalPricing\n  PricingStrategy <|.. SurgePricing\n  PricingStrategy <|.. NightPricing',
+                    caption: 'Ride holds one pricing strategy and can swap it for any other that implements the same interface.',
+                },
                 idea: 'Instead of an if/elif on pricing type inside checkout, each pricing rule is its own class (or function) with the same method. Checkout holds one strategy and can swap it.',
                 howItWorks: [
                     'Define the interface: price(distance_km).',
@@ -2429,6 +2679,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'must',
                 definition: 'Lets objects subscribe to another object\'s events, and get notified automatically when something happens.',
                 problem: 'When one event must trigger several reactions, the code that raises the event ends up calling every reacting component directly, so adding a new reaction means editing it.',
+                diagram: {
+                    code: 'flowchart LR\n  O["OrderEvents<br/>(the subject)"] -->|"order A123 placed"| E["Email receipt"]\n  O -->|"order A123 placed"| S["Update stock"]\n  O -->|"order A123 placed"| AN["Analytics"]',
+                    caption: 'One event, many subscribers. The subject doesn\'t know what each subscriber does with it.',
+                },
                 idea: 'When an order is placed, email, analytics and stock might all need to react. Instead of the order code calling each one, they subscribe; the order publishes \'order placed\', and every subscriber is notified. It\'s the in-program version of publish/subscribe.',
                 howItWorks: [
                     'The subject keeps a list of subscribers.',
@@ -2475,6 +2729,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'should',
                 definition: 'Passes a request along a chain of handlers; each one either deals with it or passes it on to the next.',
                 problem: 'A request may need to pass several checks, or be handled by one of several handlers depending on its details. Hard-coding that sequence in one function makes it long and rigid.',
+                diagram: {
+                    code: 'flowchart LR\n  R["£450 expense"] --> T{"Team lead:<br/>up to £100?"}\n  T -->|"no, pass it on"| M{"Manager:<br/>up to £1,000?"}\n  M -->|"yes"| OK["Approved by the manager"]\n  M -->|"no, pass it on"| D{"Director:<br/>up to £10,000?"}\n  D -->|"yes"| OK2["Approved by the director"]\n  D -->|"no"| X["Rejected"]',
+                    caption: 'The request travels along the chain until a handler can deal with it.',
+                },
                 idea: 'Good for pipelines of checks or approvals: authentication → rate limit → validation → handler; or expense approval: a team lead up to £100, a manager up to £1,000, a director above that. Each handler is independent, and the chain can be reordered.',
                 howItWorks: [
                     'Define a handler interface: handle(request).',
@@ -2520,6 +2778,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'should',
                 definition: 'Lets an object change its behaviour when its internal state changes, by putting each state\'s behaviour in its own class.',
                 problem: 'Objects with modes (an order that\'s paid or shipped, a machine that\'s idle or dispensing) often end up with if/else on a status field in every method, and invalid actions slip through.',
+                diagram: {
+                    code: 'stateDiagram-v2\n  [*] --> Idle\n  Idle --> HasCoin: insert a coin\n  HasCoin --> Idle: press the button, snack given\n  HasCoin --> HasCoin: insert a coin, already has one\n  Idle --> Idle: press the button, asks for a coin',
+                    caption: 'Circles are states; arrows are events. The same event (pressing the button) does different things depending on the current state.',
+                },
                 idea: 'A vending machine reacts differently to \'insert coin\' when it\'s idle, when it already has money, or when it\'s sold out. Instead of an if/elif on a status variable inside every method, each state is a class that handles the events and decides the next state.',
                 howItWorks: [
                     'Draw the state diagram: states as circles, events as arrows between them.',
@@ -2577,6 +2839,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'must',
                 definition: 'Design the classes for a multi-floor car park that assigns spots, issues tickets and charges fees.',
                 problem: 'It\'s the classic first LLD question: the entities are clear, there are natural places for patterns (pricing, spot assignment), and there\'s a real concurrency problem.',
+                diagram: {
+                    code: 'classDiagram\n  class PricingStrategy {\n    <<interface>>\n    +fee(hours)\n  }\n  class SpotAssignmentStrategy {\n    <<interface>>\n    +find_spot(vehicle)\n  }\n  ParkingLot "1" *-- "many" Floor\n  Floor "1" *-- "many" Spot\n  Spot --> "0..1" Vehicle\n  Vehicle <|-- Car\n  Vehicle <|-- Truck\n  Vehicle <|-- Bike\n  Ticket --> Spot\n  Ticket --> Vehicle\n  ParkingLot --> PricingStrategy\n  ParkingLot --> SpotAssignmentStrategy',
+                    caption: 'The car park owns floors, floors own spots, and each spot holds at most one vehicle. Pricing and spot assignment are pluggable strategies.',
+                },
                 functional: [
                     'Several floors, with spots of different sizes (small, compact, large).',
                     'Vehicles (bike, car, truck) park in a suitable free spot.',
@@ -2651,6 +2917,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'should',
                 definition: 'Design the classes and scheduling logic for a building\'s lifts.',
                 problem: 'It tests state machines, scheduling and concurrency, and there\'s no single right answer, so your reasoning is what gets marked.',
+                diagram: {
+                    code: 'stateDiagram-v2\n  [*] --> Idle\n  Idle --> MovingUp: a stop above\n  Idle --> MovingDown: a stop below\n  MovingUp --> DoorsOpen: reached a stop\n  MovingDown --> DoorsOpen: reached a stop\n  DoorsOpen --> MovingUp: doors closed, more stops above\n  DoorsOpen --> MovingDown: doors closed, more stops below\n  DoorsOpen --> Idle: doors closed, no stops\n  Idle --> Maintenance: switched off\n  Maintenance --> Idle: switched on',
+                    caption: 'One lift\'s state machine. There\'s no arrow from DoorsOpen straight to moving without the doors closing, which is how safety is guaranteed.',
+                },
                 functional: [
                     'Hall calls (up and down buttons on each floor) and car calls (floor buttons inside the lift).',
                     'Several lifts; each hall call is assigned to one lift.',
@@ -2721,6 +2991,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'must',
                 definition: 'Design an expense-sharing app where friends split bills and can see who owes whom.',
                 problem: 'It tests clean modelling of money, validation, and a small algorithm (debt simplification), and it catches people who use floats for money.',
+                diagram: {
+                    code: 'classDiagram\n  Group "1" o-- "many" User\n  Group "1" *-- "many" Expense\n  Expense "1" *-- "many" Split\n  Expense --> User : paid by\n  Split <|-- EqualSplit\n  Split <|-- ExactSplit\n  Split <|-- PercentSplit\n  BalanceSheet --> User : net balance per user\n  DebtSimplifier --> BalanceSheet',
+                    caption: 'A group has members and expenses; each expense is divided into splits of one of three kinds. The balance sheet and simplifier work out who pays whom.',
+                },
                 functional: [
                     'Users and groups.',
                     'Add an expense paid by one person, split equally, by exact amounts, or by percentage.',
@@ -2790,6 +3064,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'should',
                 definition: 'Design a vending machine that sells items, accepts coins and gives change.',
                 problem: 'It\'s the clearest test of the State pattern: every action means something different depending on the machine\'s state.',
+                diagram: {
+                    code: 'stateDiagram-v2\n  [*] --> Idle\n  Idle --> ItemSelected: select an item\n  ItemSelected --> HasMoney: enough money inserted\n  ItemSelected --> Idle: cancel and refund\n  HasMoney --> Dispensing: confirm\n  HasMoney --> Idle: cancel and refund\n  Dispensing --> Idle: item and change given\n  Idle --> SoldOut: stock reaches 0\n  SoldOut --> Idle: restocked',
+                    caption: 'Every state allows only the actions that make sense in it, so the machine can never hand out an item without enough money.',
+                },
                 functional: [
                     'Select an item, insert money, get the item and any change.',
                     'Cancel and get a refund.',
@@ -2857,6 +3135,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'must',
                 definition: 'Design a fixed-size cache that removes the least recently used item when full, with get and put in O(1).',
                 problem: 'It tests data-structure design under a strict time limit (O(1) operations), and it\'s asked both as a coding question and as a design question.',
+                diagram: {
+                    code: 'flowchart LR\n  H["head<br/>(dummy)"] <--> N3["key 3<br/>most recent"] <--> N1["key 1"] <--> T["tail<br/>(dummy)"]\n  M[("Hash map<br/>key → node")] -.-> N3\n  M -.-> N1',
+                    caption: 'The list keeps usage order (most recent next to the head) and the map finds any node instantly. When full, the node next to the tail is removed.',
+                },
                 functional: [
                     'get(key): return the value, or nothing if missing; it counts as a use.',
                     'put(key, value): insert or update; if the cache is full, remove the least recently used item.',
@@ -2920,6 +3202,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'bonus',
                 definition: 'Design the core of a stock exchange: an order book that matches buy and sell orders.',
                 problem: 'It tests data structures (heaps and queues), fairness rules, and why a single-threaded design can be both the fastest and the safest.',
+                diagram: {
+                    code: 'flowchart LR\n  BUY["Incoming: buy 6 at £101"] --> E["Matching engine<br/>one thread per stock"]\n  E -->|"fill 3 at £100"| A1["Ask: sell 3 at £100<br/>(cheapest)"]\n  E -->|"fill 3 at £101"| A2["Ask: sell 5 at £101<br/>(2 left in the book)"]\n  E --> T["Trades published"]',
+                    caption: 'The buy order fills against the cheapest sell orders first, until its price limit or quantity runs out.',
+                },
                 functional: [
                     'Place limit orders (buy or sell at a price or better).',
                     'Match orders by price, then time; allow partial fills.',
@@ -2998,6 +3284,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'must',
                 definition: 'Turn long URLs into short links, like bit.ly/x7Kp2a, that redirect to the original.',
                 problem: 'It\'s the classic first HLD question: small enough to finish, and it covers APIs, unique IDs, caching, database choice and read-heavy scaling.',
+                diagram: {
+                    code: 'flowchart LR\n  U["User"] --> LB["Load balancer"] --> API["App servers"]\n  API -->|"GET /x7Kp2a"| C[("Redis cache")]\n  C -.->|"miss"| DB[("Database<br/>code → long URL")]\n  API -->|"new link"| IDS["ID range allocator<br/>(Base62 codes)"]\n  API -->|"click event"| Q[["Queue"]] --> AN["Analytics workers"]',
+                    caption: 'Redirects are served from the cache whenever possible. New links get codes from an ID allocator, and clicks are counted in the background.',
+                },
                 functional: [
                     'Create a short URL for a long URL (optional custom alias and expiry).',
                     'Redirect from the short URL to the long URL.',
@@ -3069,6 +3359,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'must',
                 definition: 'A service that limits how many requests each client can make, enforced consistently across many API servers.',
                 problem: 'It tests algorithms (token bucket and windows), shared state across servers, atomic updates and failure handling, all in one small system.',
+                diagram: {
+                    code: 'flowchart LR\n  C["Clients"] --> G1["Gateway node 1<br/>(limiter)"]\n  C --> G2["Gateway node 2<br/>(limiter)"]\n  G1 <-->|"atomic update"| R[("Redis cluster<br/>token buckets")]\n  G2 <-->|"atomic update"| R\n  G1 --> S["Services"]\n  G2 --> S\n  CFG["Rules config"] -.-> G1\n  CFG -.-> G2',
+                    caption: 'Every gateway node checks the same buckets in Redis, so a client\'s limit is shared across all nodes.',
+                },
                 functional: [
                     'Limit requests per user, API key or IP address per time window (for example 100 per minute).',
                     'Different rules for different endpoints.',
@@ -3137,6 +3431,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'must',
                 definition: 'Send notifications (mobile push, SMS, email) to users reliably, at large scale.',
                 problem: 'It tests queues, priorities, third-party integrations, retries and avoiding duplicates — everyday problems in real products.',
+                diagram: {
+                    code: 'flowchart LR\n  P["Order, login and<br/>marketing services"] --> N["Notification service<br/>preferences · templates · limits"]\n  N --> QH[["High-priority queue<br/>(passcodes)"]]\n  N --> QL[["Low-priority queue<br/>(marketing)"]]\n  QH & QL --> W["Channel workers"]\n  W --> PUSH["Apple and Google push"]\n  W --> SMS["SMS provider"]\n  W --> EM["Email provider"]\n  W -.->|"failed too often"| DLQ[["Dead-letter queue"]]',
+                    caption: 'Messages are checked once, then queued by priority, so a marketing blast never delays a passcode. Workers deliver through outside providers.',
+                },
                 functional: [
                     'Services trigger notifications (order shipped, one-time passcodes, marketing).',
                     'Channels: push, SMS, email; respect each user\'s preferences and opt-outs.',
@@ -3205,6 +3503,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'must',
                 definition: 'One-to-one and group messaging, with delivery receipts and online status.',
                 problem: 'It tests real-time connections, routing between servers, storage for enormous write volumes, ordering and offline delivery.',
+                diagram: {
+                    code: 'flowchart LR\n  A["User A"] <--> G1["Gateway 1"]\n  B["User B"] <--> G2["Gateway 2"]\n  G1 --> CS["Chat service"]\n  CS --> MS[("Message store<br/>by conversation")]\n  CS --> R[("Redis<br/>who is connected where")]\n  CS --> G2\n  CS -.->|"B is offline"| PN["Push notification"]',
+                    caption: 'The chat service stores every message first, then routes it to the recipient\'s gateway, or sends a push notification if they\'re offline.',
+                },
                 functional: [
                     'Send and receive messages in real time, one-to-one and in groups.',
                     'Message history across devices; delivery to users who were offline.',
@@ -3276,6 +3578,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'must',
                 definition: 'Show each user a feed of recent posts from the people they follow.',
                 problem: 'It tests the fan-out trade-off — do the work when posting or when reading — plus caching and the celebrity problem.',
+                diagram: {
+                    code: 'flowchart TD\n  P["A normal user posts"] --> FW["Fan-out workers"]\n  FW --> F1[("Followers\' feed lists<br/>in Redis")]\n  CEL["A celebrity posts"] --> CP[("Celebrity post store")]\n  R["A user opens their feed"] --> FS["Feed service"]\n  FS --> F1\n  FS -->|"merge at read time"| CP',
+                    caption: 'Normal posts are pushed into followers\' feeds when written. Celebrity posts are pulled and merged in when a feed is read.',
+                },
                 functional: [
                     'Create posts; follow and unfollow users.',
                     'View a personalised feed (newest first, or ranked), with pagination.',
@@ -3344,6 +3650,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'must',
                 definition: 'Upload, process and stream videos to millions of viewers.',
                 problem: 'It tests large-file handling, background processing pipelines, CDNs and adaptive streaming — dealing with petabytes, not just requests.',
+                diagram: {
+                    code: 'flowchart LR\n  U["Uploader"] -->|"pre-signed URL"| RAW[("Raw video<br/>object storage")]\n  RAW -->|"event"| Q[["Queue"]] --> T["Transcoding workers<br/>segments × qualities"]\n  T --> ENC[("Encoded segments<br/>and manifest")]\n  ENC --> CDN["CDN"] --> V["Viewers<br/>adaptive bitrate"]',
+                    caption: 'Upload, then convert in the background, then deliver from the CDN. Viewers\' players pick the quality that suits their connection.',
+                },
                 functional: [
                     'Upload videos and process them into several resolutions.',
                     'Stream with quality that adapts to the viewer\'s connection; search and view details.',
@@ -3414,6 +3724,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'should',
                 definition: 'Match riders with nearby drivers in real time, track trips and charge fares.',
                 problem: 'It tests geospatial search, very high-volume updates, real-time matching and preventing double-booking.',
+                diagram: {
+                    code: 'flowchart LR\n  D["Driver apps"] -->|"location every 4 s"| LS["Location service"] --> GEO[("Geo index in memory<br/>geohash cells")]\n  R["Rider app"] -->|"request a ride"| M["Matching service"]\n  M -->|"search nearby cells"| GEO\n  M -->|"offer and lock a driver"| D\n  M --> TS["Trip service"] --> DB[("Trips database")]',
+                    caption: 'Driver locations flow into a fast in-memory map. A ride request searches nearby cells, then offers the trip to one driver, locked so nobody else can book them.',
+                },
                 functional: [
                     'Drivers send their location every few seconds.',
                     'A rider requests a ride; the system finds nearby drivers and offers the trip.',
@@ -3483,6 +3797,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'must',
                 definition: 'Process payments reliably: charge customers, record every money movement, and never lose money or charge twice.',
                 problem: 'It tests correctness under failure — retries, timeouts, idempotency, transactions and audit trails — where a small bug means real money.',
+                diagram: {
+                    code: 'sequenceDiagram\n  participant C as Client\n  participant P as Payment service\n  participant DB as Database\n  participant PSP as Payment provider\n  C->>P: pay £50 (idempotency key k1)\n  P->>DB: insert payment PENDING (key k1 must be unique)\n  P->>PSP: charge £50 (key k1)\n  PSP-->>P: succeeded\n  P->>DB: one transaction - status SUCCEEDED, ledger debit and credit\n  P-->>C: paid\n  Note over P,PSP: every night, reconcile the ledger with the provider\'s reports',
+                    caption: 'The unique key stops double charges, the status and ledger change together in one transaction, and a nightly check catches any mismatch.',
+                },
                 functional: [
                     'Accept a payment for an order through a payment provider (PSP) that talks to the card networks.',
                     'Record every money movement in a ledger.',
@@ -3553,6 +3871,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'should',
                 definition: 'Suggest the top completions as the user types into a search box.',
                 problem: 'It tests data structures at scale (tries), precomputing results, caching, and separating serving from data processing.',
+                diagram: {
+                    code: 'flowchart TD\n  ROOT["root"] --> T["t<br/>top: tea, to"]\n  T --> TO["to"]\n  T --> TE["te<br/>top: tea, ten"]\n  TE --> TEA["tea"]\n  TE --> TEN["ten<br/>top: ten, tent"]\n  TEN --> TENT["tent"]',
+                    caption: 'A trie. Each node already stores its most popular completions, so typing \'te\' means walking two steps and reading the answer.',
+                },
                 functional: [
                     'Return the top 5–10 suggestions for a prefix.',
                     'Rank by popularity, and by freshness.',
@@ -3618,6 +3940,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'should',
                 definition: 'Show live rankings of players by score, including each player\'s own rank.',
                 problem: 'It tests choosing the right data structure (a sorted set), and keeping a fast in-memory view in step with durable storage.',
+                diagram: {
+                    code: 'flowchart LR\n  G["Game service"] -->|"add points"| Z[("Redis sorted set<br/>player → score")]\n  G --> DB[("Scores database<br/>(durable copy)")]\n  API["Leaderboard API"] -->|"top 10"| Z\n  API -->|"rank of a player"| Z',
+                    caption: 'Scores go into a sorted set that is always in order, so the top 10 and any player\'s rank are quick to read. The database keeps a permanent copy.',
+                },
                 functional: [
                     'Update a player\'s score.',
                     'Get the top N players; get one player\'s rank and the players around them.',
@@ -3684,6 +4010,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'should',
                 definition: 'A shared in-memory key-value cache, like Redis or Memcached, spread across many machines.',
                 problem: 'It tests partitioning, consistent hashing, eviction, replication and failure handling — the building blocks of most large systems.',
+                diagram: {
+                    code: 'flowchart LR\n  APP["App servers<br/>(client library)"] -->|"consistent hashing"| N1[("Cache node 1")]\n  APP --> N2[("Cache node 2")]\n  APP --> N3[("Cache node 3")]\n  N1 -.->|"replica"| R1[("Replica 1")]\n  N2 -.-> R2[("Replica 2")]\n  N3 -.-> R3[("Replica 3")]',
+                    caption: 'The client library picks the node for each key with consistent hashing. Each node has a replica ready to take over if it fails.',
+                },
                 functional: [
                     'get, set and delete, with TTLs.',
                     'Grow capacity by adding nodes.',
@@ -3760,6 +4090,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'must',
                 definition: 'A chat assistant that answers employees\' questions from the company\'s own documents, with sources.',
                 problem: 'It\'s the most common AI-engineering design question: it tests retrieval, prompting, permissions, evaluation and cost control together.',
+                diagram: {
+                    code: 'flowchart LR\n  subgraph Ingestion\n    DOCS["Documents"] --> CH["Parse and chunk"] --> EMB["Embed"] --> VS[("Vector store<br/>with permissions")]\n  end\n  subgraph Answering\n    Q["Question"] --> RW["Rewrite"] --> RET["Hybrid retrieval<br/>filtered by permissions"] --> RR["Re-rank"] --> LLM["LLM"] --> A["Answer with sources"]\n  end\n  VS --> RET',
+                    caption: 'Two pipelines. Ingestion prepares the documents in advance; answering finds the best chunks the user may see and gives them to the LLM.',
+                },
                 functional: [
                     'Ingest documents (PDFs, wiki pages, tickets) and keep them up to date.',
                     'Answer questions with citations, and say \'I don\'t know\' when the answer isn\'t there.',
@@ -3829,6 +4163,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'must',
                 definition: 'Recommend items (videos, products, posts) that each user is likely to engage with.',
                 problem: 'It tests the two-stage pattern (retrieve, then rank), feature consistency, feedback loops, and how to measure success.',
+                diagram: {
+                    code: 'flowchart LR\n  U["Request for user 42"] --> CG["Candidate generation<br/>millions → about 1,000"]\n  CG --> RK["Ranking model<br/>1,000 → top 50"]\n  RK --> RR["Re-ranking<br/>variety and rules"] --> OUT["Home page"]\n  FS[("Feature store")] --> RK\n  LOGS[("Interaction logs")] --> TR["Offline training"] --> RK',
+                    caption: 'A cheap first stage narrows millions of items to about a thousand, then a richer model ranks them. Logs of what users did train the next model.',
+                },
                 functional: [
                     'Personalised home-page recommendations.',
                     '\'Similar items\' on each item\'s page.',
@@ -3896,6 +4234,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'must',
                 definition: 'Score every card transaction for fraud within milliseconds, and block or flag the risky ones.',
                 problem: 'It tests real-time ML: low-latency features, imbalanced data, thresholds based on costs, labels that arrive late, and drift.',
+                diagram: {
+                    code: 'flowchart LR\n  TX["Card transaction"] --> SC["Scoring service<br/>rules + model"]\n  FS[("Feature store<br/>live counts")] --> SC\n  SC --> DEC{"Risk?"}\n  DEC -->|"low"| ALLOW["Allow"]\n  DEC -->|"medium"| STEP["Ask for a one-time code"]\n  DEC -->|"high"| BLOCK["Block or review"]\n  STREAM[["Transaction stream"]] --> AGG["Stream processor"] --> FS\n  CB["Fraud labels<br/>(weeks later)"] --> TRAIN["Retraining"] --> SC',
+                    caption: 'Each payment is scored in milliseconds using fresh counts from the feature store. Fraud confirmed weeks later is fed back to retrain the model.',
+                },
                 functional: [
                     'Score every transaction before it\'s approved.',
                     'Allow, block, or ask for extra verification (such as a one-time code), or send to manual review.',
@@ -3964,6 +4306,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'should',
                 definition: 'Serve large language models to many applications with low latency and cost.',
                 problem: 'It tests modern AI infrastructure: GPU cost, batching, memory limits, streaming, and fairness between teams.',
+                diagram: {
+                    code: 'flowchart LR\n  C["Apps"] --> GW["Gateway<br/>auth · quotas · routing"]\n  GW --> P1["GPU pool: small model<br/>batching + KV cache"]\n  GW --> P2["GPU pool: large model<br/>batching + KV cache"]\n  P1 -->|"stream tokens"| GW\n  P2 -->|"stream tokens"| GW\n  AS["Autoscaler"] -.-> P1\n  AS -.-> P2',
+                    caption: 'The gateway sends each request to the right model\'s GPU pool. Pools batch many requests together and stream tokens back; the autoscaler adds GPUs when queues grow.',
+                },
                 functional: [
                     'A chat API with streaming responses.',
                     'Several models and versions; quotas per team.',
@@ -4032,6 +4378,10 @@ export const systemDesignPhases: SDPhase[] = [
                 priority: 'should',
                 definition: 'The platform that turns raw data into trained, deployed and monitored models, again and again.',
                 problem: 'It tests whether you see a model as a product with a lifecycle — data, features, training, deployment and monitoring — repeated forever.',
+                diagram: {
+                    code: 'flowchart LR\n  RAW[("Raw data")] --> VAL["Validate data"] --> FEAT["Build features"] --> FSO[("Feature store")]\n  FSO --> TRAIN["Train"] --> EVAL{"Better than the<br/>current model?"}\n  EVAL -->|"yes"| REG[("Model registry")] --> DEP["Canary deploy"] --> MON["Monitor drift"]\n  EVAL -->|"no"| STOP["Keep the current model"]\n  MON -.->|"drift found"| TRAIN',
+                    caption: 'A loop: data becomes features, features train a model, only a better model is deployed, and drift sends it back round to retrain.',
+                },
                 functional: [
                     'Collect and label data; compute features.',
                     'Train, evaluate and register models; deploy them.',

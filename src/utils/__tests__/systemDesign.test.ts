@@ -14,6 +14,7 @@ describe('system design content', () => {
             if (!t.name.trim() || !t.definition.trim()) problems.push(`${t.id}: missing name or definition`);
             if (!t.problem.trim()) problems.push(`${t.id}: missing the problem it solves`);
             if (t.mistakes.length < 2) problems.push(`${t.id}: fewer than 2 common mistakes`);
+            if (!t.diagram.code.trim() || !t.diagram.caption.trim()) problems.push(`${t.id}: missing diagram or caption`);
             if (!(t.priority in SD_PRIORITY_LABELS)) problems.push(`${t.id}: bad priority`);
             if (!t.interviewAnswer.trim()) problems.push(`${t.id}: no interview answer`);
             if (t.followUps.length === 0) problems.push(`${t.id}: no follow-up questions`);
@@ -50,9 +51,9 @@ describe('system design content', () => {
         expect(new Set(ids).size).toBe(ids.length);
     });
 
-    it('has the full roadmap: 10 phases, 71 topics', () => {
+    it('has the full roadmap: 10 phases, 72 topics', () => {
         expect(systemDesignPhases).toHaveLength(10);
-        expect(allSystemDesignTopics).toHaveLength(71);
+        expect(allSystemDesignTopics).toHaveLength(72);
         systemDesignPhases.forEach((phase, index) => {
             expect(phase.number).toBe(index);
             expect(phase.topics.length).toBeGreaterThan(0);
