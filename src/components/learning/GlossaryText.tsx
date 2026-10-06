@@ -1,13 +1,6 @@
 import { Fragment, useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { Box, Button, Paper, Popover, Popper, Stack, Typography, styled } from '@mui/material';
-import type { GlossaryTerm } from '../../data/systemDesignGlossary';
-import type { SDTopic } from '../../data/systemDesign';
-import {
-    findSystemDesignTopic,
-    getGlossaryTerm,
-    newWordsForTopic,
-    type TextSegment,
-} from '../../utils/glossary';
+import type { GlossaryTerm, TextSegment } from '../../utils/glossaryEngine';
 import { CYAN, TAP } from './learning';
 import {
     GlossaryActionsContext,
@@ -16,6 +9,7 @@ import {
     useGlossaryTopic,
     type GlossaryActions,
     type GlossaryOpenHow,
+    type PageGlossary,
     type Prose,
 } from './glossaryContext';
 
@@ -38,7 +32,8 @@ const LearnItFully = ({
     topicId: string | undefined;
     onLearn: (topicId: string) => void;
 }) => {
-    const teacher = term.taughtIn && term.taughtIn !== topicId ? findSystemDesignTopic(term.taughtIn) : undefined;
+    const source = useGlossaryActions()?.source;
+    const teacher = term.taughtIn && term.taughtIn !== topicId ? source?.findTopic(term.taughtIn) : undefined;
     if (!teacher) return null;
     return (
         <Button
@@ -114,7 +109,15 @@ interface Shown {
  * or Space opens a box that keeps focus until closed; on a desktop, hovering
  * a word shows the same box until the mouse leaves both the word and the box.
  */
-export const GlossaryProvider = ({ openTopic, children }: { openTopic: (topicId: string) => void; children: ReactNode }) => {
+export const GlossaryProvider = ({
+    source,
+    openTopic,
+    children,
+}: {
+    source: PageGlossary;
+    openTopic: (topicId: string) => void;
+    children: ReactNode;
+}) => {
     const [shown, setShown] = useState<Shown | null>(null);
     const closeTimer = useRef<number | undefined>(undefined);
 
@@ -128,6 +131,7 @@ export const GlossaryProvider = ({ openTopic, children }: { openTopic: (topicId:
 
     const actions = useMemo<GlossaryActions>(
         () => ({
+            source,
             show: (anchor, termId, topicId, how) => {
                 window.clearTimeout(closeTimer.current);
                 setShown(current =>
@@ -146,7 +150,7 @@ export const GlossaryProvider = ({ openTopic, children }: { openTopic: (topicId:
             },
             openTopic: topicId => openTopicRef.current(topicId),
         }),
-        []
+        [source]
     );
 
     const close = () => {
@@ -159,7 +163,7 @@ export const GlossaryProvider = ({ openTopic, children }: { openTopic: (topicId:
         actions.openTopic(topicId);
     };
 
-    const term = shown ? getGlossaryTerm(shown.termId) : undefined;
+    const term = shown ? source.getTerm(shown.termId) : undefined;
     const content = term && shown && <Explanation term={term} topicId={shown.topicId} onLearn={learn} />;
     const paperSx = {
         maxWidth: 'min(360px, calc(100vw - 32px))',
@@ -269,10 +273,11 @@ export const ProseText = ({ value }: { value: Prose }) =>
     typeof value === 'string' ? <>{value}</> : <GlossaryText segments={value} />;
 
 /** "New words in this topic": the words this topic is the first to use. */
-export const NewWordsBox = ({ topic, accent }: { topic: SDTopic; accent: string }) => {
-    const words = useMemo(() => newWordsForTopic(topic), [topic]);
-    const [showAll, setShowAll] = useState(false);
+export const NewWordsBox = ({ topicId, accent }: { topicId: string; accent: string }) => {
     const actions = useGlossaryActions();
+    const source = actions?.source;
+    const words = useMemo(() => source?.newWordsForTopicId(topicId) ?? [], [source, topicId]);
+    const [showAll, setShowAll] = useState(false);
     if (words.length === 0) return null;
     const visible = showAll ? words : words.slice(0, NEW_WORDS_SHOWN);
 
@@ -286,7 +291,7 @@ export const NewWordsBox = ({ topic, accent }: { topic: SDTopic; accent: string 
             </Typography>
             <Stack spacing={1}>
                 {visible.map(term => (
-                    <TermEntry key={term.id} term={term} topicId={topic.id} onLearn={id => actions?.openTopic(id)} />
+                    <TermEntry key={term.id} term={term} topicId={topicId} onLearn={id => actions?.openTopic(id)} />
                 ))}
             </Stack>
             {words.length > NEW_WORDS_SHOWN && (

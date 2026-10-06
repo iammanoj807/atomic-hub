@@ -28,6 +28,7 @@ describe('foundations content', () => {
                 if (!topic.note[field].trim()) problems.push(`${topic.id}: empty ${field}`);
             }
             if (!topic.note.example && !topic.note.code) problems.push(`${topic.id}: no example or code`);
+            if (!topic.diagram.code.trim() || !topic.diagram.caption.trim()) problems.push(`${topic.id}: missing diagram or caption`);
             for (const key of CHECK_KEYS) {
                 if (!topic.practice[key]?.trim()) problems.push(`${topic.id}: no ${key} exercise`);
             }
@@ -49,9 +50,9 @@ describe('foundations content', () => {
         expect(new Set(buildIds).size).toBe(buildIds.length);
     });
 
-    it('has the full roadmap: 8 phases, 97 topics, 30 mini-builds', () => {
+    it('has the full roadmap: 8 phases, 98 topics, 30 mini-builds', () => {
         expect(foundationPhases).toHaveLength(8);
-        expect(allFoundationTopics).toHaveLength(97);
+        expect(allFoundationTopics).toHaveLength(98);
         expect(allMiniBuilds).toHaveLength(30);
         foundationPhases.forEach((phase, index) => {
             expect(phase.number).toBe(index);

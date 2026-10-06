@@ -105,11 +105,18 @@ export interface TopicNote {
 
 export type TopicPractice = Record<CheckKey, string>;
 
+/** A picture of the idea, in Mermaid syntax, and a sentence on how to read it. */
+export interface TopicDiagram {
+    code: string;
+    caption: string;
+}
+
 export interface FoundationTopic {
     /** Stable id, used as the Firestore key. Never renumber: ids need not match display order. */
     id: string;
     name: string;
     note: TopicNote;
+    diagram: TopicDiagram;
     resources: TopicResource[];
     practice: TopicPractice;
 }
@@ -155,8 +162,39 @@ export const foundationPhases: FoundationPhase[] = [
         ],
         topics: [
             {
+                id: 'f0-t6',
+                name: 'Meet machine learning: the big picture',
+                diagram: {
+                    code: 'flowchart LR\n  D[("Examples<br/>features + labels")] --> M["Model<br/>(weights)"]\n  M --> P["Prediction"]\n  P --> L{"Loss:<br/>how wrong?"}\n  D -.->|"right answers"| L\n  L --> O["Optimiser:<br/>adjust weights a little"]\n  O -->|"repeat many times"| M\n  M ==>|"when the loss is low"| T["Test on new data"] ==> DEP["Deploy"]',
+                    caption: 'The loop in the middle is training: predict, measure the loss, adjust the weights, repeat. Only when it\'s good on new data does the model go live.',
+                },
+                note: {
+                    idea: 'Machine learning means learning a pattern from examples instead of writing the rules by hand. You give a model inputs (features) and the right answers (labels). The model makes a guess, a loss function measures how wrong it is, and an optimiser nudges the model\'s numbers (its weights) to make the loss smaller. Repeat that many times and the model learns. Then you test it on data it has never seen, and if it\'s good, you deploy it.',
+                    analogy: 'Learning to throw darts. You throw (a prediction), see how far you landed from the bullseye (the loss), adjust your arm a little (an optimiser update), and throw again. After hundreds of throws, you\'re accurate.',
+                    breaks: 'A person can feel why a throw missed. A model only gets one number, the loss; the gradient then tells it which way to adjust every weight at once — sometimes millions of them.',
+                    example: 'Predicting house prices. The feature is the size, the label is the price, the model is ŷ = w·size + b, the loss is the squared error, and gradient descent adjusts w and b. The code below learns that each square metre adds about £3,000.',
+                    code: 'import numpy as np\n\nX = np.array([50., 80., 120.])        # feature: size in m²\ny = np.array([150., 240., 360.])      # label: price in £1,000s\nw, b, lr = 0.0, 0.0, 0.0001\n\nfor step in range(1000):\n    pred = w * X + b                   # 1. predict\n    loss = np.mean((pred - y) ** 2)    # 2. measure how wrong\n    grad_w = np.mean(2 * (pred - y) * X)\n    grad_b = np.mean(2 * (pred - y))\n    w, b = w - lr * grad_w, b - lr * grad_b   # 3. adjust, then repeat\n\nprint(round(w, 2))                     # about 3.0: £3,000 per m²',
+                    codeLanguage: 'python',
+                },
+                resources: [
+                    { kind: 'watch', title: 'Neural Networks, Ch 1–2: what a neural network is, and how it learns', source: '3Blue1Brown', url: 'https://www.3blue1brown.com/topics/neural-networks' },
+                    { kind: 'watch', title: 'A Gentle Introduction to Machine Learning', source: 'StatQuest (Josh Starmer)', url: 'https://www.youtube.com/results?search_query=StatQuest+A+Gentle+Introduction+to+Machine+Learning' },
+                    { kind: 'read', title: 'Machine Learning Crash Course: introduction and linear regression', source: 'Google, free', url: 'https://developers.google.com/machine-learning/crash-course' },
+                ],
+                practice: {
+                    explain: 'Explain the learning loop — predict, measure the loss, adjust, repeat — with the dart-throwing picture.',
+                    derive: 'For the model ŷ = w·x + b and the loss (ŷ − y)², write the gradients with respect to w and b on paper.',
+                    build: 'Run the training loop above. Print the loss every 100 steps and plot it with Matplotlib.',
+                    break: 'Make the learning rate 10 times bigger and run it again. What happens to the loss, and why?',
+                },
+            },
+            {
                 id: 'f0-t1',
                 name: 'NumPy arrays, shapes and indexing',
+                diagram: {
+                    code: 'block-beta\n  columns 4\n  a0["0"] a1["1"] a2["2"] a3["3"]\n  b0["4"] b1["5"] b2["6 = A[1, 2]"] b3["7"]\n  c0["8"] c1["9"] c2["10"] c3["11"]\n  style b2 fill:#2a6f97,color:#fff',
+                    caption: 'A = np.arange(12).reshape(3, 4): 3 rows and 4 columns. A[1, 2] means row 1, column 2 (counting from 0).',
+                },
                 note: {
                     idea: 'An array is a grid of numbers of the same type. Its shape tells you how many numbers there are along each direction. Shape (3, 4) means 3 rows and 4 columns.',
                     analogy: 'A spreadsheet. The shape is the number of rows and columns. Indexing means picking one cell, a whole row or a whole column.',
@@ -179,6 +217,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f0-t2',
                 name: 'Broadcasting and vectorisation',
+                diagram: {
+                    code: 'flowchart LR\n  A["scores, shape (3, 1)<br/>70 / 80 / 90"] --> S1["stretched across<br/>to (3, 3)"]\n  B["bonus, shape (1, 3)<br/>0 · 5 · 10"] --> S2["stretched down<br/>to (3, 3)"]\n  S1 --> R["add element by element<br/>result shape (3, 3)"]\n  S2 --> R',
+                    caption: 'Broadcasting stretches each direction of size 1 to match the other array, then adds number by number — with no Python loop.',
+                },
                 note: {
                     idea: 'Vectorisation means one operation works on a whole array at once, instead of a Python loop. Broadcasting lets arrays with different shapes work together, by stretching dimensions of size 1.',
                     analogy: 'A teacher says once: \'everyone add 5 to your score\'. She does not walk to each student.',
@@ -201,6 +243,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f0-t3',
                 name: 'Plotting results with Matplotlib',
+                diagram: {
+                    code: 'xychart-beta\n  title "A healthy loss curve"\n  x-axis "training step" [0, 1, 2, 3, 4, 5, 6, 7, 8]\n  y-axis "loss" 0 --> 3\n  line [2.3, 1.6, 1.15, 0.9, 0.72, 0.6, 0.52, 0.47, 0.44]',
+                    caption: 'Loss falls fast at first, then flattens. Plotting it is the quickest way to see whether training is working.',
+                },
                 note: {
                     idea: 'A plot turns numbers into a picture, so you can see patterns and bugs. In ML, the most important plot is the loss curve.',
                     analogy: 'A car dashboard. You don\'t read engine data line by line. You glance at the gauges.',
@@ -222,6 +268,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f0-t4',
                 name: 'Git and GitHub for your projects',
+                diagram: {
+                    code: 'gitGraph\n  commit id: "start roadmap"\n  commit id: "phase 0 notes"\n  branch experiment\n  checkout experiment\n  commit id: "try a new idea"\n  checkout main\n  commit id: "fix typo"\n  merge experiment\n  commit id: "phase 0 done"',
+                    caption: 'Each dot is a commit (a saved snapshot). The experiment branch lets you try an idea safely, then merge it back into main.',
+                },
                 note: {
                     idea: 'Git saves snapshots of your project, called commits, so you can go back in time. GitHub stores them online and shows your work to employers.',
                     analogy: 'Save points in a video game. You can try something risky, and reload if it goes wrong.',
@@ -244,6 +294,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f0-t5',
                 name: 'Testing numerical code (np.allclose, pytest)',
+                diagram: {
+                    code: 'flowchart LR\n  C["Your function<br/>softmax(x)"] --> T["Test with a case<br/>you already know"]\n  T --> Q{"np.allclose(result, expected)?"}\n  Q -->|"yes"| P["Test passes ✓"]\n  Q -->|"no"| F["Test fails ✗<br/>bug found early"]',
+                    caption: 'A test runs your code on a known case and compares with a small tolerance, because decimals are never exact.',
+                },
                 note: {
                     idea: 'A test runs your code on a case where you already know the answer. With decimals, compare with a small tolerance, because computers round numbers.',
                     analogy: 'Checking a calculator with 2 + 2 before you trust it with your taxes.',
@@ -299,6 +353,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f1-t1',
                 name: 'Vectors, span and basis',
+                diagram: {
+                    code: 'flowchart LR\n  A["3 × [1, 0]"] --> S["add them"]\n  B["2 × [0, 1]"] --> S\n  S --> R["[3, 2]"]\n  X["[1, 2] and [2, 4]"] --> N["the second is 2× the first<br/>→ both lie on one line<br/>→ not a basis"]',
+                    caption: 'Scaling and adding basis vectors reaches any point. Two vectors on the same line can only ever reach that line.',
+                },
                 note: {
                     idea: 'A vector is an arrow, or a list of numbers. The span is every point you can reach by scaling and adding your vectors. A basis is the smallest set of vectors that can reach every point in the space.',
                     analogy: 'Two ingredients, flour and water. Every mix you can make is the span. A third ingredient that is only \'flour plus water\' adds nothing new.',
@@ -319,6 +377,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f1-t2',
                 name: 'Matrices as transformations; matrix multiplication',
+                diagram: {
+                    code: 'flowchart LR\n  V["vector [1, 1]"] --> A["A = [[2, 0], [0, 3]]<br/>stretch x by 2, y by 3"] --> R["[2, 3]"]\n  P1["rotate, then stretch"] --> D1["result 1"]\n  P2["stretch, then rotate"] --> D2["result 2 ≠ result 1"]',
+                    caption: 'A matrix moves vectors. Doing two matrices in a different order usually gives a different result, so AB ≠ BA.',
+                },
                 note: {
                     idea: 'A matrix is a machine that moves every vector in space. Its columns show where the basis vectors land. Multiplying two matrices means doing one movement after the other.',
                     analogy: 'Instructions for a photo editor: rotate, then stretch.',
@@ -341,6 +403,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f1-t3',
                 name: 'Determinants',
+                diagram: {
+                    code: 'flowchart LR\n  U["unit square<br/>area 1"] --> M1["[[2, 0], [0, 3]]"] --> R1["rectangle<br/>area 6 → det = 6"]\n  U --> M2["[[0, 1], [1, 0]]"] --> R2["same area, flipped<br/>→ det = −1"]\n  U --> M3["a squashing matrix"] --> R3["flat line<br/>area 0 → det = 0"]',
+                    caption: 'The size of the determinant says how much area grows; a minus sign means space was flipped; zero means it was squashed flat.',
+                },
                 note: {
                     idea: 'The determinant has two parts. Its size tells you how much the matrix scales area (or volume in 3D). Its sign tells you whether space gets flipped over.',
                     analogy: 'Stretching a rubber sheet with a square drawn on it. The determinant says how much bigger the square becomes.',
@@ -363,6 +429,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f1-t4',
                 name: 'Inverse, rank and solving Ax = b',
+                diagram: {
+                    code: 'flowchart LR\n  X["x"] -->|"A"| B["b = Ax"]\n  B -->|"A⁻¹ undoes it"| X\n  T["3D object"] -->|"rank-2 matrix<br/>(a photo)"| P["2D picture"]\n  P -.->|"no inverse:<br/>depth is lost"| T',
+                    caption: 'A full-rank matrix can be undone by its inverse. A low-rank one squashes away a direction, so the original can\'t be recovered.',
+                },
                 note: {
                     idea: 'The inverse undoes a matrix. Rank is the number of independent directions that survive the matrix. If the rank is full, Ax = b has exactly one solution, x = A⁻¹b.',
                     analogy: 'The inverse is an undo button. Rank is like taking a photo of a 3D object: the photo keeps only 2 of the 3 directions, so its rank is 2.',
@@ -386,6 +456,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f1-t5',
                 name: 'Dot product, projection and orthogonality',
+                diagram: {
+                    code: 'flowchart LR\n  A["a = [3, 4]"] --> D["a · b = 3×1 + 4×0 = 3"]\n  B["b = [1, 0]"] --> D\n  D --> P["shadow of a on b<br/>= [3, 0]"]\n  O["[1, 2] · [2, −1] = 0"] --> R["at 90°: orthogonal"]',
+                    caption: 'The dot product measures how much two vectors point the same way. Zero means they\'re at right angles.',
+                },
                 note: {
                     idea: 'The dot product multiplies matching entries and adds them up. It measures how much two vectors point the same way. A dot product of 0 means they are at 90° (orthogonal). A projection is the \'shadow\' of one vector on another.',
                     analogy: 'Pulling a box with a rope at an angle. Only the part of your pull along the floor moves the box. That part is the projection.',
@@ -409,6 +483,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f1-t6',
                 name: 'Eigenvalues and eigenvectors',
+                diagram: {
+                    code: 'flowchart LR\n  V1["v = [1, 1]"] -->|"A = [[2, 1], [1, 2]]"| R1["[3, 3] = 3 × v<br/>same direction → eigenvector, λ = 3"]\n  V2["v = [1, 0]"] -->|"A"| R2["[2, 1]<br/>direction turned → not an eigenvector"]',
+                    caption: 'An eigenvector keeps its direction under the matrix and is only stretched; the stretch factor is its eigenvalue.',
+                },
                 note: {
                     idea: 'An eigenvector is a direction that a matrix does not turn. It only stretches or shrinks it. The eigenvalue is the stretch factor: Av = λv.',
                     analogy: 'A spinning globe. Every point moves, except the points on the axis. The axis is an eigenvector, with λ = 1.',
@@ -431,6 +509,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f1-t7',
                 name: 'SVD, and the maths behind PCA',
+                diagram: {
+                    code: 'flowchart LR\n  A["any matrix A"] --> V["Vᵀ: rotate"] --> S["Σ: stretch<br/>(biggest first)"] --> U["U: rotate"]\n  D["data cloud"] --> C["centre it"] --> SV["SVD"] --> K["keep the top-k<br/>directions = PCA"]',
+                    caption: 'SVD breaks any matrix into rotate → stretch → rotate. PCA keeps only the directions with the biggest stretch.',
+                },
                 note: {
                     idea: 'SVD splits any matrix into three simple steps: rotate, stretch, rotate (A = UΣVᵀ). The biggest stretch values show the most important directions. PCA keeps only those directions of the data.',
                     analogy: 'A cloud of points shaped like a rugby ball has a long axis, a medium axis and a short axis. PCA keeps the long axes and drops the short ones.',
@@ -454,6 +536,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f1-t8',
                 name: 'Derivatives and the chain rule',
+                diagram: {
+                    code: 'flowchart LR\n  X["x"] -->|"rate 3"| U["u = 3x + 1"] -->|"rate 2u"| F["f = u²"]\n  R["chain rule:<br/>df/dx = 2u × 3"] --> E["at x = 1:<br/>2 × 4 × 3 = 24"]',
+                    caption: 'Follow the arrows: each step has its own rate of change, and the chain rule multiplies them.',
+                },
                 note: {
                     idea: 'A derivative is a rate of change: how much the output moves when the input moves a tiny bit. The chain rule: for a function inside a function, multiply the rates.',
                     analogy: 'Gears. If gear A turns gear B 3 times faster, and B turns C 2 times faster, then A turns C 3 × 2 = 6 times faster.',
@@ -476,6 +562,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f1-t9',
                 name: 'Partial derivatives, gradients and Jacobians',
+                diagram: {
+                    code: 'flowchart LR\n  F["f(x, y) = x² + 3y"] --> PX["∂f/∂x = 2x<br/>(y held still)"]\n  F --> PY["∂f/∂y = 3<br/>(x held still)"]\n  PX --> G["gradient = [2x, 3]"]\n  PY --> G\n  G --> A["at (1, 2): [2, 3]<br/>points uphill"]',
+                    caption: 'Each partial derivative changes one input only. Put together, they form the gradient, which points uphill.',
+                },
                 note: {
                     idea: 'A partial derivative changes one input and holds the others still. The gradient collects all the partial derivatives into one vector, and it points uphill. The Jacobian is the same idea when the output is a vector too.',
                     analogy: 'Standing on a hill. Step east: how steep is it? Step north: how steep? Those two numbers together are the gradient.',
@@ -497,6 +587,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f1-t10',
                 name: 'Gradient descent and the learning rate',
+                diagram: {
+                    code: 'xychart-beta\n  title "w over 8 steps: learning rate 0.1 vs 1.1"\n  x-axis "step" [0, 1, 2, 3, 4, 5, 6, 7]\n  y-axis "w" -15 --> 15\n  line [4.0, 3.2, 2.56, 2.05, 1.64, 1.31, 1.05, 0.84]\n  line [4.0, -4.8, 5.76, -6.91, 8.29, -9.95, 11.94, -14.33]',
+                    caption: 'Minimising w². The smooth line (learning rate 0.1) glides towards 0. The zig-zag (1.1) overshoots further every step and explodes.',
+                },
                 note: {
                     idea: 'To make a loss smaller, take a small step against the gradient (downhill), and repeat. The learning rate is the size of each step.',
                     analogy: 'Walking down a mountain in thick fog. You feel the slope under your feet and step downhill.',
@@ -520,6 +614,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f1-t11',
                 name: 'Random variables, distributions, expectation and variance',
+                diagram: {
+                    code: 'xychart-beta\n  title "A fair die: each face has probability 1/6 (mean 3.5)"\n  x-axis "face" [1, 2, 3, 4, 5, 6]\n  y-axis "probability" 0 --> 0.3\n  bar [0.167, 0.167, 0.167, 0.167, 0.167, 0.167]',
+                    caption: 'A distribution lists every possible value and its probability. The expectation, 3.5, is the long-run average, even though you can never roll it.',
+                },
                 note: {
                     idea: 'A random variable is a number decided by chance. Its distribution says how likely each value is. The expectation is the long-run average. The variance measures how spread out the values are.',
                     analogy: 'Rolling a die. Each face has probability 1/6. The expectation is 3.5: you never roll 3.5, but it is the average over many rolls.',
@@ -543,6 +641,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f1-t12',
                 name: 'Conditional probability and Bayes’ rule',
+                diagram: {
+                    code: 'flowchart TD\n  P["1,000 people"] --> S["10 sick"]\n  P --> H["990 healthy"]\n  S -->|"test catches 99%"| SP["≈ 10 test positive"]\n  H -->|"5% false alarms"| HP["≈ 50 test positive"]\n  SP & HP --> R["≈ 60 positives,<br/>only ≈ 10 are sick → about 17%"]',
+                    caption: 'Counting people instead of using formulas: most positive results come from the big healthy group, so a positive test is usually a false alarm.',
+                },
                 note: {
                     idea: 'P(A | B) is the probability of A when you already know B happened. Bayes\' rule flips it around: P(A | B) = P(B | A) · P(A) / P(B).',
                     analogy: 'A smoke alarm beeps. Is there a fire? The alarm is good at detecting fires, but fires are rare, and burnt toast is common.',
@@ -564,6 +666,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f1-t13',
                 name: 'Maximum likelihood estimation',
+                diagram: {
+                    code: 'xychart-beta\n  title "Likelihood of 7 heads in 10 flips, for each p"\n  x-axis "p (chance of heads)" [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]\n  y-axis "likelihood × 1000" 0 --> 2.5\n  bar [0.0, 0.007, 0.075, 0.354, 0.977, 1.792, 2.224, 1.678, 0.478]',
+                    caption: 'Maximum likelihood picks the p that makes the data you saw most probable: the tallest bar, at p = 0.7.',
+                },
                 note: {
                     idea: 'Maximum likelihood: choose the model parameters that make the data you actually saw most probable.',
                     analogy: 'A detective picks the story that best explains all the clues.',
@@ -587,6 +693,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f1-t14',
                 name: 'Statistics: sampling, confidence intervals, hypothesis tests',
+                diagram: {
+                    code: 'flowchart LR\n  POP["all possible users<br/>(the true accuracy is unknown)"] -->|"random sample"| S["200 test examples"]\n  S --> E["accuracy 85%"]\n  E --> CI["95% interval ≈ 80% – 90%"]\n  CI --> Q{"Model B scores 86%.<br/>Inside the interval?"}\n  Q -->|"yes"| L["the difference could be luck"]',
+                    caption: 'A sample gives an estimate with a margin of error. A small difference that sits inside that margin proves nothing.',
+                },
                 note: {
                     idea: 'You usually see a sample, not everyone. A confidence interval gives a range that probably contains the true value. A hypothesis test asks: could this result be just luck?',
                     analogy: 'Tasting one spoon of soup to judge the whole pot. Stirring first is random sampling.',
@@ -608,6 +718,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f1-t15',
                 name: 'Entropy, cross-entropy and KL divergence',
+                diagram: {
+                    code: 'xychart-beta\n  title "Cross-entropy loss: −log(probability given to the right answer)"\n  x-axis "probability of the right answer" [0.05, 0.1, 0.3, 0.5, 0.7, 0.9, 0.99]\n  y-axis "loss" 0 --> 3.2\n  bar [3.0, 2.3, 1.2, 0.69, 0.36, 0.11, 0.01]',
+                    caption: 'Being confidently wrong is punished hard; being confidently right costs almost nothing. That\'s the loss classifiers are trained on.',
+                },
                 note: {
                     idea: 'Entropy measures uncertainty, or \'surprise\', in a distribution. Cross-entropy measures your surprise when you use your model q to predict data that really comes from p. KL divergence is the extra surprise: KL(p‖q) = cross-entropy − entropy.',
                     analogy: 'Packing for a trip. With the true weather forecast (p), you pack exactly right. With a wrong forecast (q), you pack badly. KL is the extra, wasted luggage.',
@@ -631,6 +745,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f1-t16',
                 name: 'Convex optimisation: constraints, Lagrange multipliers and duality',
+                diagram: {
+                    code: 'xychart-beta\n  title "Convex (w²) vs non-convex (w⁴ − 3w² + w)"\n  x-axis "w" [-2, -1.5, -1, -0.5, 0, 0.5, 1, 1.5, 2]\n  y-axis "value" -4 --> 6\n  line [4.0, 2.25, 1.0, 0.25, 0.0, 0.25, 1.0, 2.25, 4.0]\n  line [2.0, -3.19, -3.0, -1.19, 0.0, -0.19, -1.0, -0.19, 6.0]',
+                    caption: 'The bowl (w²) has one bottom, so gradient descent always finds it. The wavy curve has two valleys, so where you end up depends on where you start.',
+                },
                 note: {
                     idea: 'A convex function is shaped like a bowl, so any local minimum is the global minimum and gradient descent cannot get stuck in a wrong valley. Constrained problems (\'minimise this, but keep that true\') are solved with Lagrange multipliers, which add the constraint to the objective as an extra term. Duality looks at the same problem from the constraint\'s side, and it is how SVMs are usually solved.',
                     analogy: 'A bowl versus a mountain range. Drop a marble into a bowl and it always ends at the same bottom. In a mountain range it can stop in any valley.',
@@ -690,6 +808,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f2-t1',
                 name: 'The ML setup: features, labels, loss, train/validation/test',
+                diagram: {
+                    code: 'flowchart LR\n  D[("All the data")] --> TR["Training set 70%<br/>learn the weights"]\n  D --> VA["Validation set 15%<br/>tune your choices"]\n  D --> TE["Test set 15%<br/>use once, at the end"]\n  TR --> M["Model"]\n  VA -.->|"pick the best version"| M\n  M --> TE',
+                    caption: 'Learn on the training set, make decisions with the validation set, and keep the test set untouched until the final score.',
+                },
                 note: {
                     idea: 'Features are the inputs (house size, number of rooms). The label is the answer (price). The loss measures how wrong the model is. Train on one part of the data, tune on the validation set, and use the test set only once, at the end.',
                     analogy: 'Studying for an exam. Training data is textbook exercises. The validation set is practice exams. The test set is the real exam, seen once.',
@@ -712,6 +834,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f2-t2',
                 name: 'Linear regression: normal equation and gradient descent',
+                diagram: {
+                    code: 'flowchart LR\n  X["features X<br/>(size, rooms)"] --> M["ŷ = Xw + b"]\n  M --> L["mean squared error<br/>vs the true prices y"]\n  L --> NE["normal equation:<br/>solve for w in one go"]\n  L --> GD["gradient descent:<br/>improve w step by step"]\n  NE & GD --> W["best weights w"]',
+                    caption: 'Linear regression predicts with a weighted sum. Two routes lead to the same best weights: one formula, or many small steps.',
+                },
                 note: {
                     idea: 'Predict with a weighted sum, ŷ = Xw + b, and choose the weights that make the squared errors smallest. There are two ways: a direct formula (the normal equation), or gradient descent step by step.',
                     analogy: 'Placing a ruler across dots on a page so it is as close as possible to all of them.',
@@ -734,6 +860,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f2-t3',
                 name: 'Logistic regression and the sigmoid',
+                diagram: {
+                    code: 'xychart-beta\n  title "The sigmoid squashes any score into a probability"\n  x-axis "score z" [-6, -4, -2, 0, 2, 4, 6]\n  y-axis "probability" 0 --> 1\n  line [0.002, 0.018, 0.119, 0.5, 0.881, 0.982, 0.998]',
+                    caption: 'A big negative score becomes almost 0, a big positive one almost 1, and a score of 0 sits exactly at 0.5.',
+                },
                 note: {
                     idea: 'For yes/no questions. Compute a score z = Xw + b, then squash it into a probability with the sigmoid, σ(z) = 1 / (1 + e⁻ᶻ). Train with cross-entropy loss.',
                     analogy: 'A dimmer switch. The score turns the dial, and the sigmoid keeps the light between 0 (off) and 1 (fully on).',
@@ -757,6 +887,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f2-t4',
                 name: 'Regularisation: L1 and L2',
+                diagram: {
+                    code: 'flowchart LR\n  L["total loss"] --> D["data error"]\n  L --> P["+ λ × penalty"]\n  P --> L2["L2: λ Σ w²<br/>shrinks every weight"]\n  P --> L1["L1: λ Σ |w|<br/>pushes some weights to exactly 0"]',
+                    caption: 'Regularisation adds a cost for large weights. L2 makes all weights small; L1 switches the weak ones off completely.',
+                },
                 note: {
                     idea: 'Add a penalty for large weights to the loss. L2 adds λΣw² and shrinks all weights a little. L1 adds λΣ|w| and pushes some weights to exactly zero.',
                     analogy: 'A spending budget. L2 is a tax that grows fast for big spending, so you spend a little on everything. L1 is a flat fee per pound, so it is often best to spend nothing at all on weak items.',
@@ -780,6 +914,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f2-t5',
                 name: 'Bias–variance trade-off and overfitting',
+                diagram: {
+                    code: 'xychart-beta\n  title "Error vs model complexity (illustration)"\n  x-axis "complexity (for example polynomial degree)" [1, 2, 3, 4, 5, 6, 7, 8, 9]\n  y-axis "error" 0 --> 16\n  line [10, 6, 4, 3, 2.5, 2, 1.5, 1, 0.5]\n  line [11, 7, 5, 4.5, 5, 6, 8, 11, 15]',
+                    caption: 'Training error (the line that keeps falling) always improves with complexity. Validation error falls, then rises again: the bottom of that U is the sweet spot; to the right is overfitting.',
+                },
                 note: {
                     idea: 'Bias is error from a model that is too simple. Variance is error from a model that is too sensitive to the training data. Overfitting means low training error but high test error.',
                     analogy: 'Two students. One memorises every answer and fails on new questions (high variance). One only learns \'the answer is usually C\' (high bias). You want the one who learns the ideas.',
@@ -803,6 +941,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f2-t6',
                 name: 'Metrics: precision, recall, F1, ROC-AUC, confusion matrix',
+                diagram: {
+                    code: 'flowchart TD\n  ALL["10,000 transactions<br/>100 are fraud"] --> F["model flags 80"]\n  F --> TP["60 really fraud<br/>true positives"]\n  F --> FP["20 innocent<br/>false positives"]\n  ALL --> FN["40 frauds missed<br/>false negatives"]\n  TP --> PR["precision = 60 / 80 = 0.75"]\n  TP --> RE["recall = 60 / 100 = 0.60"]',
+                    caption: 'Precision asks \'of what I flagged, how much was right?\'; recall asks \'of what was really there, how much did I find?\'.',
+                },
                 note: {
                     idea: 'A confusion matrix counts true positives, false positives, false negatives and true negatives. Precision = TP/(TP + FP): of the items you flagged, how many were right? Recall = TP/(TP + FN): of the real ones, how many did you find? F1 balances the two. ROC-AUC measures how well scores rank positives above negatives.',
                     analogy: 'Fishing with a net. Precision: how much of your catch is fish, not old boots? Recall: how many of the fish in the lake did you catch?',
@@ -826,6 +968,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f2-t7',
                 name: 'Cross-validation and data leakage',
+                diagram: {
+                    code: 'flowchart TD\n  R1["Round 1: TEST · train · train · train · train"]\n  R2["Round 2: train · TEST · train · train · train"]\n  R3["Round 3: train · train · TEST · train · train"]\n  R4["Round 4: train · train · train · TEST · train"]\n  R5["Round 5: train · train · train · train · TEST"]\n  R1 & R2 & R3 & R4 & R5 --> A["average the 5 scores<br/>(and look at their spread)"]',
+                    caption: '5-fold cross-validation: every part of the data is used for testing exactly once, giving a more reliable score than one split.',
+                },
                 note: {
                     idea: 'Cross-validation splits the data into k parts: train on k − 1 parts, test on the last one, and rotate. Data leakage is when information from the test data sneaks into training, so results look better than they really are.',
                     analogy: 'Leakage is like a student seeing the exam answers the night before. The high score is real, but it means nothing.',
@@ -849,6 +995,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f2-t8',
                 name: 'Feature scaling and encoding',
+                diagram: {
+                    code: 'flowchart LR\n  S["size: 100 m²"] --> ST["standardise:<br/>(value − mean) ÷ std"]\n  R["rooms: 3"] --> ST\n  ST --> E["both now on a similar scale"]\n  C["colour: red / green / blue"] --> OH["one-hot:<br/>red = [1, 0, 0]<br/>green = [0, 1, 0]<br/>blue = [0, 0, 1]"]',
+                    caption: 'Scaling stops big-unit features from drowning out small ones. One-hot encoding turns categories into numbers without inventing an order.',
+                },
                 note: {
                     idea: 'Put features on similar scales so no feature dominates just because of its units. Turn categories into numbers with one-hot encoding.',
                     analogy: 'Describing a house by size (100 m²) and rooms (3). Without scaling, the model \'hears\' size shouting and rooms whispering.',
@@ -871,6 +1021,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f2-t9',
                 name: 'k-nearest neighbours',
+                diagram: {
+                    code: 'flowchart LR\n  N["new point"] --> D["measure the distance<br/>to every training point"]\n  D --> K["take the k = 3 nearest"]\n  K --> V["their labels: A, A, B"]\n  V --> W["majority vote → A"]',
+                    caption: 'k-nearest neighbours has no training step: it just looks at the closest examples and lets them vote.',
+                },
                 note: {
                     idea: 'To classify a new point, find the k closest training points and take a vote. There is no training step at all.',
                     analogy: 'New in a town? Ask your 5 nearest neighbours which restaurant is best, and go with the majority.',
@@ -893,6 +1047,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f2-t10',
                 name: 'Decision trees: entropy and Gini',
+                diagram: {
+                    code: 'flowchart TD\n  ROOT{"x < 3.5 ?<br/>3 yes, 5 no · Gini 0.47"}\n  ROOT -->|"yes"| L["yes, yes, yes<br/>Gini 0 (pure)"]\n  ROOT -->|"no"| R["no × 5<br/>Gini 0 (pure)"]',
+                    caption: 'A tree picks the question that makes each side as pure as possible. This split separates the two classes perfectly.',
+                },
                 note: {
                     idea: 'A decision tree asks a series of yes/no questions about features, like \'age < 30?\'. At each step it picks the question that makes the groups purest. Purity is measured with Gini impurity or entropy.',
                     analogy: 'The game \'20 Questions\'. Good questions split the possibilities in useful ways.',
@@ -915,6 +1073,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f2-t11',
                 name: 'Ensembles: bagging, random forests, gradient boosting',
+                diagram: {
+                    code: 'flowchart LR\n  subgraph Bagging\n    D1[("data")] --> S1["random resample 1"] --> T1["tree 1"]\n    D1 --> S2["random resample 2"] --> T2["tree 2"]\n    D1 --> S3["random resample 3"] --> T3["tree 3"]\n    T1 & T2 & T3 --> AV["average or vote"]\n  end\n  subgraph Boosting\n    B1["tree 1"] -->|"what it got wrong"| B2["tree 2"] -->|"what\'s still wrong"| B3["tree 3"] --> SUM["add them up"]\n  end',
+                    caption: 'Bagging trains trees side by side and averages them (less variance). Boosting trains them one after another, each fixing the last (less bias).',
+                },
                 note: {
                     idea: 'Ensembles combine many models. Bagging and random forests train many trees on random samples of the data and features, then average them (this reduces variance). Boosting trains trees one after another, each one fixing the errors of the ones before (this reduces bias).',
                     analogy: 'Random forest: ask 100 people to guess the number of sweets in a jar, and average the guesses. Boosting: one student corrects their homework again and again, focusing on the questions they got wrong.',
@@ -938,6 +1100,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f2-t12',
                 name: 'Support vector machines: margin and hinge loss',
+                diagram: {
+                    code: 'flowchart LR\n  N["class −1 points"] --- SV1(("support<br/>vector")) --- M1["margin"] --- B["boundary<br/>w·x + b = 0"] --- M2["margin"] --- SV2(("support<br/>vector")) --- P["class +1 points"]',
+                    caption: 'An SVM puts the boundary in the middle of the widest possible gap. Only the closest points — the support vectors — decide where it goes.',
+                },
                 note: {
                     idea: 'An SVM finds the separating line (or plane) with the widest gap, the margin, to the nearest points of each class. Those nearest points are the support vectors. It uses the hinge loss, max(0, 1 − y·score).',
                     analogy: 'Building a road between two villages. You want the widest road possible that does not touch any house.',
@@ -961,6 +1127,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f2-t13',
                 name: 'Naive Bayes',
+                diagram: {
+                    code: 'flowchart LR\n  E["email: \'free\' and \'meeting\'"] --> SP["spam score:<br/>P(spam) × P(\'free\' | spam) × P(\'meeting\' | spam)"]\n  E --> HM["not-spam score:<br/>P(ham) × P(\'free\' | ham) × P(\'meeting\' | ham)"]\n  SP & HM --> C{"bigger score wins"}',
+                    caption: 'Naive Bayes multiplies the evidence from each word separately (in practice it adds logs), then picks the class with the bigger score.',
+                },
                 note: {
                     idea: 'Naive Bayes uses Bayes\' rule to classify, with a \'naive\' shortcut: it assumes features are independent once you know the class. Then you just multiply probabilities.',
                     analogy: 'A spam filter reading one word at a time. \'free\' makes spam more likely, \'meeting\' makes it less likely. It adds up the evidence from each word separately.',
@@ -984,6 +1154,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f2-t14',
                 name: 'k-means clustering',
+                diagram: {
+                    code: 'flowchart LR\n  S["pick k starting centres"] --> A["assign each point<br/>to its nearest centre"]\n  A --> M["move each centre to<br/>the middle of its points"]\n  M --> Q{"did anything change?"}\n  Q -->|"yes"| A\n  Q -->|"no"| D["done: k clusters"]',
+                    caption: 'k-means repeats two simple steps until the clusters stop moving.',
+                },
                 note: {
                     idea: 'k-means groups points into k clusters by repeating two steps: assign each point to its nearest centre, then move each centre to the average of its points.',
                     analogy: 'Placing k ice-cream vans on a beach. Each customer walks to the nearest van. Each van moves to the middle of its customers. Repeat until nobody moves.',
@@ -1005,6 +1179,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f2-t15',
                 name: 'PCA in practice',
+                diagram: {
+                    code: 'xychart-beta\n  title "Share of the variance kept by each component"\n  x-axis "principal component" [1, 2, 3, 4]\n  y-axis "% of variance" 0 --> 70\n  bar [62, 24, 9, 5]',
+                    caption: 'The first few components usually hold most of the spread. Keep enough to reach your target (often around 95%) and drop the rest.',
+                },
                 note: {
                     idea: 'Use PCA to compress data, remove noise, or plot high-dimensional data in 2D. Always centre the data first, and scale it if features use different units.',
                     analogy: 'Photographing a 3D object from the angle that shows the most detail.',
@@ -1028,6 +1206,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f2-t16',
                 name: 'Gaussian mixture models and EM',
+                diagram: {
+                    code: 'flowchart LR\n  I["start: 2 bell curves<br/>in rough places"] --> E["E-step: how much does each point<br/>belong to each curve?"]\n  E --> M["M-step: refit each curve<br/>using those weights"]\n  M --> Q{"log-likelihood<br/>still improving?"}\n  Q -->|"yes"| E\n  Q -->|"no"| D["done"]',
+                    caption: 'EM alternates between soft-assigning points and refitting the curves. Each round can only improve the fit.',
+                },
                 note: {
                     idea: 'A Gaussian mixture model says the data comes from several bell curves mixed together. The EM algorithm finds them by repeating two steps. E-step: work out how much each point belongs to each bell curve (its \'responsibilities\'). M-step: refit each bell curve using those responsibilities as weights.',
                     analogy: 'Sorting a pile of socks from two families by size. First guess which family each sock belongs to, then update your idea of each family\'s typical size, then guess again.',
@@ -1051,6 +1233,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f2-t17',
                 name: 'Generalisation: VC dimension and double descent',
+                diagram: {
+                    code: 'xychart-beta\n  title "Double descent (illustration): 100 training points"\n  x-axis "number of features" [10, 50, 90, 100, 110, 200, 500, 1000]\n  y-axis "test error" 0 --> 4.5\n  line [1.0, 0.6, 1.5, 4.0, 1.6, 0.8, 0.6, 0.5]',
+                    caption: 'Test error spikes where the number of features equals the number of training points, then falls again as the model keeps growing.',
+                },
                 note: {
                     idea: 'Generalisation means doing well on data you have never seen. Classical theory says bigger models need more data. The VC dimension measures how many points a family of models can fit in every possible way. But deep networks break the simple story: as models grow past the point where they fit the training data perfectly, test error can go down again. This is called double descent.',
                     analogy: 'A student who can memorise any answer sheet has high capacity. Classical theory says: give them more exercises than they can memorise, so they are forced to learn the ideas.',
@@ -1108,6 +1294,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f3-t1',
                 name: 'The neuron and the multi-layer perceptron',
+                diagram: {
+                    code: 'flowchart LR\n  X1["x₁"] -->|"w₁"| S["Σ weighted sum + bias"]\n  X2["x₂"] -->|"w₂"| S\n  X3["x₃"] -->|"w₃"| S\n  S --> A["activation<br/>(ReLU)"] --> O["output"]\n  IN["input layer"] --> H["hidden layer"] --> OUT["output layer"]',
+                    caption: 'Top: one neuron. Bottom: an MLP stacks layers of them, each layer feeding the next.',
+                },
                 note: {
                     idea: 'A neuron computes a weighted sum of its inputs, adds a bias, and applies an activation: a = f(w·x + b). An MLP stacks layers of neurons, and each layer\'s output is the next layer\'s input.',
                     analogy: 'Rows of judges. Each judge (neuron) weighs the evidence in their own way and gives a score. The next row of judges combines those scores.',
@@ -1130,6 +1320,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f3-t2',
                 name: 'Activation functions, and why non-linearity matters',
+                diagram: {
+                    code: 'xychart-beta\n  title "ReLU, sigmoid and tanh"\n  x-axis "input" [-3, -2, -1, 0, 1, 2, 3]\n  y-axis "output" -1 --> 3\n  line [0.0, 0.0, 0.0, 0.0, 1.0, 2.0, 3.0]\n  line [0.05, 0.12, 0.27, 0.5, 0.73, 0.88, 0.95]\n  line [-1.0, -0.96, -0.76, 0.0, 0.76, 0.96, 1.0]',
+                    caption: 'ReLU is 0 then a straight line; sigmoid squashes into 0 to 1; tanh squashes into −1 to 1. The bends are what let networks learn curves.',
+                },
                 note: {
                     idea: 'Without a non-linear activation, stacking layers is useless: two linear layers equal one linear layer. ReLU(x) = max(0, x) is the default. Sigmoid and tanh squash values. GELU is a smooth ReLU used in transformers.',
                     analogy: 'Straight Lego bricks can only build straight walls. Activations are the hinged pieces that let you build curves.',
@@ -1151,6 +1345,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f3-t3',
                 name: 'Backpropagation by hand',
+                diagram: {
+                    code: 'flowchart LR\n  W["w = 1"] -->|"× x = 2"| YH["ŷ = 2"] -->|"− y = 5"| E["e = −3"] -->|"square"| L["L = 9"]\n  L -.->|"dL/de = 2e = −6"| E\n  E -.->|"de/dŷ = 1"| YH\n  YH -.->|"dŷ/dw = x = 2"| W\n  W -.- G["dL/dw = −6 × 1 × 2 = −12"]',
+                    caption: 'Solid arrows are the forward pass; dotted arrows carry gradients backwards. Multiplying them along the path is the chain rule.',
+                },
                 note: {
                     idea: 'Backprop computes the gradient of the loss for every weight, using the chain rule from the output backwards. Each step passes back: (gradient from above) × (its own local derivative).',
                     analogy: 'A factory makes a faulty product. You trace back station by station, asking how much each one contributed to the fault.',
@@ -1172,6 +1370,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f3-t4',
                 name: 'Autograd and computational graphs',
+                diagram: {
+                    code: 'flowchart LR\n  W(("w")) --> M["× 2.0"] --> S["− 5.0"] --> P["square"] --> L(("loss"))\n  L -.->|"backward()"| P -.-> S -.-> M -.-> W\n  W -.- G["w.grad = −12"]',
+                    caption: 'Autograd records every operation as a graph while computing, then walks it backwards to fill in each gradient.',
+                },
                 note: {
                     idea: 'Autograd records every operation in a graph while you compute. Calling backward() walks the graph in reverse and applies the chain rule for you.',
                     analogy: 'Breadcrumbs. On the way forward you drop a crumb at each step. On the way back you follow them home.',
@@ -1194,6 +1396,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f3-t5',
                 name: 'Softmax and cross-entropy loss',
+                diagram: {
+                    code: 'flowchart LR\n  Z["logits<br/>[2, 1, 0.1]"] -->|"exp"| E["[7.39, 2.72, 1.11]"] -->|"÷ sum 11.2"| P["probabilities<br/>[0.66, 0.24, 0.10]"]\n  P -->|"right answer is class 0"| L["loss = −log 0.66 ≈ 0.42"]',
+                    caption: 'Softmax turns scores into probabilities; cross-entropy then scores how much probability went to the right answer.',
+                },
                 note: {
                     idea: 'Softmax turns raw scores (logits) into probabilities that sum to 1: exp(zᵢ) / Σ exp(zⱼ). Cross-entropy loss is −log(probability of the correct class). Together, their gradient is simply: probabilities − one-hot label.',
                     analogy: 'Turning vote counts into vote shares.',
@@ -1217,6 +1423,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f3-t6',
                 name: 'Optimisers: SGD, momentum, Adam; learning-rate schedules',
+                diagram: {
+                    code: 'flowchart LR\n  G["gradient g"] --> SGD["SGD:<br/>step = −lr × g"]\n  G --> MOM["Momentum:<br/>running average of g<br/>keeps a steady direction"]\n  MOM --> ADAM["Adam:<br/>momentum + a step size<br/>scaled for each weight"]',
+                    caption: 'Each optimiser builds on the last: plain steps, then steps with momentum, then momentum with a personal step size for every weight.',
+                },
                 note: {
                     idea: 'SGD steps against the gradient. Momentum keeps a running average of gradients, so you keep moving in a consistent direction. Adam adds a separate step size for each weight, based on how large its gradients usually are. A schedule changes the learning rate over time, for example warm-up then decay.',
                     analogy: 'SGD is a hiker who only looks at the ground under their feet. Momentum is a ball rolling downhill: it builds speed and rolls over small bumps. Adam is a ball that is careful in steep, bumpy directions and bolder in flat ones.',
@@ -1239,6 +1449,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f3-t7',
                 name: 'Weight initialisation; vanishing and exploding gradients',
+                diagram: {
+                    code: 'xychart-beta\n  title "Size of the signal through 8 layers"\n  x-axis "layer" [0, 1, 2, 3, 4, 5, 6, 7, 8]\n  y-axis "signal size (std)" 0 --> 26\n  line [1.0, 0.5, 0.25, 0.125, 0.062, 0.031, 0.016, 0.008, 0.004]\n  line [1, 1, 1, 1, 1, 1, 1, 1, 1]\n  line [1.0, 1.5, 2.2, 3.4, 5.1, 7.6, 11.4, 17.1, 25.6]',
+                    caption: 'Weights too small: the signal fades to nothing (vanishing). Too big: it explodes. Good initialisation keeps it steady (the flat line).',
+                },
                 note: {
                     idea: 'If weights start too small, signals shrink layer by layer and gradients vanish. If they start too big, signals grow and explode. Good initialisation keeps the signal size steady: He initialisation for ReLU uses std = √(2 / fan_in).',
                     analogy: 'Passing a message down a line of 50 people. Too quiet, and it fades to nothing. Too loud, and it turns into shouting and noise.',
@@ -1262,6 +1476,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f3-t8',
                 name: 'Batch norm and layer norm',
+                diagram: {
+                    code: 'flowchart LR\n  T["activations: a table of<br/>examples (rows) × features (columns)"]\n  T --> BN["Batch norm:<br/>normalise each COLUMN<br/>(one feature, across the batch)"]\n  T --> LN["Layer norm:<br/>normalise each ROW<br/>(one example, across its features)"]',
+                    caption: 'The two norms do the same maths in different directions. Layer norm doesn\'t depend on the batch, which is why transformers use it.',
+                },
                 note: {
                     idea: 'Normalisation rescales activations to mean 0 and variance 1, then lets the network rescale them with learned γ and β. Batch norm averages over the batch, for each feature. Layer norm averages over the features, for each example.',
                     analogy: 'Grading on a curve. Batch norm curves each exam question across all students. Layer norm curves each student across all of their questions.',
@@ -1284,6 +1502,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f3-t9',
                 name: 'Regularisation: dropout, weight decay, augmentation, early stopping',
+                diagram: {
+                    code: 'xychart-beta\n  title "Train vs validation loss (illustration)"\n  x-axis "epoch" [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]\n  y-axis "loss" 0 --> 2.5\n  line [2.2, 1.5, 1.1, 0.85, 0.65, 0.5, 0.38, 0.28, 0.2, 0.14]\n  line [2.3, 1.6, 1.25, 1.05, 0.95, 0.92, 0.95, 1.02, 1.12, 1.25]',
+                    caption: 'Training loss keeps falling, but validation loss turns up after about epoch 6 — that\'s overfitting. Early stopping saves the model at the lowest validation point.',
+                },
                 note: {
                     idea: 'Tricks to stop a network memorising. Dropout turns off random neurons during training. Weight decay shrinks weights. Data augmentation makes \'new\' data, such as flipped or cropped images. Early stopping stops when the validation loss starts to rise.',
                     analogy: 'Dropout is a football team that trains with random players missing, so nobody relies on one star.',
@@ -1305,6 +1527,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f3-t10',
                 name: 'PyTorch: nn.Module, DataLoader and the training loop',
+                diagram: {
+                    code: 'flowchart LR\n  B["DataLoader:<br/>next batch"] --> F["logits = model(x)"] --> L["loss"] --> Z["opt.zero_grad()"] --> BW["loss.backward()"] --> ST["opt.step()"]\n  ST -->|"repeat"| B',
+                    caption: 'The five-step loop at the heart of every PyTorch training script.',
+                },
                 note: {
                     idea: 'nn.Module holds your layers and weights. DataLoader serves shuffled mini-batches. The training loop is almost always the same five steps.',
                     analogy: 'A kitchen routine: get ingredients (a batch), cook (forward), taste (loss), adjust the recipe (backward and step), and clean the pan (zero_grad).',
@@ -1327,6 +1553,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f3-t11',
                 name: 'Convolutional networks: convolution, pooling, receptive field',
+                diagram: {
+                    code: 'flowchart LR\n  I["image<br/>32 × 32 × 3"] --> C1["conv 3×3, 16 filters<br/>32 × 32 × 16"] --> P1["pool<br/>16 × 16 × 16"] --> C2["conv 3×3, 32 filters<br/>16 × 16 × 32"] --> P2["pool<br/>8 × 8 × 32"] --> FC["classifier<br/>10 classes"]',
+                    caption: 'Each convolution finds patterns; each pooling step shrinks the image. Deeper layers see bigger areas and more complex patterns.',
+                },
                 note: {
                     idea: 'A convolution slides a small filter, like 3×3, over the image and computes a dot product at each position. The same filter is used everywhere, so a cat is a cat in any corner. Pooling shrinks the image. The receptive field is how much of the original image one output can see, and it grows with depth.',
                     analogy: 'Scanning a page with a magnifying glass for one pattern, like an edge. Deeper layers look for patterns made of patterns: edges, then corners, then eyes, then faces.',
@@ -1348,6 +1578,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f3-t12',
                 name: 'Residual connections (ResNet)',
+                diagram: {
+                    code: 'flowchart LR\n  X["x"] --> F["layers: F(x)"] --> ADD(("+"))\n  X -->|"shortcut"| ADD\n  ADD --> O["output = x + F(x)"]',
+                    caption: 'The shortcut carries x straight past the layers, so the block only has to learn the change F(x), and gradients flow back easily.',
+                },
                 note: {
                     idea: 'Instead of learning y = F(x), a residual block learns y = x + F(x). The block only has to learn the change. Gradients flow straight back through the \'+ x\' shortcut.',
                     analogy: 'Editing a document with tracked changes, instead of rewriting it from scratch each time.',
@@ -1370,6 +1604,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f3-t13',
                 name: 'RNNs, and why long sequences are hard',
+                diagram: {
+                    code: 'flowchart LR\n  H0["h₀"] --> C1["RNN cell"] --> H1["h₁"] --> C2["RNN cell"] --> H2["h₂"] --> C3["RNN cell"] --> H3["h₃ → output"]\n  X1["x₁"] --> C1\n  X2["x₂"] --> C2\n  X3["x₃"] --> C3',
+                    caption: 'The same cell is used at every step, passing its memory h forward. Information from x₁ must survive every step to reach the end.',
+                },
                 note: {
                     idea: 'An RNN reads a sequence one step at a time and keeps a hidden state as memory: hₜ = tanh(W hₜ₋₁ + U xₜ). The same weights are used at every step.',
                     analogy: 'Reading a book with one sticky note. After each page, you rewrite the note.',
@@ -1393,6 +1631,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f3-t14',
                 name: 'Embeddings: representing things as vectors',
+                diagram: {
+                    code: 'flowchart LR\n  T["word id 42"] --> E["embedding table<br/>10,000 rows × 64 columns"] --> R["row 42:<br/>64 learned numbers"]\n  R --> S["similar words end up<br/>with similar rows"]',
+                    caption: 'An embedding is a lookup: each id has its own row of learned numbers.',
+                },
                 note: {
                     idea: 'An embedding is a learned vector for each item: a word, a user, a product. Similar items end up with similar vectors. Technically, it is a lookup table with one row per item.',
                     analogy: 'A city map where similar shops end up in the same neighbourhood, so distance means similarity.',
@@ -1416,6 +1658,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f3-t15',
                 name: 'Debugging training: overfit one batch, read loss curves',
+                diagram: {
+                    code: 'flowchart TD\n  S{"Is the loss at step 0<br/>about ln(number of classes)?"} -->|"no"| B1["bug in initialisation<br/>or the loss"]\n  S -->|"yes"| O{"Can it overfit<br/>one small batch?"}\n  O -->|"no"| B2["bug in the model<br/>or training loop"]\n  O -->|"yes"| C{"Train and validation curves?"}\n  C -->|"validation rising"| OV["overfitting:<br/>add regularisation or data"]\n  C -->|"both high and flat"| UN["underfitting or<br/>learning rate too low"]\n  C -->|"spikes or NaN"| LR["learning rate too high"]',
+                    caption: 'A checklist to work through in order. Each question rules out a whole class of bugs before you look at the next.',
+                },
                 note: {
                     idea: 'First, make the model overfit one small batch: the loss should go close to 0. If it cannot, you have a bug. Then watch the training and validation loss curves together.',
                     analogy: 'A mechanic tests the engine on a stand before driving it on the road.',
@@ -1437,6 +1683,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f3-t16',
                 name: 'LSTMs and GRUs: gates for long memory',
+                diagram: {
+                    code: 'flowchart LR\n  CP["c (previous)"] -->|"× forget gate"| ADD(("+"))\n  IG["input gate × candidate"] --> ADD\n  ADD --> C["c (new)"]\n  C -->|"tanh × output gate"| H["h (output)"]',
+                    caption: 'The memory line c is updated by adding, not multiplying, which is why information and gradients survive long sequences.',
+                },
                 note: {
                     idea: 'An LSTM adds a separate memory line, the cell state, plus three gates that decide what to forget, what to write and what to output. Because the cell state is updated by adding rather than by repeated multiplying, gradients survive over long sequences. A GRU is a simpler version with two gates.',
                     analogy: 'A notebook with a pencil and an eraser. Instead of rewriting the whole sticky note on every page, you erase a few lines (forget gate), write a few new ones (input gate), and read out what you need (output gate).',
@@ -1496,6 +1746,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f4-t1',
                 name: 'Tokenisation and byte-pair encoding (BPE)',
+                diagram: {
+                    code: 'flowchart LR\n  T["l o w · l o w e r · l o w e s t"] -->|"most frequent pair: l + o"| M1["lo w · lo w e r · lo w e s t"]\n  M1 -->|"next: lo + w"| M2["low · low e r · low e s t"]\n  M2 -->|"keep merging…"| V["final vocabulary of tokens"]',
+                    caption: 'BPE builds tokens bottom-up by merging the most frequent neighbouring pair, again and again.',
+                },
                 note: {
                     idea: 'A model reads tokens, not letters or whole words. Byte-pair encoding (BPE) starts from single characters (or bytes) and repeatedly merges the most frequent neighbouring pair into a new token.',
                     analogy: 'Shorthand notes. You notice you write \'the\' all the time, so you invent one symbol for it.',
@@ -1519,6 +1773,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f4-t2',
                 name: 'Token embeddings and positional encoding',
+                diagram: {
+                    code: 'flowchart LR\n  T["token ids<br/>\'dog\', \'bites\', \'man\'"] --> TE["token embeddings"]\n  P["positions<br/>0, 1, 2"] --> PE["position embeddings"]\n  TE --> ADD(("+"))\n  PE --> ADD\n  ADD --> X["input to the transformer"]',
+                    caption: 'Each token\'s vector gets its position added, so \'dog bites man\' and \'man bites dog\' look different to the model.',
+                },
                 note: {
                     idea: 'Each token id becomes a vector (its embedding). Attention on its own does not know word order, so we add position information: a learned position vector, sine waves, or rotations (RoPE).',
                     analogy: 'Seat numbers in a theatre. Everyone is a person (the embedding), but the seat number (the position) tells you who sits next to whom.',
@@ -1542,6 +1800,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f4-t3',
                 name: 'Self-attention: queries, keys and values',
+                diagram: {
+                    code: 'flowchart LR\n  X["token vectors X"] --> Q["Q = X·Wq"]\n  X --> K["K = X·Wk"]\n  X --> V["V = X·Wv"]\n  Q & K --> S["scores = Q·Kᵀ / √d"]\n  S --> SM["softmax → attention weights"]\n  SM & V --> O["output = weights · V"]',
+                    caption: 'Every token compares its query with every key, turns the scores into weights, and takes that weighted mix of the values.',
+                },
                 note: {
                     idea: 'Every token makes three vectors: a query (what I am looking for), a key (what I contain) and a value (what I will share). Each token compares its query with every key, turns the scores into weights with softmax, and takes a weighted average of the values.',
                     analogy: 'A library. Your question is the query. Book titles are keys. The contents are values. You read a mix of the books whose titles best match your question.',
@@ -1565,6 +1827,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f4-t4',
                 name: 'Multi-head attention and the transformer block',
+                diagram: {
+                    code: 'flowchart LR\n  X["x"] --> LN1["layer norm"] --> ATT["multi-head attention"] --> A1(("+"))\n  X --> A1\n  A1 --> LN2["layer norm"] --> MLP["MLP"] --> A2(("+"))\n  A1 --> A2\n  A2 --> O["to the next block"]',
+                    caption: 'One pre-norm transformer block: attention, then an MLP, each wrapped with layer norm and a residual shortcut.',
+                },
                 note: {
                     idea: 'Multi-head attention runs several smaller attentions in parallel, so each head can track a different kind of relationship. A transformer block is attention plus an MLP, each wrapped with layer norm and a residual connection.',
                     analogy: 'A team reading the same contract. One person checks dates, one checks names, one checks money. Then they merge their notes.',
@@ -1588,6 +1854,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f4-t5',
                 name: 'GPT-style models and next-token prediction',
+                diagram: {
+                    code: 'flowchart LR\n  C["\'The cat sat on\'"] --> GPT["GPT"] --> P["next-token probabilities<br/>\'the\' 0.62 · \'a\' 0.21 · …"]\n  P --> PK["pick \'the\'"] --> AP["append:<br/>\'The cat sat on the\'"]\n  AP -->|"repeat"| GPT',
+                    caption: 'Generation is a loop: predict the next token, add it to the text, and predict again.',
+                },
                 note: {
                     idea: 'A GPT reads tokens left to right and predicts the next token. A causal mask stops each position from seeing the future. Generation means: predict, append, repeat.',
                     analogy: 'The next-word suggestion on your phone keyboard, but trained on a huge amount of text and far deeper.',
@@ -1611,6 +1881,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f4-t6',
                 name: 'Encoder models (BERT) vs decoder models (GPT)',
+                diagram: {
+                    code: 'flowchart LR\n  B["BERT (encoder):<br/>\'Paris is the [MASK] of France\'"] -->|"looks at both sides"| BA["\'capital\'"]\n  G["GPT (decoder):<br/>\'Paris is the\'"] -->|"looks left only"| GA["guess the next word"]',
+                    caption: 'Encoders read the whole sentence to understand it; decoders only see the past, so they can generate text word by word.',
+                },
                 note: {
                     idea: 'Encoder models like BERT see the whole sentence in both directions and are trained to fill in masked words. They are good for understanding: classification and search embeddings. Decoder models like GPT see only the past and are trained to predict the next word. They are good for generating text.',
                     analogy: 'BERT does fill-in-the-blank exercises. GPT writes a story one word at a time.',
@@ -1632,6 +1906,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f4-t13',
                 name: 'Vision transformers and CLIP',
+                diagram: {
+                    code: 'flowchart LR\n  IMG["image 224 × 224"] --> PT["196 patches of 16 × 16"] --> EMB["patch embeddings<br/>+ positions"] --> TR["transformer"] --> CL["class"]\n  I2["image"] --> IE["image encoder"] --> SP["shared space"]\n  T2["\'a photo of a cat\'"] --> TE["text encoder"] --> SP\n  SP --> SIM["closest match wins"]',
+                    caption: 'Top: a ViT reads an image as a sequence of patches. Bottom: CLIP places images and captions in one space, so matching ones land close together.',
+                },
                 note: {
                     idea: 'A vision transformer (ViT) treats an image like a sentence: cut it into small patches, for example 16 × 16 pixels, turn each patch into a vector, add positions, and run a normal transformer. CLIP trains an image encoder and a text encoder together, so a picture and its caption land close together in the same embedding space. That lets you search images with text, and classify images with no task-specific training.',
                     analogy: 'ViT reads a photo like a comic strip, panel by panel. CLIP is two translators, one for pictures and one for words, trained until they give the same \'meaning code\' to a picture and its description.',
@@ -1657,6 +1935,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f4-t7',
                 name: 'Sampling: greedy, temperature, top-k, top-p',
+                diagram: {
+                    code: 'xychart-beta\n  title "Next-token probabilities for logits [2, 1, 0]"\n  x-axis "token" ["A", "B", "C"]\n  y-axis "probability" 0 --> 1\n  line [0.87, 0.12, 0.02]\n  line [0.67, 0.24, 0.09]\n  line [0.51, 0.31, 0.19]',
+                    caption: 'The steepest line is temperature 0.5 (sharp, safe), the middle is 1, the flattest is 2 (more random). Same logits, different temperature.',
+                },
                 note: {
                     idea: 'The model gives a probability for every possible next token. Greedy decoding always picks the top one. Temperature divides the logits by T before softmax: T < 1 makes choices sharper, T > 1 makes them flatter. Top-k keeps only the k best tokens. Top-p keeps the smallest set whose probabilities add up to p.',
                     analogy: 'Ordering at a restaurant. Greedy: always the most popular dish. High temperature: feeling adventurous. Top-k: only choose from the top 5 dishes.',
@@ -1680,6 +1962,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f4-t8',
                 name: 'KV cache and the cost of generation',
+                diagram: {
+                    code: 'flowchart LR\n  P["prompt tokens 1…n"] --> PF["prefill: compute K and V<br/>for all of them"] --> C[("KV cache")]\n  N["each new token"] --> K1["compute K and V<br/>for this token only"] --> C\n  C --> A["attention reads<br/>the whole cache"] --> T["next token"]',
+                    caption: 'Without the cache, every step would recompute the keys and values for the whole text. With it, each step only adds one row.',
+                },
                 note: {
                     idea: 'When generating, each new token needs the keys and values of all earlier tokens. Instead of recomputing them at every step, we store them. This is the KV cache. It is much faster, but it uses a lot of memory.',
                     analogy: 'Taking notes during a long meeting, instead of replaying the whole recording each time someone speaks.',
@@ -1700,6 +1986,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f4-t9',
                 name: 'Pretraining data and scaling laws',
+                diagram: {
+                    code: 'xychart-beta\n  title "Loss vs model size (illustration)"\n  x-axis "parameters" ["10M", "100M", "1B", "10B", "100B"]\n  y-axis "loss" 0 --> 4.5\n  line [4.0, 3.3, 2.8, 2.4, 2.1]',
+                    caption: 'Scaling laws: every 10× in size (with matching data and compute) buys a smooth, predictable drop in loss.',
+                },
                 note: {
                     idea: 'Pretraining is next-token prediction on a huge text collection. Scaling laws say the loss falls smoothly and predictably as model size, data and compute grow. The Chinchilla result: for a fixed compute budget, use roughly 20 training tokens per parameter.',
                     analogy: 'Learning a language by reading a whole library. More books and a bigger brain both help, in a predictable way.',
@@ -1721,6 +2011,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f4-t12',
                 name: 'Mixture of experts',
+                diagram: {
+                    code: 'flowchart LR\n  T["token"] --> R{"router"}\n  R -->|"weight 0.7"| E2["expert 2"]\n  R -->|"weight 0.3"| E5["expert 5"]\n  R -.->|"not used"| E1["experts 1, 3, 4, 6, 7, 8"]\n  E2 & E5 --> S["weighted sum → output"]',
+                    caption: 'Only 2 of the 8 experts run for this token, so the model is huge but each token\'s compute stays small.',
+                },
                 note: {
                     idea: 'A mixture-of-experts (MoE) layer replaces one big MLP with many smaller \'expert\' MLPs and a router. For each token, the router picks only a few experts, often 2, to run. So the model can have a huge number of parameters in total while each token uses only a small part of them: more knowledge for about the same compute per token.',
                     analogy: 'A hospital with many specialists. Each patient sees only the one or two doctors they need, not every doctor in the building.',
@@ -1745,6 +2039,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f4-t10',
                 name: 'Fine-tuning and LoRA',
+                diagram: {
+                    code: 'flowchart LR\n  X["x"] --> W["W (frozen)<br/>4,096 × 4,096"] --> ADD(("+"))\n  X --> A["A (trained)<br/>8 × 4,096"] --> B["B (trained)<br/>4,096 × 8"] --> ADD\n  ADD --> Y["output"]',
+                    caption: 'LoRA leaves the big weight W untouched and trains two thin matrices beside it — about 0.4% as many numbers.',
+                },
                 note: {
                     idea: 'Fine-tuning continues training a pretrained model on your own data. Full fine-tuning updates every weight. LoRA freezes the original weights W and learns a small update BA of low rank r (for example 8): W′ = W + BA.',
                     analogy: 'Instead of rewriting a whole textbook, you add a few sticky notes with corrections.',
@@ -1768,6 +2066,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f4-t11',
                 name: 'Instruction tuning and preference tuning (RLHF, DPO)',
+                diagram: {
+                    code: 'flowchart LR\n  PT["pretrained model<br/>(continues any text)"] --> SFT["instruction tuning<br/>(examples of good answers)"] --> PREF["preference tuning<br/>(chosen vs rejected answers:<br/>RLHF or DPO)"] --> AS["helpful assistant"]',
+                    caption: 'Three stages: read everything, learn from worked examples, then learn which of two answers people prefer.',
+                },
                 note: {
                     idea: 'A pretrained model only continues text. Instruction tuning (supervised fine-tuning) trains it on examples of good question-and-answer pairs. Preference tuning trains it on pairs of answers where people marked the better one. RLHF uses a reward model and reinforcement learning. DPO learns from the pairs directly.',
                     analogy: 'Pretraining is reading everything. Instruction tuning is an internship with worked examples. Preference tuning is a manager saying \'this version is better than that one\'.',
@@ -1789,6 +2091,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f4-t14',
                 name: 'Reasoning models and test-time compute',
+                diagram: {
+                    code: 'flowchart LR\n  Q["maths question"] --> S1["reasoning path 1 → 42"]\n  Q --> S2["reasoning path 2 → 42"]\n  Q --> S3["reasoning path 3 → 40"]\n  Q --> S4["reasoning path 4 → 42"]\n  Q --> S5["reasoning path 5 → 38"]\n  S1 & S2 & S3 & S4 & S5 --> V["majority vote: 42"]',
+                    caption: 'Self-consistency: spend more compute at answer time by sampling several reasoning paths and taking the most common answer.',
+                },
                 note: {
                     idea: 'A reasoning model is trained to \'think\' before answering: it writes out intermediate steps (a chain of thought) and can spend more tokens on harder problems. Spending more computation at answer time, by reasoning for longer or by sampling several answers and picking the best, is called test-time compute. Much of this ability is trained with reinforcement learning on problems whose answers can be checked, like maths and code.',
                     analogy: 'A student allowed to use scrap paper and check their work, instead of shouting the first answer that comes to mind.',
@@ -1853,6 +2159,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f5-t1',
                 name: 'Prompting: clear instructions, examples, structured output',
+                diagram: {
+                    code: 'flowchart LR\n  R["role and context"] --> P["prompt"]\n  T["the task"] --> P\n  E["an example output"] --> P\n  F["the output format (JSON)"] --> P\n  P --> M["model"] --> O["JSON your code can read"]',
+                    caption: 'A strong prompt briefs the model like a new colleague: who it is, what to do, an example, and exactly what shape the answer must take.',
+                },
                 note: {
                     idea: 'The prompt is the model\'s only briefing. Be clear and specific, give context, show examples of the output you want, and ask for a fixed format, like JSON, when code will read the answer.',
                     analogy: 'Briefing a smart new colleague on their first day. They are capable, but they know nothing about your project unless you tell them.',
@@ -1873,6 +2183,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f5-t10',
                 name: 'Structured outputs and function calling',
+                diagram: {
+                    code: 'sequenceDiagram\n  participant U as User\n  participant A as Your app\n  participant M as Model\n  participant T as Weather tool\n  U->>A: what\'s the weather in Leeds?\n  A->>M: question and the list of tools\n  M-->>A: call get_weather(city = Leeds)\n  A->>T: get_weather(Leeds)\n  T-->>A: 14°C, light rain\n  A->>M: here is the tool result\n  M-->>A: It\'s 14°C with light rain in Leeds.\n  A-->>U: final answer',
+                    caption: 'The model never runs the tool itself: it asks your code to, and then writes the final answer from the result.',
+                },
                 note: {
                     idea: 'Structured output means making the model reply in a fixed format, usually JSON that matches a schema, so your code can read it reliably. Function calling (tool use) goes one step further: you describe functions to the model, and instead of answering in prose it replies with a function name and the arguments to call it with. Your code runs the function and sends the result back.',
                     analogy: 'A form with labelled boxes instead of a blank page. The model fills in the boxes, and your program reads them.',
@@ -1896,6 +2210,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f5-t2',
                 name: 'Embeddings and semantic search',
+                diagram: {
+                    code: 'flowchart LR\n  Q["question"] --> EQ["embed"] --> QV["question vector"]\n  DOCS["200 FAQ entries"] --> ED["embed once"] --> DV[("document vectors")]\n  QV & DV --> COS["cosine similarity<br/>with every document"] --> TOP["top 5 matches"]',
+                    caption: 'Documents are embedded once in advance; each question is embedded and compared by meaning, not by exact words.',
+                },
                 note: {
                     idea: 'An embedding model turns text into a vector. Texts with similar meaning get similar vectors, even with different words. Search means: embed the question, then find the closest document vectors with cosine similarity.',
                     analogy: 'A library shelved by topic, not by title. \'How do I reset my password\' sits next to \'I forgot my login\'.',
@@ -1918,6 +2236,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f5-t11',
                 name: 'Vector databases and approximate nearest-neighbour search',
+                diagram: {
+                    code: 'flowchart LR\n  Q["query vector"] --> BF["brute force:<br/>compare with all 1 million"]\n  Q --> IVF["IVF index:<br/>find the 3 nearest clusters"] --> SUB["compare only<br/>the vectors inside them"]\n  BF --> EX["exact, but slow"]\n  SUB --> AP["almost exact, much faster"]',
+                    caption: 'Approximate search skips most of the data by first finding the right neighbourhood. You trade a little recall for a lot of speed.',
+                },
                 note: {
                     idea: 'Comparing a question with every document vector is exact but slow once you have millions. Approximate nearest-neighbour (ANN) indexes, such as HNSW or IVF, find almost-the-closest vectors much faster by searching only a small part of the data. A vector database stores the vectors, the index and metadata (like source and date) together, so you can filter and search at once.',
                     analogy: 'Finding a book by walking to the right section and shelf, instead of checking every book in the library.',
@@ -1941,6 +2263,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f5-t3',
                 name: 'RAG: chunking, retrieval and re-ranking',
+                diagram: {
+                    code: 'flowchart LR\n  subgraph Prepare\n    D["documents"] --> C["chunk"] --> E["embed"] --> VS[("vector store")]\n  end\n  subgraph Answer\n    Q["question"] --> R["retrieve top chunks"] --> RR["re-rank"] --> P["prompt with the chunks"] --> L["LLM"] --> A["answer with sources"]\n  end\n  VS --> R',
+                    caption: 'RAG is an open-book exam: find the right pages first, then answer from them.',
+                },
                 note: {
                     idea: 'Retrieval-augmented generation (RAG): find relevant pieces of your documents, put them in the prompt, and ask the model to answer from them. Chunking splits documents into pieces. Re-ranking uses a second, more careful model to re-order the top results.',
                     analogy: 'An open-book exam. The model is the student. Retrieval is finding the right pages before answering.',
@@ -1962,6 +2288,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f5-t12',
                 name: 'Context engineering: long context and memory',
+                diagram: {
+                    code: 'flowchart TB\n  W["context window (budget)"]\n  W --- S["system instructions"]\n  W --- SUM["summary of older messages"]\n  W --- LAST["last 5 messages"]\n  W --- DOCS["top 3 retrieved documents"]\n  W --- ANS["room left for the answer"]',
+                    caption: 'Context engineering is packing the window on purpose: only what this call needs, with room left for the reply.',
+                },
                 note: {
                     idea: 'Context engineering means deciding exactly what goes into the model\'s context window on each call: instructions, examples, retrieved documents, conversation history and tool results. More is not always better. Models use information in the middle of very long inputs less reliably, and every token costs time and money. For long conversations you summarise or store old turns and bring back only what matters. That is \'memory\'.',
                     analogy: 'Packing a small suitcase for a trip. You can\'t bring your whole wardrobe, so you choose what this trip needs.',
@@ -1985,6 +2315,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f5-t4',
                 name: 'Evaluation: test sets, LLM-as-judge, error analysis',
+                diagram: {
+                    code: 'flowchart LR\n  CH["make a change"] --> RUN["run 50 test questions"] --> SC["score: code checks<br/>+ LLM judge"] --> ER["group the failures<br/>by type"] --> FIX["fix the biggest group"]\n  FIX --> CH',
+                    caption: 'Evaluation is a loop. Every change is measured on the same questions, and the failure groups tell you what to fix next.',
+                },
                 note: {
                     idea: 'Evaluation tells you whether a change made your system better or worse. Build a test set of real inputs with expected results. Score with code checks where you can, and with an LLM judge where you must. Most important: read the failures and group them into error types.',
                     analogy: 'Unit tests for software, but for behaviour that is fuzzy.',
@@ -2006,6 +2340,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f5-t5',
                 name: 'Agents and tool use',
+                diagram: {
+                    code: 'flowchart LR\n  G["goal"] --> M["model decides<br/>the next action"]\n  M -->|"call a tool"| T["tool runs"] --> R["result added<br/>to the history"] --> M\n  M -->|"finished, or<br/>step limit reached"| A["final answer"]',
+                    caption: 'An agent is a model in a loop: act, look at the result, decide again — with a step limit so it can\'t loop forever.',
+                },
                 note: {
                     idea: 'An agent is a model in a loop. It chooses an action, such as calling a search tool or a calculator, sees the result, and chooses again until the task is done.',
                     analogy: 'A new assistant with a phone and a laptop, working through a task step by step.',
@@ -2028,6 +2366,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f5-t13',
                 name: 'MCP: connecting models to tools and data',
+                diagram: {
+                    code: 'flowchart LR\n  APP["AI app<br/>(MCP client)"] <-->|"MCP"| S1["MCP server: notes<br/>tool: search_notes"]\n  APP <-->|"MCP"| S2["MCP server: calendar"]\n  S1 --> D1[("your notes")]\n  S2 --> D2[("your calendar")]\n  M["model"] --- APP',
+                    caption: 'MCP is a standard plug: any app that speaks it can use any MCP server\'s tools and data.',
+                },
                 note: {
                     idea: 'The Model Context Protocol (MCP) is an open standard, introduced by Anthropic in 2024, for connecting AI apps to tools and data. You write an MCP server once, for example one that searches your documents, and any app that speaks MCP can use it. A server can offer tools (actions), resources (data) and prompts (templates).',
                     analogy: 'A USB port for AI tools. Before USB, every device needed its own special cable. With one standard plug, any device works with any computer.',
@@ -2051,6 +2393,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f5-t6',
                 name: 'Choosing between prompting, RAG and fine-tuning',
+                diagram: {
+                    code: 'flowchart TD\n  P["Try prompting first"] --> Q1{"Good enough?"}\n  Q1 -->|"yes"| DONE["done"]\n  Q1 -->|"no"| Q2{"What\'s missing?"}\n  Q2 -->|"knowledge or facts"| RAG["add RAG"]\n  Q2 -->|"a behaviour, style or format"| FT["fine-tune"]',
+                    caption: 'Start with the cheapest option. Missing facts point to RAG; missing behaviour points to fine-tuning.',
+                },
                 note: {
                     idea: 'Try in this order. Prompting first, because it is cheapest. RAG when the model needs knowledge it does not have. Fine-tuning when it needs a new behaviour, style or format that prompts cannot give reliably.',
                     analogy: 'A new employee. First give instructions (the prompt). Give them the company handbook for facts (RAG). Send them on a training course to change how they work (fine-tuning).',
@@ -2071,6 +2417,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f5-t14',
                 name: 'Dataset engineering for fine-tuning',
+                diagram: {
+                    code: 'flowchart LR\n  R["real examples"] --> MIX["collect"]\n  S["synthetic examples<br/>(from a stronger model)"] --> MIX\n  MIX --> CL["clean"] --> DD["de-duplicate"] --> CHK["quality checks"] --> SPL["split: train / held-out test"] --> FT["fine-tune and evaluate"]',
+                    caption: 'The dataset is the product: every bad example that survives this pipeline gets taught to the model.',
+                },
                 note: {
                     idea: 'When you fine-tune, the dataset is the product. Dataset engineering means deciding which examples you need, collecting or generating them, cleaning and de-duplicating them, and checking their quality. A few hundred excellent examples often beat thousands of messy ones. Synthetic data, written by a stronger model, is common, but it must be checked.',
                     analogy: 'Training a new chef with recipe cards. A small box of correct, varied recipes teaches more than a huge pile full of typos, repeats and burnt examples.',
@@ -2094,6 +2444,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f5-t7',
                 name: 'Serving: APIs, Docker, latency and cost',
+                diagram: {
+                    code: 'flowchart LR\n  C["client"] -->|"POST /predict"| API["FastAPI app"]\n  subgraph DC["Docker container"]\n    API --> M["model"]\n  end\n  M --> API -->|"answer + latency logged"| C',
+                    caption: 'The model sits behind an API, packaged in a container that runs the same on your laptop and on a server.',
+                },
                 note: {
                     idea: 'Put your model behind an API (for example with FastAPI), package it with everything it needs (Docker), and measure latency (time per request) and cost (per request or per token).',
                     analogy: 'A restaurant: the recipe is the model, the serving counter is the API, and a food truck you can drive anywhere is the Docker container.',
@@ -2116,6 +2470,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f5-t15',
                 name: 'Caching, model routing and cost control',
+                diagram: {
+                    code: 'flowchart LR\n  Q["question"] --> CA{"in the cache?"}\n  CA -->|"yes"| A["return the saved answer"]\n  CA -->|"no"| D{"easy or hard?"}\n  D -->|"easy"| SM["small, cheap model"]\n  D -->|"hard"| LG["large model"]\n  SM & LG --> SAVE["save in the cache,<br/>log the cost"] --> A2["answer"]',
+                    caption: 'Repeats come from the cache for free; easy questions go to the cheap model; only hard ones pay for the big model.',
+                },
                 note: {
                     idea: 'LLM apps can get slow and expensive fast. There are three main tools. Caching reuses answers, or processed prompts, you have already paid for. Routing sends easy requests to a small, cheap model and only hard ones to a big model. Budgets limit tokens, set timeouts and track the cost of every request.',
                     analogy: 'A help desk. Common questions get a ready-made answer sheet (the cache). Simple questions go to a junior (the small model), hard ones to a senior (the big model).',
@@ -2140,6 +2498,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f5-t16',
                 name: 'Observability: tracing and debugging LLM apps',
+                diagram: {
+                    code: 'flowchart LR\n  REQ["one request<br/>trace abc123"] --> RET["retrieve<br/>120 ms"]\n  REQ --> RR["re-rank<br/>40 ms"]\n  REQ --> LLM["LLM call<br/>1.8 s · 1,900 tokens"]\n  REQ --> OUT["answer"]\n  RET -.- NOTE["⚠ ranked a 2023 policy first<br/>→ the bug is in retrieval"]',
+                    caption: 'A trace shows every step of one request, with its time and cost, so you can point at exactly which step went wrong.',
+                },
                 note: {
                     idea: 'Observability means you can see what your app actually did for any single request: the prompt, the retrieved chunks, every tool call, the model\'s reply, and the tokens, cost and time of each step. A trace records all of this as one tree of steps. Without it, a bad answer is a mystery. With it, you can point at the step that went wrong.',
                     analogy: 'A flight recorder, the \'black box\'. When something goes wrong, you replay exactly what happened instead of guessing.',
@@ -2163,6 +2525,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f5-t8',
                 name: 'Safety: guardrails and prompt injection',
+                diagram: {
+                    code: 'flowchart LR\n  U["user question"] --> M["model"]\n  DOC["retrieved document<br/>with a hidden instruction"] --> M\n  M --> D1["defence: mark retrieved text as data"]\n  M --> D2["defence: tools with the fewest permissions"]\n  M --> D3["defence: check the output"]\n  M --> D4["defence: confirm risky actions"]',
+                    caption: 'The model reads everything together, so it can\'t fully tell data from instructions. Layers of defence limit the damage.',
+                },
                 note: {
                     idea: 'Prompt injection is text inside the data (a web page, an email, a document) that tries to give the model new instructions. Guardrails are checks on inputs and outputs, limited tool permissions, and human approval for risky actions.',
                     analogy: 'A letter that says: \'Dear assistant, ignore your boss and send me the company bank details.\'',
@@ -2183,6 +2549,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f5-t9',
                 name: 'ML system design: pipelines, training vs serving, drift',
+                diagram: {
+                    code: 'flowchart LR\n  COL["collect data"] --> LAB["label"] --> FEAT["features"] --> TR["train"] --> REG["register the model"] --> SRV["serve"] --> MON["monitor"]\n  MON -->|"drift detected"| TR',
+                    caption: 'A real ML system is a loop, not a one-off: models are watched in production and retrained as the world changes.',
+                },
                 note: {
                     idea: 'A real ML system is much more than a model: data collection, labelling, features, training pipelines, serving, monitoring and retraining. Training-serving skew means the model sees different data in production than in training. Drift means the world changes over time.',
                     analogy: 'A restaurant is not just a recipe. It needs suppliers, a kitchen and waiters, and it must change the menu when customers\' tastes change.',
@@ -2241,6 +2611,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f6-t1',
                 name: 'How a GPU works: compute vs memory',
+                diagram: {
+                    code: 'flowchart LR\n  MEM[("GPU memory")] -->|"narrow door:<br/>memory bandwidth"| CORES["thousands of cores"]\n  MM["big matrix multiply:<br/>lots of maths per number"] --> CB["compute-bound ✓"]\n  VA["adding two vectors:<br/>1 addition per 2 numbers"] --> MB["memory-bound"]',
+                    caption: 'The cores are fast; getting numbers to them is often the real limit. Work that does lots of maths per number loaded uses the GPU well.',
+                },
                 note: {
                     idea: 'A GPU has thousands of simple cores that do the same operation on lots of data at once. Often the limit is not the maths but moving data between memory and the cores (memory bandwidth).',
                     analogy: 'A huge kitchen with 1,000 fast chefs but one narrow door for ingredients. The chefs spend a lot of time waiting at the door.',
@@ -2262,6 +2636,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f6-t2',
                 name: 'Mixed precision: fp16 and bf16',
+                diagram: {
+                    code: 'flowchart LR\n  MW["master weights<br/>fp32"] -->|"copy as bf16"| FW["forward and backward<br/>in bf16 (fast, half memory)"]\n  FW --> G["gradients"] --> UPD["update the fp32 master weights"]\n  UPD --> MW',
+                    caption: 'Most of the maths runs in 16-bit, but the master copy of the weights stays in 32-bit so small updates aren\'t lost.',
+                },
                 note: {
                     idea: 'Mixed precision does most of the maths in 16-bit numbers instead of 32-bit: half the memory and much faster on modern GPUs. fp16 has more precision but a small range, so it can overflow. bf16 has the same range as fp32 with less precision, and it is the usual choice now.',
                     analogy: 'Writing prices rounded to the nearest pound instead of exact to the penny. Faster, and usually good enough.',
@@ -2285,6 +2663,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f6-t3',
                 name: 'Training memory: weights, gradients, optimiser states, activations',
+                diagram: {
+                    code: 'pie title Training memory per parameter (Adam, mixed precision)\n  "weights (2 bytes)" : 2\n  "gradients (2 bytes)" : 2\n  "fp32 master weights (4 bytes)" : 4\n  "Adam\'s two states (8 bytes)" : 8',
+                    caption: 'About 16 bytes per parameter before activations — so a 1-billion-parameter model needs about 16 GB just for these.',
+                },
                 note: {
                     idea: 'Training needs memory for the weights, the gradients, the optimiser states (Adam keeps 2 extra numbers per weight) and the activations saved for backprop. With mixed precision and Adam, a common estimate is about 16 bytes per parameter, before activations.',
                     analogy: 'Moving house. It is not just the furniture (weights). You also need boxes (gradients), labels (optimiser states) and floor space to lay things out while packing (activations).',
@@ -2306,6 +2688,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f6-t4',
                 name: 'Parallelism: data, tensor and pipeline (the ideas)',
+                diagram: {
+                    code: 'flowchart TB\n  subgraph DP["Data parallel"]\n    G1["GPU 1: whole model<br/>batch A"]\n    G2["GPU 2: whole model<br/>batch B"]\n  end\n  subgraph TP["Tensor parallel"]\n    T1["GPU 1: left half<br/>of every layer"]\n    T2["GPU 2: right half<br/>of every layer"]\n  end\n  subgraph PP["Pipeline parallel"]\n    P1["GPU 1: layers 1–12"] --> P2["GPU 2: layers 13–24"]\n  end\n  G1 <-->|"average gradients"| G2',
+                    caption: 'Three ways to share work across GPUs: split the data, split each layer, or split the stack of layers.',
+                },
                 note: {
                     idea: 'Data parallel: every GPU holds a full copy of the model, gets different data, and gradients are averaged. Tensor parallel: one layer\'s matrices are split across GPUs. Pipeline parallel: different layers live on different GPUs. FSDP and ZeRO split weights, gradients and optimiser states across GPUs to save memory.',
                     analogy: 'Cooking a huge dinner. Data parallel: several kitchens cook the full menu for different tables. Tensor parallel: several chefs cut one giant cake together. Pipeline: an assembly line, one station per course.',
@@ -2327,6 +2713,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f6-t5',
                 name: 'Inference speed: batching, quantisation, FlashAttention',
+                diagram: {
+                    code: 'xychart-beta\n  title "Memory for a 70B model\'s weights"\n  x-axis "number format" ["bf16", "int8", "4-bit"]\n  y-axis "GB" 0 --> 150\n  bar [140, 70, 35]',
+                    caption: 'Fewer bits per weight means less memory and faster loading — measure the quality loss before you choose.',
+                },
                 note: {
                     idea: 'Batching serves many requests together to use the GPU fully. Quantisation stores weights in 8 or 4 bits to save memory and bandwidth. FlashAttention computes attention in small tiles that stay in fast on-chip memory, so the big T × T matrix is never written out.',
                     analogy: 'Batching is a bus instead of many taxis. Quantisation is a compressed photo: smaller, and usually looks the same.',
@@ -2350,6 +2740,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f6-t6',
                 name: 'Profiling PyTorch code',
+                diagram: {
+                    code: 'flowchart LR\n  P["profile 20 steps"] --> T["find the 3 slowest operations"] --> F["fix one"] --> M["measure again"]\n  M -->|"repeat"| P',
+                    caption: 'Measure, fix the biggest cost, measure again. Never optimise by guessing.',
+                },
                 note: {
                     idea: 'Measure where the time actually goes before you optimise. The profiler shows the time for each operation on the CPU and GPU. Common findings: the GPU waiting for data loading, many tiny operations, or slow copies between CPU and GPU.',
                     analogy: 'Timing each station in a kitchen before hiring more chefs. Maybe the slow part is the dishwasher.',
@@ -2371,6 +2765,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f6-t7',
                 name: 'GPU kernels with Triton',
+                diagram: {
+                    code: 'flowchart LR\n  subgraph Naive\n    M1[("memory")] --> K1["kernel: max"] --> M2[("memory")] --> K2["kernel: exp and sum"] --> M3[("memory")] --> K3["kernel: divide"] --> M4[("memory")]\n  end\n  subgraph Fused\n    N1[("memory")] --> KF["one kernel:<br/>max, exp, sum, divide"] --> N2[("memory")]\n  end',
+                    caption: 'The naive softmax travels to memory and back three times; the fused kernel does it once.',
+                },
                 note: {
                     idea: 'A kernel is a small program that runs on the GPU as many parallel copies. Triton lets you write kernels in Python-like code. The biggest win is fusion: doing several steps, like the parts of a softmax, in one kernel, so data is read from slow GPU memory once instead of several times.',
                     analogy: 'Cooking a dish in one trip to the fridge instead of fetching each ingredient separately.',
@@ -2394,6 +2792,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f6-t8',
                 name: 'Pruning and distillation',
+                diagram: {
+                    code: 'flowchart LR\n  TE["big teacher model"] -->|"soft labels:<br/>2: 0.90 · 7: 0.07 · 3: 0.03"| ST["small student model"]\n  BIG["trained network"] -->|"remove small weights"| PR["pruned network"] -->|"retrain briefly"| PR2["smaller, nearly as accurate"]',
+                    caption: 'Distillation passes on the teacher\'s full opinion, not just its top answer. Pruning cuts weak weights, then retrains to recover.',
+                },
                 note: {
                     idea: 'Two ways to make a model smaller. Pruning removes weights, neurons or attention heads that matter little. Distillation trains a small \'student\' model to copy a big \'teacher\' model\'s full output probabilities, not just its top answer.',
                     analogy: 'Pruning is trimming a tree\'s weak branches. Distillation is an expert teacher who explains not only the right answer, but also how close each wrong answer was.',
@@ -2417,6 +2819,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f6-t9',
                 name: 'Speculative decoding',
+                diagram: {
+                    code: 'sequenceDiagram\n  participant D as Small draft model\n  participant B as Big model\n  D->>B: guesses 4 tokens ahead\n  B->>B: checks all 4 in one pass\n  B-->>D: keeps the first 3, replaces the 4th\n  Note over D,B: about 4 tokens per expensive pass instead of 1',
+                    caption: 'The output is exactly what the big model would write; it just gets there in fewer expensive steps.',
+                },
                 note: {
                     idea: 'A big model generates one token at a time, and each step is slow. In speculative decoding, a small, fast \'draft\' model guesses several tokens ahead. The big model then checks all the guesses in one pass, keeps the ones it agrees with, and replaces the first wrong one. The output is exactly what the big model alone would produce, only faster.',
                     analogy: 'A junior writer drafts the next sentence, and a senior editor checks it in one read, instead of the senior writing every word slowly.',
@@ -2469,6 +2875,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f7-t1',
                 name: 'Autoencoders and VAEs (the ELBO)',
+                diagram: {
+                    code: 'flowchart LR\n  X["image x"] --> ENC["encoder"] --> MS["μ and σ"]\n  MS --> Z["z = μ + σ · ε<br/>(random ε)"]\n  Z --> DEC["decoder"] --> XH["rebuilt image x̂"]\n  XH -.->|"rebuild well"| LOSS["loss = rebuild error + KL"]\n  MS -.->|"stay close to a bell curve"| LOSS',
+                    caption: 'A VAE squeezes an image into a fuzzy code and rebuilds it. The loss balances rebuilding well against keeping the codes tidy.',
+                },
                 note: {
                     idea: 'An autoencoder squeezes data into a small code and rebuilds it. A variational autoencoder (VAE) makes that code a probability distribution, so you can sample new codes and decode them into new data. It trains by maximising the ELBO: rebuild the input well, but keep the codes close to a simple bell curve.',
                     analogy: 'Describing a face to a sketch artist in 10 numbers. The encoder writes the description and the decoder draws. A VAE also forces the descriptions to be tidy, so a random description still gives a sensible face.',
@@ -2493,6 +2903,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f7-t2',
                 name: 'Diffusion models',
+                diagram: {
+                    code: 'flowchart LR\n  X0["clean image"] -->|"+ noise"| X1["a bit noisy"] -->|"+ noise"| X2["very noisy"] -->|"+ noise"| XT["pure noise"]\n  XT -.->|"model removes a little noise"| X2b["very noisy"] -.-> X1b["a bit noisy"] -.-> X0b["new image"]',
+                    caption: 'Solid arrows: training adds noise. Dotted arrows: generation starts from pure noise and removes it step by step.',
+                },
                 note: {
                     idea: 'A diffusion model learns to remove noise. In training, you take a real image, add a random amount of noise, and teach a network to predict that noise. To generate, you start from pure noise and remove it a little at a time, over many steps.',
                     analogy: 'A sculptor who starts with a rough block and removes a little stone at each step until a statue appears.',
@@ -2516,6 +2930,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f7-t3',
                 name: 'Reinforcement learning basics: states, actions, rewards, values',
+                diagram: {
+                    code: 'flowchart LR\n  AG["agent"] -->|"action"| ENV["environment"]\n  ENV -->|"reward"| AG\n  ENV -->|"new state"| AG',
+                    caption: 'The whole of reinforcement learning in one loop: act, get a reward and a new situation, learn, act again.',
+                },
                 note: {
                     idea: 'In reinforcement learning (RL), an agent takes actions in an environment and gets rewards. It learns a policy, meaning what to do in each state, that collects the most reward over time. A value function says how good a state is. Q-learning learns how good each action is in each state.',
                     analogy: 'Training a dog with treats. Nobody shows the dog the right move. It tries things, and good actions earn treats.',
@@ -2539,6 +2957,10 @@ export const foundationPhases: FoundationPhase[] = [
             {
                 id: 'f7-t4',
                 name: 'Policy gradients and PPO',
+                diagram: {
+                    code: 'flowchart LR\n  POL["policy network"] --> PLAY["play episodes"] --> ADV["how much better than expected<br/>was each action? (advantage)"]\n  ADV --> UPD["make good actions more likely,<br/>bad ones less likely"]\n  UPD --> CLIP["PPO: clip the change<br/>so each update stays small"] --> POL',
+                    caption: 'Policy gradients nudge the policy towards actions that did better than expected; PPO stops any single update from changing it too much.',
+                },
                 note: {
                     idea: 'Policy-gradient methods train the policy network directly: make actions that led to high reward more likely, and actions that led to low reward less likely. PPO adds a safety limit so each update cannot change the policy too much. PPO is the algorithm used in classic RLHF for language models.',
                     analogy: 'A basketball player adjusting their shot: after a good shot, do a bit more of that; after a miss, a bit less. PPO is a coach who says \'small changes only\'.',

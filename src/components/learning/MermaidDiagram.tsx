@@ -13,6 +13,38 @@ const MIN_SCALE = 0.7;
 const MAX_ENLARGE = 1.6;
 const DIAGRAM_BG = 'rgba(255,255,255,0.04)';
 
+/**
+ * Mermaid's dark theme draws pie slices in near-black browns and charts on a
+ * grey block. These use the app's own accents instead. They only touch pie
+ * charts and xy charts, so every other kind of diagram keeps the dark theme as it is.
+ */
+const CHART_TEXT = '#d7d2ce';
+const CHART_LINE = 'rgba(255,255,255,0.45)';
+const CHART_COLOURS = ['#4dd0e1', '#ffca28', '#66bb6a', '#ff8a65', '#ba68c8', '#4fc3f7', '#aed581', '#f06292'];
+const CHART_THEME = {
+    ...Object.fromEntries(CHART_COLOURS.map((colour, index) => [`pie${index + 1}`, colour])),
+    pieOpacity: '0.9',
+    pieStrokeColor: '#151921',
+    pieOuterStrokeColor: 'rgba(255,255,255,0.2)',
+    pieSectionTextColor: '#0b0f14',
+    pieTitleTextColor: '#d7d2ce',
+    pieLegendTextColor: '#d7d2ce',
+    xyChart: {
+        backgroundColor: 'transparent',
+        plotColorPalette: CHART_COLOURS.join(', '),
+        // Set by hand: on a transparent background Mermaid's own choices come out near-black.
+        titleColor: CHART_TEXT,
+        xAxisTitleColor: CHART_TEXT,
+        xAxisLabelColor: CHART_TEXT,
+        xAxisTickColor: CHART_LINE,
+        xAxisLineColor: CHART_LINE,
+        yAxisTitleColor: CHART_TEXT,
+        yAxisLabelColor: CHART_TEXT,
+        yAxisTickColor: CHART_LINE,
+        yAxisLineColor: CHART_LINE,
+    },
+};
+
 let initialised = false;
 let renderCount = 0;
 
@@ -71,6 +103,7 @@ export const MermaidDiagram = ({ code, caption, title }: { code: string; caption
                         theme: 'dark',
                         securityLevel: 'strict',
                         fontFamily,
+                        themeVariables: CHART_THEME,
                         suppressErrorRendering: true,
                     });
                     initialised = true;

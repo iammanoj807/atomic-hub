@@ -1,13 +1,21 @@
 import { createContext, useContext } from 'react';
-import { segmentFirstMentions, type TextSegment } from '../../utils/glossary';
+import type { GlossarySource, TextSegment } from '../../utils/glossaryEngine';
 
 // Shared by the tap-to-explain words (GlossaryText.tsx). The components live
 // in the .tsx file; the contexts and helpers live here.
+
+/**
+ * What the components need from a page's glossary: everything except the two
+ * functions that take the page's own topic type, so any page's glossary fits.
+ */
+export type PageGlossary = Omit<GlossarySource, 'termsInTopic' | 'newWordsForTopic'>;
 
 /** How a word's explanation was opened: a mouse hovering, or a tap, click or key press. */
 export type GlossaryOpenHow = 'hover' | 'press';
 
 export interface GlossaryActions {
+    /** The page's words: what they mean, where they appear and which topic teaches them. */
+    source: PageGlossary;
     /** Show a word's explanation next to the word. */
     show: (anchor: HTMLElement, termId: string, topicId: string | undefined, how: GlossaryOpenHow) => void;
     /** The mouse left the word: close the hover explanation soon, unless it moves onto it. */
@@ -31,8 +39,8 @@ export type Prose = string | TextSegment[];
  * given in display order; ask for a section by its key to get its slice of the
  * result (an empty list for a section the card doesn't have).
  */
-export const segmentSections = <K extends string>(sections: [K, string[]][]) => {
-    const segmented = segmentFirstMentions(sections.flatMap(([, texts]) => texts));
+export const segmentSections = <K extends string>(source: PageGlossary, sections: [K, string[]][]) => {
+    const segmented = source.segmentFirstMentions(sections.flatMap(([, texts]) => texts));
     const slices = new Map<K, TextSegment[][]>();
     let at = 0;
     for (const [key, texts] of sections) {

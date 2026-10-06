@@ -39,6 +39,7 @@ import {
     type SDResourceKind,
 } from '../data/systemDesign';
 import { useSystemDesign } from '../hooks/useSystemDesign';
+import { systemDesignGlossary } from '../utils/glossary';
 import {
     checksPassed,
     isTopicConfident,
@@ -52,7 +53,7 @@ import {
     CYAN,
     TAP,
     px,
-    scrollToId,
+    scrollToIdWhenSettled,
     stepId,
     useTextSize,
     useTextSizeChoice,
@@ -210,30 +211,6 @@ const phaseOf = (topicId: string) =>
     systemDesignPhases.find(phase => phase.topics.some(topic => topic.id === topicId)) ?? systemDesignPhases[0];
 
 const mustTopics = allSystemDesignTopics.filter(topic => topic.priority === 'must');
-
-/** Frames an element must stay put before it counts as settled. */
-const SETTLED_FRAMES = 6;
-const MAX_SETTLE_MS = 1500;
-
-/**
- * Scroll to an element once it stops moving. A long card closing above it
- * moves it up the page for most of a second, so scrolling straight away
- * would overshoot.
- */
-const scrollToIdWhenSettled = (id: string) => {
-    const started = performance.now();
-    let last = Number.NaN;
-    let still = 0;
-    const check = () => {
-        const element = document.getElementById(id);
-        const top = element ? element.getBoundingClientRect().top + window.scrollY : Number.NaN;
-        still = top === last ? still + 1 : 0;
-        last = top;
-        if (still >= SETTLED_FRAMES || performance.now() - started > MAX_SETTLE_MS) scrollToId(id);
-        else window.requestAnimationFrame(check);
-    };
-    window.requestAnimationFrame(check);
-};
 
 // ============ SMALL PIECES ============
 
@@ -516,7 +493,7 @@ const TopicCard = ({
     );
     const core = sorted.filter(resource => resource.kind !== 'paper');
     const papers = sorted.filter(resource => resource.kind === 'paper');
-    const marked = useMemo(() => segmentSections(learnSections(topic)), [topic]);
+    const marked = useMemo(() => segmentSections(systemDesignGlossary, learnSections(topic)), [topic]);
 
     return (
         <Accordion
@@ -563,7 +540,7 @@ const TopicCard = ({
                                 <strong style={{ color: accent }}>Definition.</strong> <ProseText value={marked('definition')[0]} />
                             </Typography>
                         </QuoteBox>
-                        <NewWordsBox topic={topic} accent={accent} />
+                        <NewWordsBox topicId={topic.id} accent={accent} />
                         {topic.kind === 'concept' ? (
                             <ConceptLesson topic={topic} accent={accent} marked={marked} />
                         ) : (
@@ -672,7 +649,7 @@ const TopicCard = ({
 // ============ REVISE MODE: THE COMPACT CARD ============
 
 const ReviseCard = ({ topic, accent, onOpen }: { topic: SDTopic; accent: string; onOpen: () => void }) => {
-    const marked = useMemo(() => segmentSections(reviseSections(topic)), [topic]);
+    const marked = useMemo(() => segmentSections(systemDesignGlossary, reviseSections(topic)), [topic]);
     return (
         <GlossaryTopic topicId={topic.id}>
             <Box
@@ -835,7 +812,7 @@ const SystemDesignPage = () => {
 
     return (
         <LearningPageFrame t={t} theme={theme}>
-            <GlossaryProvider openTopic={openTopic}>
+            <GlossaryProvider source={systemDesignGlossary} openTopic={openTopic}>
                 <Box sx={{ width: '100%', maxWidth: 940, mx: 'auto', minWidth: 0 }}>
                     {/* ---- HEADER ---- */}
                     <Box sx={{ mb: 3 }}>

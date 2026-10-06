@@ -2,10 +2,10 @@ import { useMemo, useState } from 'react';
 import { Box, Drawer, IconButton, InputAdornment, Stack, TextField, Typography } from '@mui/material';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
-import type { GlossaryTerm } from '../../data/systemDesignGlossary';
-import { searchGlossary } from '../../utils/glossary';
+import type { GlossaryTerm } from '../../utils/glossaryEngine';
 import { CYAN, TAP } from './learning';
 import { TermEntry } from './GlossaryText';
+import { useGlossaryActions } from './glossaryContext';
 
 /** The letter a word is filed under: A–Z, or # for words that start with a number. */
 const letterOf = (term: GlossaryTerm) => {
@@ -13,11 +13,10 @@ const letterOf = (term: GlossaryTerm) => {
     return /[A-Z]/.test(first) ? first : '#';
 };
 
-const byWord = (a: GlossaryTerm, b: GlossaryTerm) => a.term.localeCompare(b.term, undefined, { sensitivity: 'base' });
-
 /**
  * Every word on the page, A–Z, with a search box. Full-screen on a phone,
- * a drawer down the right-hand side on anything wider.
+ * a drawer down the right-hand side on anything wider. The words come from
+ * the page's GlossaryProvider, so it must sit inside one.
  */
 export const GlossaryDrawer = ({
     open,
@@ -28,17 +27,19 @@ export const GlossaryDrawer = ({
     onClose: () => void;
     onOpenTopic: (topicId: string) => void;
 }) => {
+    const source = useGlossaryActions()?.source;
     const [query, setQuery] = useState('');
     const groups = useMemo(() => {
         const result: { letter: string; terms: GlossaryTerm[] }[] = [];
-        for (const term of [...searchGlossary(query)].sort(byWord)) {
+        // Already alphabetical.
+        for (const term of source?.search(query) ?? []) {
             const letter = letterOf(term);
             const last = result[result.length - 1];
             if (last?.letter === letter) last.terms.push(term);
             else result.push({ letter, terms: [term] });
         }
         return result;
-    }, [query]);
+    }, [source, query]);
     const count = groups.reduce((sum, group) => sum + group.terms.length, 0);
 
     // Close first, so the page can scroll to the topic.
