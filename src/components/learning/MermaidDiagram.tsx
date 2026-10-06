@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { Box, Button, Dialog, IconButton, Skeleton, Stack, Typography, useTheme } from '@mui/material';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import ZoomOutMapRoundedIcon from '@mui/icons-material/ZoomOutMapRounded';
@@ -45,6 +45,14 @@ const CHART_THEME = {
     },
 };
 
+/** Top-down diagrams start from a box in the middle, so a wide one should open scrolled to its centre. */
+const TOP_DOWN = /^(flowchart|graph)\s+(TD|TB)\b/;
+
+/** Scroll a sideways-scrolling box to its middle. */
+const centre = (box: HTMLElement | null) => {
+    if (box && box.scrollWidth > box.clientWidth) box.scrollLeft = (box.scrollWidth - box.clientWidth) / 2;
+};
+
 let initialised = false;
 let renderCount = 0;
 
@@ -71,6 +79,8 @@ export const MermaidDiagram = ({ code, caption, title }: { code: string; caption
     const [nearScreen, setNearScreen] = useState(() => typeof IntersectionObserver === 'undefined');
     const [rendered, setRendered] = useState<Rendered | null>(null);
     const [enlarged, setEnlarged] = useState(false);
+    const scrollRef = useRef<HTMLDivElement>(null);
+    const topDown = TOP_DOWN.test(code.trim());
 
     // Revise mode can show every diagram at once: draw each one only as it comes near.
     useEffect(() => {
@@ -128,6 +138,15 @@ export const MermaidDiagram = ({ code, caption, title }: { code: string; caption
     const svg = current && 'svg' in current ? current : null;
     const failed = current !== null && 'failed' in current;
 
+    // Open a wide top-down diagram at its middle, where it starts, in the page and enlarged.
+    const drawn = svg?.svg;
+    useEffect(() => {
+        if (drawn && topDown) centre(scrollRef.current);
+    }, [drawn, topDown]);
+    const centreEnlarged = useCallback((box: HTMLDivElement | null) => {
+        if (topDown) centre(box);
+    }, [topDown]);
+
     return (
         <Box sx={{ minWidth: 0 }}>
             <Box
@@ -136,7 +155,7 @@ export const MermaidDiagram = ({ code, caption, title }: { code: string; caption
             >
                 {svg ? (
                     // Wide diagrams scroll sideways in here, never the page.
-                    <Box sx={{ overflowX: 'auto', overscrollBehaviorX: 'contain' }}>
+                    <Box ref={scrollRef} sx={{ overflowX: 'auto', overscrollBehaviorX: 'contain' }}>
                         <Box
                             role="img"
                             aria-label={caption}
@@ -205,7 +224,7 @@ export const MermaidDiagram = ({ code, caption, title }: { code: string; caption
                             <CloseRoundedIcon />
                         </IconButton>
                     </Stack>
-                    <Box sx={{ flex: 1, overflow: 'auto', p: 2 }}>
+                    <Box ref={centreEnlarged} sx={{ flex: 1, overflow: 'auto', p: 2 }}>
                         <Box
                             role="img"
                             aria-label={caption}

@@ -18,6 +18,7 @@ import type { QuerySnapshot, DocumentData } from 'firebase/firestore';
 import type { FirebaseError } from 'firebase/app';
 import { db } from '../firebase';
 import type { SDCheckKey } from '../data/systemDesign';
+import type { DrillCardState, DrillState } from '../utils/patternDrill';
 
 // Collection names
 const TASKS_COLLECTION = 'tasks';
@@ -845,6 +846,35 @@ export const saveSystemDesignCheck = async (
         await setDoc(docRef, { checks: { [topicId]: { [check]: done } }, updatedAt: Timestamp.now() }, { merge: true });
     } catch (error) {
         console.error('❌ Failed to save system design check:', error);
+        throw error;
+    }
+};
+
+// ============ DSA PATTERN DRILL ============
+//
+// The "Which pattern?" drill: one Leitner card per NeetCode problem, all in
+// study_progress/dsa_drill. Cards never answered are simply absent.
+
+const DSA_DRILL_DOC = 'dsa_drill';
+
+export const subscribeToPatternDrill = (
+    callback: (cards: DrillState) => void
+) => {
+    return onSnapshot(doc(db, STUDY_PROGRESS_COLLECTION, DSA_DRILL_DOC), (docSnap) => {
+        const data = docSnap.exists() ? docSnap.data() : {};
+        callback((data.cards ?? {}) as DrillState);
+    }, (error) => {
+        console.error('❌ Pattern drill subscription error:', error.code, error.message);
+    });
+};
+
+export const savePatternDrillCard = async (problemId: string, card: DrillCardState) => {
+    try {
+        const docRef = doc(db, STUDY_PROGRESS_COLLECTION, DSA_DRILL_DOC);
+        // A nested object with merge touches only this one card, so two open tabs can't overwrite each other.
+        await setDoc(docRef, { cards: { [problemId]: card }, updatedAt: Timestamp.now() }, { merge: true });
+    } catch (error) {
+        console.error('❌ Failed to save pattern drill card:', error);
         throw error;
     }
 };

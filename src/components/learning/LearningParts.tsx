@@ -183,7 +183,15 @@ export const StepBar = ({ topicId, accent, steps }: { topicId: string; accent: s
         <Box
             component="nav"
             aria-label="Steps for this topic"
-            sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(4, 1fr)' }, gap: 1, mb: 1 }}
+            sx={{
+                display: 'grid',
+                // Four steps fit in one row; more wrap onto as many rows as the width needs.
+                gridTemplateColumns: steps.length > 4
+                    ? { xs: '1fr 1fr', sm: 'repeat(auto-fit, minmax(170px, 1fr))' }
+                    : { xs: '1fr 1fr', sm: 'repeat(4, 1fr)' },
+                gap: 1,
+                mb: 1,
+            }}
         >
             {steps.map((step, index) => (
                 <ButtonBase

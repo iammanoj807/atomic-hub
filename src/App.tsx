@@ -13,6 +13,8 @@ import DSAHubPage from './components/DSAHubPage';
 import DSATopicDetailPage from './components/DSATopicDetailPage';
 import FoundationsPage from './components/FoundationsPage';
 import SystemDesignPage from './components/SystemDesignPage';
+import PatternDrillPage from './components/PatternDrillPage';
+import DSAPatternsPage from './components/DSAPatternsPage';
 import EvidenceLogPage from './components/EvidenceLogPage';
 import CoreStoriesPage from './components/CoreStoriesPage';
 import IdentityBanner from './components/IdentityBanner';
@@ -201,6 +203,8 @@ function MainLayout() {
                                 <Route path="/daily-tasks" element={<DailyHabitsPage />} />
                                 <Route path="/evidence" element={<EvidenceLogPage />} />
                                 <Route path="/dsa" element={<DSAHubPage />} />
+                                <Route path="/dsa/drill" element={<PatternDrillPage />} />
+                                <Route path="/dsa/patterns" element={<DSAPatternsPage />} />
                                 <Route path="/dsa/:topicId" element={<DSATopicDetailPage />} />
                                 <Route path="/foundations" element={<FoundationsPage />} />
                                 <Route path="/system-design" element={<SystemDesignPage />} />

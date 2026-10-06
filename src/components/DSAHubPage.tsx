@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     Box,
@@ -12,6 +12,7 @@ import {
     LinearProgress,
     TextField,
     Popover,
+    ButtonBase,
 } from '@mui/material';
 import CheckCircleOutlineRoundedIcon from '@mui/icons-material/CheckCircleOutlineRounded';
 import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
@@ -21,22 +22,28 @@ import MenuBookRoundedIcon from '@mui/icons-material/MenuBookRounded';
 import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded';
 import SchoolRoundedIcon from '@mui/icons-material/SchoolRounded';
 import LocalFireDepartmentRoundedIcon from '@mui/icons-material/LocalFireDepartmentRounded';
+import StyleRoundedIcon from '@mui/icons-material/StyleRounded';
+import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded';
 
 import { dsaCurriculum, getTotalTopics, getTotalProblems } from '../data/dsaCurriculum';
 import type { DSATopic } from '../data/dsaCurriculum';
 import { dsaTopicContent } from '../data/dsaContent';
+import { getPatternGuide } from '../data/dsaPatterns';
 import {
-    subscribeToDSAProgress,
     toggleDSAProblemCompletion,
     setPracticeDateForProblem,
     type DSATopicProgress
 } from '../services/firebaseService';
 import { useTaskContext } from '../context/TaskContext';
+import { useDSAProgress } from '../hooks/useDSAProgress';
+import { usePatternDrill } from '../hooks/usePatternDrill';
+import { todaysDrill } from '../utils/dsaStudied';
+import { getLondonDateString } from '../utils/date';
 
 // Extract all Hard problem titles from dsaTopicContent for difficulty display
 const hardProblemTitles = new Set<string>();
 Object.values(dsaTopicContent).forEach(category => {
-    category.practiceProblems.hard.forEach((problem: any) => {
+    category.practiceProblems.hard.forEach(problem => {
         if (problem.title) hardProblemTitles.add(problem.title);
     });
 });
@@ -257,7 +264,10 @@ const PracticeButtons = ({
 const DSAHubPage = () => {
     const navigate = useNavigate();
     const { isAdmin } = useTaskContext();
-    const [progress, setProgress] = useState<Record<string, DSATopicProgress>>({});
+    const { progress, loaded: progressLoaded } = useDSAProgress();
+    const { cards: drillCards, loaded: drillLoaded } = usePatternDrill();
+    // Counted exactly as the drill counts its default session, so the two always agree.
+    const dueToday = progressLoaded && drillLoaded ? todaysDrill(drillCards, progress, getLondonDateString()).length : null;
     const [expandedTopics, setExpandedTopics] = useState<Set<string>>(new Set());
 
     const toggleTopic = (topicId: string) => {
@@ -268,12 +278,6 @@ const DSAHubPage = () => {
             return next;
         });
     };
-
-    // Subscribe to progress updates
-    useEffect(() => {
-        const unsubscribe = subscribeToDSAProgress(setProgress);
-        return () => unsubscribe();
-    }, []);
 
     // Calculate stats
     const totalTopics = getTotalTopics();
@@ -354,6 +358,53 @@ const DSAHubPage = () => {
                 </Box>
             </Stack>
 
+            {/* Recognition: the drill and the cheat sheet */}
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5, mb: 3 }}>
+                {[
+                    {
+                        to: '/dsa/drill',
+                        icon: <StyleRoundedIcon />,
+                        title: dueToday === null ? 'Pattern drill' : `Pattern drill — ${dueToday} due today`,
+                        note: 'Read a problem, name the pattern. Spaced repetition.',
+                        colour: '#4dd0e1',
+                    },
+                    {
+                        to: '/dsa/patterns',
+                        icon: <AccountTreeRoundedIcon />,
+                        title: 'Which pattern? cheat sheet',
+                        note: 'Three questions, two diagrams, every pattern at a glance.',
+                        colour: '#ffca28',
+                    },
+                ].map(link => (
+                    <ButtonBase
+                        key={link.to}
+                        onClick={() => navigate(link.to)}
+                        sx={{
+                            minHeight: 64,
+                            p: 2,
+                            borderRadius: 2,
+                            justifyContent: 'flex-start',
+                            textAlign: 'left',
+                            gap: 1.5,
+                            bgcolor: `${link.colour}12`,
+                            border: '1px solid',
+                            borderColor: `${link.colour}55`,
+                            '&:hover': { bgcolor: `${link.colour}22` },
+                        }}
+                    >
+                        <Box sx={{ color: link.colour, display: 'flex', flexShrink: 0 }}>{link.icon}</Box>
+                        <Box sx={{ minWidth: 0 }}>
+                            <Typography fontWeight={800} color="text.primary" sx={{ fontSize: '1.05rem', lineHeight: 1.3 }}>
+                                {link.title}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                                {link.note}
+                            </Typography>
+                        </Box>
+                    </ButtonBase>
+                ))}
+            </Box>
+
             {/* Stats Summary */}
             <Box
                 sx={{
@@ -421,17 +472,23 @@ const DSAHubPage = () => {
                                         : <ExpandMoreRoundedIcon sx={{ fontSize: 24 }} />
                                     }
                                 </Box>
-                                <Typography
-                                    sx={{
-                                        flex: 1,
-                                        fontWeight: 700,
-                                        color: isComplete ? 'success.main' : 'text.primary',
-                                        fontSize: { xs: '1.1rem', sm: '1.3rem' },
-                                        letterSpacing: '-0.01em',
-                                    }}
-                                >
-                                    {entry.label}
-                                </Typography>
+                                <Box sx={{ flex: 1, minWidth: 0, pr: 1 }}>
+                                    <Typography
+                                        sx={{
+                                            fontWeight: 700,
+                                            color: isComplete ? 'success.main' : 'text.primary',
+                                            fontSize: { xs: '1.1rem', sm: '1.3rem' },
+                                            letterSpacing: '-0.01em',
+                                        }}
+                                    >
+                                        {entry.label}
+                                    </Typography>
+                                    {getPatternGuide(entry.topicIds[0]) && (
+                                        <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.8rem', sm: '0.85rem' }, lineHeight: 1.4 }}>
+                                            {getPatternGuide(entry.topicIds[0])?.hook}
+                                        </Typography>
+                                    )}
+                                </Box>
                                 <Typography
                                     sx={{
                                         color: isComplete ? 'success.main' : 'text.secondary',
@@ -506,8 +563,8 @@ const DSAHubPage = () => {
                                             const contentKey = topicId as keyof typeof dsaTopicContent;
                                             if (dsaTopicContent[contentKey]) {
                                                 const cat = dsaTopicContent[contentKey];
-                                                if (cat.practiceProblems.easy.some((p: any) => p.title === problem.title)) difficulty = 'Easy';
-                                                else if (cat.practiceProblems.hard.some((p: any) => p.title === problem.title)) difficulty = 'Hard';
+                                                if (cat.practiceProblems.easy.some(p => p.title === problem.title)) difficulty = 'Easy';
+                                                else if (cat.practiceProblems.hard.some(p => p.title === problem.title)) difficulty = 'Hard';
                                             }
                                             const diffColor = difficulty === 'Easy' ? '#43a047' : difficulty === 'Hard' ? '#ef5350' : '#ffa726';
                                             return (
