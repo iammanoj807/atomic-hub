@@ -16,6 +16,8 @@ import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
 import CheckCircleOutlineRoundedIcon from '@mui/icons-material/CheckCircleOutlineRounded';
 import { type Task } from '../context/TaskContext';
 import { getCoreStory } from '../data/coreStories';
+import { interviewGlossary } from '../utils/interviewGlossary';
+import { GlossaryProvider, GlossaryText } from './learning/GlossaryText';
 
 interface TaskItemProps {
     task: Task;
@@ -68,9 +70,12 @@ const MemoryPoints = ({ points }: { points: string[] }) => (
 //   SITUATION / TASK / ACTION / RESULT — a STAR part. Read as a plain
 //     paragraph; the part name only shows when you hover (or tap) it.
 //   IN SHORT — what the whole answer is saying, in one simple line.
-//   IN PLAIN WORDS — "• term — meaning" lines for the technical words.
 //   CHECK — a reminder to confirm a detail before using the answer.
-// Any other text renders as-is, so answers you wrote yourself look unchanged.
+// Technical words (data/interviewGlossary.ts) are underlined on their first
+// mention; hover or tap one to see what it means. Any other text renders
+// as-is, so answers you wrote yourself look unchanged.
+// (Older answers may still carry an "IN PLAIN WORDS" block; it is not shown,
+// because the same words now explain themselves in place.)
 const STAR_PARTS = ['SITUATION', 'TASK', 'ACTION', 'RESULT'] as const;
 const LABELS = [...STAR_PARTS, 'IN SHORT', 'IN PLAIN WORDS', 'CHECK'];
 const LABELLED = new RegExp(`^(${LABELS.join('|')}) — ?([\\s\\S]*)$`);
@@ -101,98 +106,76 @@ const SideBox = ({ title, color, children }: { title: string; color: string; chi
     </Box>
 );
 
+/** Answers have no topics to open, so "Learn it fully" never shows. */
+const noTopic = () => {};
+
 const FullAnswer = ({ text }: { text: string }) => {
     const parts = (text || 'No notes for this question.').split(/\n\s*\n/).map(parseParagraph);
     const spoken = parts.filter(p => !p.label || (STAR_PARTS as readonly string[]).includes(p.label));
-    const isStar = spoken.some(p => p.label);
     const inShort = parts.find(p => p.label === 'IN SHORT');
-    const plainWords = parts.find(p => p.label === 'IN PLAIN WORDS');
     const checks = parts.filter(p => p.label === 'CHECK');
+    // Each technical word is underlined once per answer, where it first appears.
+    const segments = interviewGlossary.segmentFirstMentions(spoken.map(p => p.body));
 
     return (
-        <Box
-            sx={{
-                borderLeft: '3px solid',
-                borderColor: 'primary.main',
-                bgcolor: '#0D1626',
-                borderRadius: '0 8px 8px 0',
-                p: 3,
-            }}
-        >
-            <Stack spacing={2}>
-                {spoken.map((part, i) => (
-                    <Typography
-                        key={i}
-                        variant="body2"
-                        tabIndex={part.label ? 0 : undefined}
-                        sx={{
-                            ...answerTextSx,
-                            ...(part.label && {
-                                mx: -1,
-                                px: 1,
-                                borderRadius: 1,
-                                outline: 'none',
-                                transition: 'background-color 0.2s',
-                                '& .star-part': { opacity: 0, transition: 'opacity 0.2s' },
-                                '&:hover, &:focus': { bgcolor: 'rgba(41,121,255,0.06)' },
-                                '&:hover .star-part, &:focus .star-part': { opacity: 1 },
-                            }),
-                        }}
-                    >
-                        {part.body}
-                        {part.label && (
-                            <Box
-                                component="span"
-                                className="star-part"
-                                sx={{ ml: 1, fontSize: '0.7rem', fontWeight: 'bold', letterSpacing: 1.2, color: 'primary.main', whiteSpace: 'nowrap' }}
-                            >
-                                · {part.label}
-                            </Box>
-                        )}
-                    </Typography>
-                ))}
-
-                {isStar && (
-                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', fontStyle: 'italic', fontSize: '0.8rem' }}>
-                        STAR answer — hover over a paragraph to see if it's the Situation, Task, Action or Result.
-                        Learn the order, but never say those words out loud.
-                    </Typography>
-                )}
-
-                {checks.map((check, i) => (
-                    <Typography key={i} variant="caption" sx={{ color: '#f5a623', fontStyle: 'italic', fontSize: '0.85rem' }}>
-                        ⚠ {check.body}
-                    </Typography>
-                ))}
-
-                {inShort && (
-                    <SideBox title="IN SHORT" color="#00e676">
-                        <Typography sx={{ color: 'rgba(255,255,255,0.82)', lineHeight: 1.7, fontSize: '1rem' }}>
-                            {inShort.body}
+        <GlossaryProvider source={interviewGlossary} openTopic={noTopic}>
+            <Box
+                sx={{
+                    borderLeft: '3px solid',
+                    borderColor: 'primary.main',
+                    bgcolor: '#0D1626',
+                    borderRadius: '0 8px 8px 0',
+                    p: 3,
+                }}
+            >
+                <Stack spacing={2}>
+                    {spoken.map((part, i) => (
+                        <Typography
+                            key={i}
+                            variant="body2"
+                            sx={{
+                                ...answerTextSx,
+                                ...(part.label && {
+                                    mx: -1,
+                                    px: 1,
+                                    borderRadius: 1,
+                                    transition: 'background-color 0.2s',
+                                    '& .star-part': { opacity: 0, transition: 'opacity 0.2s' },
+                                    '&:hover': { bgcolor: 'rgba(41,121,255,0.06)' },
+                                    '&:hover .star-part': { opacity: 1 },
+                                }),
+                            }}
+                        >
+                            <GlossaryText segments={segments[i]} />
+                            {part.label && (
+                                <Box
+                                    component="span"
+                                    className="star-part"
+                                    aria-hidden
+                                    sx={{ ml: 1, fontSize: '0.7rem', fontWeight: 'bold', letterSpacing: 1.2, color: 'primary.main', whiteSpace: 'nowrap' }}
+                                >
+                                    · {part.label}
+                                </Box>
+                            )}
                         </Typography>
-                    </SideBox>
-                )}
+                    ))}
 
-                {plainWords && (
-                    <SideBox title="IN PLAIN WORDS — WHAT THE TECHNICAL WORDS MEAN" color="#00e5ff">
-                        <Stack spacing={1}>
-                            {plainWords.body.split('\n').filter(Boolean).map((line, i) => {
-                                const [term, ...rest] = line.replace(/^•\s*/, '').split(' — ');
-                                return (
-                                    <Typography key={i} sx={{ color: 'rgba(255,255,255,0.72)', lineHeight: 1.7, fontSize: '1rem' }}>
-                                        {rest.length > 0 ? (
-                                            <>
-                                                <strong style={{ color: '#e0e0e0' }}>{term}</strong> — {rest.join(' — ')}
-                                            </>
-                                        ) : line}
-                                    </Typography>
-                                );
-                            })}
-                        </Stack>
-                    </SideBox>
-                )}
-            </Stack>
-        </Box>
+                    {checks.map((check, i) => (
+                        <Typography key={i} variant="caption" sx={{ color: '#f5a623', fontStyle: 'italic', fontSize: '0.85rem' }}>
+                            ⚠ {check.body}
+                        </Typography>
+                    ))}
+
+                    {inShort && (
+                        <SideBox title="IN SHORT" color="#00e676">
+                            <Typography sx={{ color: 'rgba(255,255,255,0.82)', lineHeight: 1.7, fontSize: '1rem' }}>
+                                {inShort.body}
+                            </Typography>
+                        </SideBox>
+                    )}
+                </Stack>
+            </Box>
+        </GlossaryProvider>
     );
 };
 
