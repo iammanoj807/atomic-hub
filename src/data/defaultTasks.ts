@@ -18,7 +18,7 @@ export interface DefaultTask {
  * first text replaced is kept on the document as previousDescription /
  * previousMemoryPoints). See utils/contentSync.ts.
  */
-export const CONTENT_VERSION = 4;
+export const CONTENT_VERSION = 5;
 
 /**
  * Questions whose title changed, so the sync can still find the stored
@@ -37,12 +37,12 @@ export const defaultTasks: DefaultTask[] = [
     {
         "id": "pb_1",
         "title": "Tell me about yourself / Walk me through your CV",
-        "description": "I'm Manoj. I'm an AI engineer with a software engineering background. I've just finished my MSc in Artificial Intelligence at Aston University, with a Distinction. What I'm good at is building AI systems and then proving they really work, with honest tests, not just a nice demo.\n\nI started my career as a software engineer at Accenture. I built REST APIs in Java Spring Boot, in a team of seven. My biggest win there was speed. Our p95 latency, which is the waiting time for the slowest 5% of requests, was about 850 milliseconds. I brought it down to 510, so 40% faster, across 18 endpoints. The code was asking the database lots of small questions instead of one big one, and I fixed that.\n\nAfter Accenture I worked at a startup in Nepal, [your role, and one thing you built there]. I had already co-written a published deep learning paper during my bachelor's, and I wanted to go much deeper into AI. So I came to the UK for my MSc.\n\nAt Aston I built four AI projects, and I tested each one properly. FruitGuard, my dissertation, spots fruit for a harvesting robot. It learned from only 207 labelled photos, reached 96% accuracy, and runs at 73 frames per second. Planck AI is a research assistant agent. It finished 30 out of 30 tasks even when I switched off its main AI provider on purpose. And in CogniGraph, I found my own test was making the system look 35 points better than it really was, so I rebuilt the test to be honest. I also mentored five MSc students every week.\n\nNow I'm looking for a role where I can build AI that people really rely on, in a team that cares about checking that it works.\n\nCHECK — Fill in the [bracket] with your real startup role before using this.\n\nIN SHORT — Who I am now (AI engineer, MSc with Distinction). How I got here (Accenture, a startup in Nepal, then four MSc projects). What I want next (AI that people can rely on). The thread: I build it, then I prove it works.",
+        "description": "I'm Manoj. I'm an AI engineer with a software engineering background. I've just finished my MSc in Artificial Intelligence at Aston University, with a Distinction. What I'm good at is building AI systems and then proving they really work, with honest tests, not just a nice demo.\n\nI started my career as a software engineer at Accenture. I built REST APIs in Java Spring Boot, in a team of seven. My biggest win there was speed. Our p95 latency, which is the waiting time for the slowest 5% of requests, was about 850 milliseconds. I brought it down to 510, so 40% faster, across 18 endpoints. The code was asking the database lots of small questions instead of one big one, and I fixed that.\n\nAfter Accenture I worked at a tech startup in Nepal. I had already co-written a published deep learning paper during my bachelor's, and I wanted to go much deeper into AI. So I came to the UK for my MSc.\n\nAt Aston I built four AI projects, and I tested each one properly. FruitGuard, my dissertation, spots fruit for a harvesting robot. It learned from only 207 labelled photos, reached 96% accuracy, and runs at 73 frames per second. Planck AI is a research assistant agent. It finished 30 out of 30 tasks even when I switched off its main AI provider on purpose. And in CogniGraph, I found my own test was making the system look 35 points better than it really was, so I rebuilt the test to be honest. I also mentored five MSc students every week.\n\nNow I'm looking for a role where I can build AI that people really rely on, in a team that cares about checking that it works.\n\nIN SHORT — Who I am now (AI engineer, MSc with Distinction). How I got here (Accenture, a tech startup in Nepal, then four MSc projects). What I want next (AI that people can rely on). The thread: I build it, then I prove it works.",
         "category": "Personal Background",
         "memoryPoints": [
             "Now: AI engineer, MSc AI Aston, Distinction",
             "Accenture: Spring Boot APIs, p95 850 → 510 ms (40%)",
-            "Startup in Nepal → published paper → wanted AI depth → UK MSc",
+            "Tech startup in Nepal → published paper → wanted AI depth → UK MSc",
             "FruitGuard 207 photos / 96% / 73 FPS",
             "Planck 30/30 · CogniGraph honest test · mentored 5 students",
             "Next: AI people rely on. Build it, then prove it"
@@ -51,11 +51,11 @@ export const defaultTasks: DefaultTask[] = [
     {
         "id": "pb_2",
         "title": "Tell me about yourself — short version (phone screens)",
-        "description": "I'm Manoj, an AI engineer. I've just finished an MSc in Artificial Intelligence at Aston, with a Distinction.\n\nBefore that, I was a software engineer at Accenture, where I made our APIs 40% faster, and then I worked at a startup in Nepal. At Aston I built AI projects and tested them properly. One is a fruit detector that reaches 96% accuracy from just 207 photos. Another is a research agent that finished 30 out of 30 tasks, even with its main AI provider switched off.\n\nNow I'm looking for an AI engineering role, building things people really rely on. I'm on the Graduate Route visa until 2028, so I don't need sponsorship.\n\nIN SHORT — A 30-second version: AI engineer with a Distinction, real industry experience, two projects with strong numbers, and no visa sponsorship needed.",
+        "description": "I'm Manoj, an AI engineer. I've just finished an MSc in Artificial Intelligence at Aston, with a Distinction.\n\nBefore that, I was a software engineer at Accenture, where I made our APIs 40% faster, and then I worked at a tech startup in Nepal. At Aston I built AI projects and tested them properly. One is a fruit detector that reaches 96% accuracy from just 207 photos. Another is a research agent that finished 30 out of 30 tasks, even with its main AI provider switched off.\n\nNow I'm looking for an AI engineering role, building things people really rely on. I'm on the Graduate Route visa until 2028, so I don't need sponsorship.\n\nIN SHORT — A 30-second version: AI engineer with a Distinction, real industry experience, two projects with strong numbers, and no visa sponsorship needed.",
         "category": "Personal Background",
         "memoryPoints": [
             "AI engineer, MSc AI Aston, Distinction",
-            "Accenture: 40% faster APIs → startup in Nepal",
+            "Accenture: 40% faster APIs → tech startup in Nepal",
             "96% from 207 photos · 30/30 with provider off",
             "Want: AI people rely on",
             "Graduate Route to 2028, no sponsorship"
@@ -77,12 +77,11 @@ export const defaultTasks: DefaultTask[] = [
     {
         "id": "cd_1",
         "title": "Why did you leave Accenture, and what did you do before your MSc?",
-        "description": "I joined Accenture straight after my degree and worked there for about seven months, building APIs in Java Spring Boot. It taught me how real production software works, with two-week sprints and code that real users depend on. My best piece of work there was making our APIs 40% faster.\n\nI left to join a startup in Nepal, [your real reason in one positive line, for example: to be closer to family, or to get more ownership in a small team]. In a startup you do a bit of everything, and [one line on your role and one thing you built].\n\nThe whole time, I kept being pulled towards AI. I had already co-written a deep learning paper in my final year, and I wanted real depth, not just surface knowledge. So I came to the UK for an MSc in AI at Aston, and I finished with a Distinction. Now I bring both: engineering habits from industry, and real AI skills from my studies.\n\nCHECK — Fill in both [brackets]. Keep it short and positive, and never criticise Accenture.\n\nIN SHORT — I left for a startup in Nepal. I'd always been drawn to AI, so I did the MSc. Now I have both engineering experience and AI depth.",
+        "description": "I joined Accenture straight after my degree and worked there for about seven months, building APIs in Java Spring Boot. It taught me how real production software works, with two-week sprints and code that real users depend on. My best piece of work there was making our APIs 40% faster.\n\nAfter that, I joined a tech startup in Nepal.\n\nThe whole time, I kept being pulled towards AI. I had already co-written a deep learning paper in my final year, and I wanted real depth, not just surface knowledge. So I came to the UK for an MSc in AI at Aston, and I finished with a Distinction. Now I bring both: engineering habits from industry, and real AI skills from my studies.\n\nCHECK — Keep it short and positive, and never criticise Accenture.\n\nIN SHORT — I left for a tech startup in Nepal. I'd always been drawn to AI, so I did the MSc. Now I have both engineering experience and AI depth.",
         "category": "Career Decisions",
         "memoryPoints": [
             "Accenture ~7 months: real production work, 40% faster APIs",
-            "Left for a startup in Nepal [real reason, positive]",
-            "Startup: a bit of everything [your role]",
+            "Then: tech startup in Nepal",
             "Always pulled to AI: published paper in final year",
             "MSc AI Aston, Distinction → engineering + AI"
         ]
