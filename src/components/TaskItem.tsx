@@ -63,18 +63,51 @@ const MemoryPoints = ({ points }: { points: string[] }) => (
     </Box>
 );
 
-// A paragraph that opens with "LABEL — " (SITUATION, ACTION, IN PLAIN WORDS…)
-// gets the label as a small heading. Anything else renders as plain text, so
-// answers written without labels look exactly as they always did.
-const LABELLED = /^([A-Z][A-Z0-9 &→'()/-]{1,30}) — ?([\s\S]*)$/;
+// Answer format (see data/defaultTasks.ts): paragraphs separated by a blank
+// line. A paragraph may open with one of the labels below followed by " — ".
+//   SITUATION / TASK / ACTION / RESULT — a STAR part. Read as a plain
+//     paragraph; the part name only shows when you hover (or tap) it.
+//   IN SHORT — what the whole answer is saying, in one simple line.
+//   IN PLAIN WORDS — "• term — meaning" lines for the technical words.
+//   CHECK — a reminder to confirm a detail before using the answer.
+// Any other text renders as-is, so answers you wrote yourself look unchanged.
+const STAR_PARTS = ['SITUATION', 'TASK', 'ACTION', 'RESULT'] as const;
+const LABELS = [...STAR_PARTS, 'IN SHORT', 'IN PLAIN WORDS', 'CHECK'];
+const LABELLED = new RegExp(`^(${LABELS.join('|')}) — ?([\\s\\S]*)$`);
 
-const LABEL_COLORS: Record<string, string> = {
-    'HOW TO ANSWER': 'rgba(255,255,255,0.45)',
-    'IN PLAIN WORDS': '#00e5ff',
+const parseParagraph = (paragraph: string) => {
+    const match = paragraph.match(LABELLED);
+    return match
+        ? { label: match[1], body: match[2].trim() }
+        : { label: undefined, body: paragraph };
 };
 
+const answerTextSx = {
+    color: 'rgba(255, 255, 255, 0.78)',
+    whiteSpace: 'pre-wrap',
+    lineHeight: 1.8,
+    fontSize: '1.12rem',
+} as const;
+
+const SideBox = ({ title, color, children }: { title: string; color: string; children: React.ReactNode }) => (
+    <Box sx={{ p: 2, borderRadius: 2, bgcolor: `${color}0d`, border: `1px solid ${color}33` }}>
+        <Typography
+            variant="caption"
+            sx={{ display: 'block', mb: 0.75, fontWeight: 'bold', letterSpacing: 1.5, fontSize: '0.68rem', color }}
+        >
+            {title}
+        </Typography>
+        {children}
+    </Box>
+);
+
 const FullAnswer = ({ text }: { text: string }) => {
-    const paragraphs = (text || 'No notes for this question.').split(/\n\s*\n/);
+    const parts = (text || 'No notes for this question.').split(/\n\s*\n/).map(parseParagraph);
+    const spoken = parts.filter(p => !p.label || (STAR_PARTS as readonly string[]).includes(p.label));
+    const isStar = spoken.some(p => p.label);
+    const inShort = parts.find(p => p.label === 'IN SHORT');
+    const plainWords = parts.find(p => p.label === 'IN PLAIN WORDS');
+    const checks = parts.filter(p => p.label === 'CHECK');
 
     return (
         <Box
@@ -87,54 +120,77 @@ const FullAnswer = ({ text }: { text: string }) => {
             }}
         >
             <Stack spacing={2}>
-                {paragraphs.map((paragraph, i) => {
-                    const match = paragraph.match(LABELLED);
-                    const label = match?.[1];
-                    const body = match ? match[2].trim() : paragraph;
-                    const isPlainWords = label === 'IN PLAIN WORDS';
-                    const isHowTo = label === 'HOW TO ANSWER';
-
-                    return (
-                        <Box
-                            key={i}
-                            sx={isPlainWords ? {
-                                mt: 1,
-                                p: 2,
-                                borderRadius: 2,
-                                bgcolor: 'rgba(0,229,255,0.05)',
-                                border: '1px solid rgba(0,229,255,0.15)',
-                            } : undefined}
-                        >
-                            {label && (
-                                <Typography
-                                    variant="caption"
-                                    sx={{
-                                        display: 'block',
-                                        mb: 0.5,
-                                        fontWeight: 'bold',
-                                        letterSpacing: 1.5,
-                                        fontSize: '0.68rem',
-                                        color: LABEL_COLORS[label] ?? 'primary.main',
-                                    }}
-                                >
-                                    {label}
-                                </Typography>
-                            )}
-                            <Typography
-                                variant="body2"
-                                sx={{
-                                    color: isHowTo ? 'rgba(255,255,255,0.5)' : 'rgba(255, 255, 255, 0.7)',
-                                    fontStyle: isHowTo ? 'italic' : 'normal',
-                                    whiteSpace: 'pre-wrap',
-                                    lineHeight: isPlainWords ? 1.7 : 1.8,
-                                    fontSize: isHowTo || isPlainWords ? '0.98rem' : '1.12rem',
-                                }}
+                {spoken.map((part, i) => (
+                    <Typography
+                        key={i}
+                        variant="body2"
+                        tabIndex={part.label ? 0 : undefined}
+                        sx={{
+                            ...answerTextSx,
+                            ...(part.label && {
+                                mx: -1,
+                                px: 1,
+                                borderRadius: 1,
+                                outline: 'none',
+                                transition: 'background-color 0.2s',
+                                '& .star-part': { opacity: 0, transition: 'opacity 0.2s' },
+                                '&:hover, &:focus': { bgcolor: 'rgba(41,121,255,0.06)' },
+                                '&:hover .star-part, &:focus .star-part': { opacity: 1 },
+                            }),
+                        }}
+                    >
+                        {part.body}
+                        {part.label && (
+                            <Box
+                                component="span"
+                                className="star-part"
+                                sx={{ ml: 1, fontSize: '0.7rem', fontWeight: 'bold', letterSpacing: 1.2, color: 'primary.main', whiteSpace: 'nowrap' }}
                             >
-                                {body}
-                            </Typography>
-                        </Box>
-                    );
-                })}
+                                · {part.label}
+                            </Box>
+                        )}
+                    </Typography>
+                ))}
+
+                {isStar && (
+                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', fontStyle: 'italic', fontSize: '0.8rem' }}>
+                        STAR answer — hover over a paragraph to see if it's the Situation, Task, Action or Result.
+                        Learn the order, but never say those words out loud.
+                    </Typography>
+                )}
+
+                {checks.map((check, i) => (
+                    <Typography key={i} variant="caption" sx={{ color: '#f5a623', fontStyle: 'italic', fontSize: '0.85rem' }}>
+                        ⚠ {check.body}
+                    </Typography>
+                ))}
+
+                {inShort && (
+                    <SideBox title="IN SHORT" color="#00e676">
+                        <Typography sx={{ color: 'rgba(255,255,255,0.82)', lineHeight: 1.7, fontSize: '1rem' }}>
+                            {inShort.body}
+                        </Typography>
+                    </SideBox>
+                )}
+
+                {plainWords && (
+                    <SideBox title="IN PLAIN WORDS — WHAT THE TECHNICAL WORDS MEAN" color="#00e5ff">
+                        <Stack spacing={1}>
+                            {plainWords.body.split('\n').filter(Boolean).map((line, i) => {
+                                const [term, ...rest] = line.replace(/^•\s*/, '').split(' — ');
+                                return (
+                                    <Typography key={i} sx={{ color: 'rgba(255,255,255,0.72)', lineHeight: 1.7, fontSize: '1rem' }}>
+                                        {rest.length > 0 ? (
+                                            <>
+                                                <strong style={{ color: '#e0e0e0' }}>{term}</strong> — {rest.join(' — ')}
+                                            </>
+                                        ) : line}
+                                    </Typography>
+                                );
+                            })}
+                        </Stack>
+                    </SideBox>
+                )}
             </Stack>
         </Box>
     );

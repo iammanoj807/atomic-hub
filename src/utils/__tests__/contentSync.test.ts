@@ -36,6 +36,17 @@ describe('planContentSync', () => {
         });
     });
 
+    it('keeps the first backup when a later version syncs again', () => {
+        const [update] = planContentSync(
+            [stored({ contentVersion: 2, previousDescription: 'Original answer' })],
+            [def()],
+            3
+        );
+        expect(update.description).toBe('New answer');
+        expect(update).not.toHaveProperty('previousDescription');
+        expect(update).not.toHaveProperty('previousMemoryPoints');
+    });
+
     it('matches title and category ignoring case and spacing', () => {
         const updates = planContentSync(
             [stored({ title: '  biggest ACHIEVEMENT? ', category: 'tech achievements' })],

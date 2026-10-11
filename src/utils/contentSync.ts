@@ -17,6 +17,7 @@ export interface StoredTask {
     description?: string;
     memoryPoints?: string[];
     contentVersion?: number;
+    previousDescription?: string;
 }
 
 export interface ContentUpdate {
@@ -27,9 +28,12 @@ export interface ContentUpdate {
     /** null means the question no longer belongs to a core story. */
     coreStoryId: string | null;
     contentVersion: number;
-    /** The text being replaced, kept on the document so nothing is lost. */
-    previousDescription: string;
-    previousMemoryPoints: string[];
+    /**
+     * The text being replaced, kept on the document so nothing is lost. Only
+     * set by the first sync, so the backup is always your original answer.
+     */
+    previousDescription?: string;
+    previousMemoryPoints?: string[];
 }
 
 const key = (title: string, category: string) =>
@@ -62,8 +66,10 @@ export const planContentSync = (
             memoryPoints: def.memoryPoints ?? [],
             coreStoryId: def.coreStoryId ?? null,
             contentVersion: version,
-            previousDescription: match.description ?? '',
-            previousMemoryPoints: match.memoryPoints ?? [],
+            ...(match.previousDescription === undefined && {
+                previousDescription: match.description ?? '',
+                previousMemoryPoints: match.memoryPoints ?? [],
+            }),
         });
     }
     return updates;
