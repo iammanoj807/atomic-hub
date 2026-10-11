@@ -34,7 +34,8 @@ import { useEvidenceLog } from '../hooks/useEvidenceLog';
 import { usePractice } from '../hooks/usePractice';
 import { deleteField } from 'firebase/firestore';
 import { subDays } from 'date-fns';
-import { defaultTasks } from '../data/defaultTasks';
+import { defaultTasks, CONTENT_VERSION, PREVIOUS_TITLES } from '../data/defaultTasks';
+import { planContentSync } from '../utils/contentSync';
 import { MISSION_HABITS, parseRoleTags } from '../data/missionTypes';
 import type { Role } from '../data/missionTypes';
 import { getLondonDateString } from '../utils/date';
@@ -69,7 +70,7 @@ export interface Task {
     tag?: string;
     /** 4-6 short bullets — what you actually recall from, instead of reading. */
     memoryPoints?: string[];
-    /** Links this question to one of the six core stories (see coreStories.ts). */
+    /** Links this question to one of the core stories (see coreStories.ts). */
     coreStoryId?: string;
 }
 
@@ -236,6 +237,7 @@ export const TaskProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     // Track if we've already initialized defaults to prevent duplicate seeding
     const hasSeededTasks = useRef(false);
+    const hasSyncedContent = useRef(false);
     const hasSeededHabits = useRef(false);
     const hasSeededMissionHabits = useRef(false);
 
@@ -315,10 +317,17 @@ export const TaskProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                             description: task.description,
                             category: task.category,
                             completed: false,
+                            contentVersion: CONTENT_VERSION,
                         };
-                        // Only include companyId if it's defined (Firestore rejects undefined)
+                        // Only include optional fields if defined (Firestore rejects undefined)
                         if (task.companyId) {
                             taskData.companyId = task.companyId;
+                        }
+                        if (task.memoryPoints && task.memoryPoints.length > 0) {
+                            taskData.memoryPoints = task.memoryPoints;
+                        }
+                        if (task.coreStoryId) {
+                            taskData.coreStoryId = task.coreStoryId;
                         }
                         await addTaskToFirestore(taskData);
                     }
@@ -329,6 +338,29 @@ export const TaskProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 }
             } else {
                 setTasks(prunedTasks);
+
+                // Once per load: bring built-in answers up to CONTENT_VERSION.
+                // Each write re-fires this snapshot, hence the ref guard.
+                if (!hasSyncedContent.current) {
+                    hasSyncedContent.current = true;
+                    const live = firestoreTasks.filter(t => !duplicateTaskIds.includes(t.id!));
+                    const updates = planContentSync(
+                        live.map(t => ({ ...t, id: t.id! })),
+                        defaultTasks,
+                        CONTENT_VERSION,
+                        PREVIOUS_TITLES
+                    );
+                    for (const { docId, coreStoryId, ...fields } of updates) {
+                        try {
+                            await updateTaskInFirestore(docId, {
+                                ...fields,
+                                coreStoryId: coreStoryId ?? (deleteField() as unknown as string),
+                            });
+                        } catch (error) {
+                            console.error('❌ Failed to sync built-in answer:', error);
+                        }
+                    }
+                }
             }
 
             tasksLoaded = true;

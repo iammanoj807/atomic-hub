@@ -38,8 +38,13 @@ export interface FirestoreTask {
     createdAt: Timestamp;
     /** 4-6 short bullets. Shown instead of the full answer by default. */
     memoryPoints?: string[];
-    /** Links this question to one of the six core stories (see coreStories.ts). */
+    /** Links this question to one of the core stories (see coreStories.ts). */
     coreStoryId?: string;
+    /** Which version of the built-in answers this document holds (see contentSync.ts). */
+    contentVersion?: number;
+    /** The answer text a content sync replaced, kept so nothing is lost. */
+    previousDescription?: string;
+    previousMemoryPoints?: string[];
 }
 
 export interface FirestoreCompany {

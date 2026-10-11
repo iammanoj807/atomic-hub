@@ -1,10 +1,10 @@
 import { Box, Typography, Stack, Chip } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useTaskContext } from '../context/TaskContext';
-import { CORE_STORIES } from '../data/coreStories';
+import { CORE_STORIES, MAIN_STORY } from '../data/coreStories';
 
 /**
- * The five stories, and how each one bends.
+ * The main story, the six stories that prove it, and how each one bends.
  *
  * The point of this page is that an unexpected question is not a request for a
  * new story — it's a request to re-angle one of these. So each card leads with
@@ -45,11 +45,72 @@ const CoreStoriesPage = () => {
                     fontWeight="bold"
                     sx={{ color: 'text.primary', mb: 1.5, fontSize: { xs: '2rem', sm: '3.75rem' } }}
                 >
-                    You need five stories, not thirty.
+                    You need six stories, not thirty.
                 </Typography>
                 <Typography variant="body1" color="text.secondary" sx={{ fontSize: '1.1rem', lineHeight: 1.7 }}>
                     When an unexpected question arrives, don't hunt for something new. Pick the closest
-                    story and change the spotlight.
+                    story and change the spotlight — and bring it back to the main story at the end.
+                </Typography>
+            </Box>
+
+            {/* The main story — the thread every answer comes back to. */}
+            <Box
+                sx={{
+                    mb: 5,
+                    p: { xs: 3, sm: 4 },
+                    borderRadius: 4,
+                    border: '1px solid rgba(41,121,255,0.35)',
+                    bgcolor: 'rgba(41,121,255,0.06)',
+                }}
+            >
+                <Typography
+                    sx={{ color: 'primary.main', fontWeight: 'bold', letterSpacing: 2.5, fontSize: '0.88rem', mb: 1.5 }}
+                >
+                    THE MAIN STORY
+                </Typography>
+                <Typography
+                    variant="h4"
+                    fontWeight="bold"
+                    sx={{ color: 'text.primary', mb: 1.5, fontSize: { xs: '1.6rem', sm: '2.2rem' } }}
+                >
+                    {MAIN_STORY.catchphrase}
+                </Typography>
+                <Typography sx={{ color: 'text.primary', fontSize: '1.2rem', lineHeight: 1.7, mb: 3 }}>
+                    {MAIN_STORY.oneLiner}
+                </Typography>
+
+                <Box
+                    sx={{
+                        display: 'grid',
+                        gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' },
+                        gap: 2,
+                        mb: 3,
+                    }}
+                >
+                    {MAIN_STORY.threads.map((thread, i) => (
+                        <Box key={thread.label} sx={{ p: 2, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.04)' }}>
+                            <Typography sx={{ color: 'primary.main', fontWeight: 700, mb: 0.5 }}>
+                                {i + 1}. {thread.label}
+                            </Typography>
+                            <Typography sx={{ color: 'text.secondary', lineHeight: 1.6 }}>
+                                {thread.text}
+                            </Typography>
+                        </Box>
+                    ))}
+                </Box>
+
+                <Typography
+                    color="text.secondary"
+                    fontWeight="bold"
+                    sx={{ letterSpacing: 2.5, display: 'block', mb: 1, fontSize: '0.8rem' }}
+                >
+                    SAY IT IN 45 SECONDS
+                </Typography>
+                <Typography sx={{ color: 'rgba(255,255,255,0.82)', fontSize: '1.08rem', lineHeight: 1.8, mb: 2.5 }}>
+                    {MAIN_STORY.spoken}
+                </Typography>
+                <Typography sx={{ color: 'text.secondary', fontSize: '1.02rem', lineHeight: 1.7, fontStyle: 'italic' }}>
+                    {MAIN_STORY.bringItBack}
                 </Typography>
             </Box>
 
@@ -171,6 +232,29 @@ const CoreStoriesPage = () => {
                                 </Stack>
                             </Box>
 
+                            {/* The jargon this story uses, in plain English. */}
+                            <Typography
+                                sx={{ color: '#00e5ff', fontWeight: 'bold', letterSpacing: 2.5, display: 'block', mb: 2, fontSize: '0.88rem' }}
+                            >
+                                IN PLAIN WORDS
+                            </Typography>
+                            <Stack
+                                spacing={1.25}
+                                sx={{
+                                    mb: 3.5,
+                                    p: 2.5,
+                                    borderRadius: 2,
+                                    bgcolor: 'rgba(0,229,255,0.04)',
+                                    border: '1px solid rgba(0,229,255,0.12)',
+                                }}
+                            >
+                                {story.plainWords.map(word => (
+                                    <Typography key={word.term} sx={{ color: 'text.secondary', lineHeight: 1.7, fontSize: '1.02rem' }}>
+                                        <strong style={{ color: '#d7d2ce' }}>{word.term}</strong> — {word.meaning}
+                                    </Typography>
+                                ))}
+                            </Stack>
+
                             {/* Flex notes — how to re-angle it */}
                             <Typography
                                 color="text.secondary"
@@ -278,7 +362,8 @@ const CoreStoriesPage = () => {
                     </Typography>
                     <Typography sx={{ color: 'text.secondary', fontSize: '1.1rem', lineHeight: 1.8 }}>
                         <strong style={{ color: '#d7d2ce' }}>Change the closing lesson.</strong> End with the
-                        lesson that answers their question, not the one you rehearsed.
+                        lesson that answers their question, not the one you rehearsed — then connect it to
+                        the main story: build it, then prove it.
                     </Typography>
                 </Stack>
             </Box>

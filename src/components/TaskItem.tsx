@@ -63,29 +63,82 @@ const MemoryPoints = ({ points }: { points: string[] }) => (
     </Box>
 );
 
-const FullAnswer = ({ text }: { text: string }) => (
-    <Box
-        sx={{
-            borderLeft: '3px solid',
-            borderColor: 'primary.main',
-            bgcolor: '#0D1626',
-            borderRadius: '0 8px 8px 0',
-            p: 3,
-        }}
-    >
-        <Typography
-            variant="body2"
+// A paragraph that opens with "LABEL — " (SITUATION, ACTION, IN PLAIN WORDS…)
+// gets the label as a small heading. Anything else renders as plain text, so
+// answers written without labels look exactly as they always did.
+const LABELLED = /^([A-Z][A-Z0-9 &→'()/-]{1,30}) — ?([\s\S]*)$/;
+
+const LABEL_COLORS: Record<string, string> = {
+    'HOW TO ANSWER': 'rgba(255,255,255,0.45)',
+    'IN PLAIN WORDS': '#00e5ff',
+};
+
+const FullAnswer = ({ text }: { text: string }) => {
+    const paragraphs = (text || 'No notes for this question.').split(/\n\s*\n/);
+
+    return (
+        <Box
             sx={{
-                color: 'rgba(255, 255, 255, 0.7)',
-                whiteSpace: 'pre-wrap',
-                lineHeight: 1.8,
-                fontSize: '1.12rem',
+                borderLeft: '3px solid',
+                borderColor: 'primary.main',
+                bgcolor: '#0D1626',
+                borderRadius: '0 8px 8px 0',
+                p: 3,
             }}
         >
-            {text || 'No notes for this question.'}
-        </Typography>
-    </Box>
-);
+            <Stack spacing={2}>
+                {paragraphs.map((paragraph, i) => {
+                    const match = paragraph.match(LABELLED);
+                    const label = match?.[1];
+                    const body = match ? match[2].trim() : paragraph;
+                    const isPlainWords = label === 'IN PLAIN WORDS';
+                    const isHowTo = label === 'HOW TO ANSWER';
+
+                    return (
+                        <Box
+                            key={i}
+                            sx={isPlainWords ? {
+                                mt: 1,
+                                p: 2,
+                                borderRadius: 2,
+                                bgcolor: 'rgba(0,229,255,0.05)',
+                                border: '1px solid rgba(0,229,255,0.15)',
+                            } : undefined}
+                        >
+                            {label && (
+                                <Typography
+                                    variant="caption"
+                                    sx={{
+                                        display: 'block',
+                                        mb: 0.5,
+                                        fontWeight: 'bold',
+                                        letterSpacing: 1.5,
+                                        fontSize: '0.68rem',
+                                        color: LABEL_COLORS[label] ?? 'primary.main',
+                                    }}
+                                >
+                                    {label}
+                                </Typography>
+                            )}
+                            <Typography
+                                variant="body2"
+                                sx={{
+                                    color: isHowTo ? 'rgba(255,255,255,0.5)' : 'rgba(255, 255, 255, 0.7)',
+                                    fontStyle: isHowTo ? 'italic' : 'normal',
+                                    whiteSpace: 'pre-wrap',
+                                    lineHeight: isPlainWords ? 1.7 : 1.8,
+                                    fontSize: isHowTo || isPlainWords ? '0.98rem' : '1.12rem',
+                                }}
+                            >
+                                {body}
+                            </Typography>
+                        </Box>
+                    );
+                })}
+            </Stack>
+        </Box>
+    );
+};
 
 const TaskItem: React.FC<TaskItemProps> = ({
     task,

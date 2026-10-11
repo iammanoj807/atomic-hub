@@ -20,7 +20,7 @@ export const INTERVIEW_TIPS: InterviewTip[] = [
     },
     {
         heading: 'NUMBERS MAKE YOU MEMORABLE',
-        body: '40%. 73 FPS. 207 images. 8 seconds to under 2. Three days. Numbers are what survive the interviewer\'s afternoon and get repeated in the debrief. Say them out loud, and say them precisely — approximations sound like you were not close to the work.',
+        body: '40%. 850 to 510 milliseconds. 207 images. 96.3%. 73 FPS. 30 out of 30. Numbers are what survive the interviewer\'s afternoon and get repeated in the debrief. Say them out loud, and say them precisely — approximations sound like you were not close to the work.',
     },
     {
         heading: 'ANSWER THE QUESTION FIRST',
@@ -36,7 +36,7 @@ export const INTERVIEW_TIPS: InterviewTip[] = [
     },
     {
         heading: 'NEVER THE SAME STORY TWICE',
-        body: 'Once a story has been used in an interview, it is spent. If Automated Testing came out for collaboration, disagreement gets the hardcode-shortcut backup. Decide in the moment, based on which question arrives first.',
+        body: 'Once a story has been used in an interview, it is spent. If Mentoring came out for disagreement, a second collaboration question gets the hardcode-shortcut backup. Decide in the moment, based on which question arrives first.',
     },
     {
         heading: 'YOU DO NOT HAVE TO KNOW',
