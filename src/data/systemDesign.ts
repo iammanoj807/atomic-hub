@@ -1204,6 +1204,7 @@ export const systemDesignPhases: SDPhase[] = [
                     'Wide-column (Cassandra): massive write volume; queries designed around the partition key.',
                     'Graph: relationships first (friends of friends).',
                     'Default in most interviews: start with SQL unless there\'s a clear reason not to.',
+                    'Hands-on: the SQL tab teaches the language itself, from SELECT to window functions, with every query runnable.',
                 ],
                 tradeOffs: [
                     'SQL: flexible queries and strong guarantees, but harder to scale writes horizontally.',
@@ -1260,6 +1261,7 @@ export const systemDesignPhases: SDPhase[] = [
                     'Lost-update fixes: SELECT … FOR UPDATE (pessimistic lock) or a version column (optimistic locking).',
                     'Durability comes from a write-ahead log saved to disk before the commit is confirmed.',
                     'Distributed transactions (two-phase commit) exist but are slow and fragile; prefer sagas across services.',
+                    'Hands-on: the SQL tab, Phase 6, runs real BEGIN, COMMIT and ROLLBACK examples.',
                 ],
                 code: 'BEGIN;\nUPDATE accounts SET balance = balance - 100\n WHERE id = \'A\' AND balance >= 100;   -- if 0 rows changed: ROLLBACK\nUPDATE accounts SET balance = balance + 100\n WHERE id = \'B\';\nCOMMIT;',
                 codeLanguage: 'sql',
@@ -1315,6 +1317,7 @@ export const systemDesignPhases: SDPhase[] = [
                     'Every index slows writes and uses storage; index for your real queries only.',
                     'Use EXPLAIN to check whether a query uses an index.',
                     'LSM trees (Cassandra, RocksDB): very fast writes, merged in the background.',
+                    'Hands-on: the SQL tab, Phase 7, shows real query plans before and after adding an index.',
                 ],
                 code: 'CREATE INDEX idx_orders_user_time ON orders (user_id, created_at);\n\nEXPLAIN SELECT * FROM orders\nWHERE user_id = 42\nORDER BY created_at DESC LIMIT 20;',
                 codeLanguage: 'sql',

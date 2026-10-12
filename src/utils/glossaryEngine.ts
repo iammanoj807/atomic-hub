@@ -18,6 +18,11 @@ export interface TextSegment {
     termId?: string;
 }
 
+export interface GlossaryOptions {
+    /** Spans never to mark, such as `inline code` in the SQL notes. Must be a global (g) pattern. */
+    skip?: RegExp;
+}
+
 export interface GlossaryTopicRef {
     id: string;
     name: string;
@@ -46,7 +51,8 @@ const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 export const createGlossary = <T extends GlossaryTopicRef>(
     terms: GlossaryTerm[],
     topicsInOrder: T[],
-    proseOf: (topic: T) => string[]
+    proseOf: (topic: T) => string[],
+    options: GlossaryOptions = {}
 ): GlossarySource<T> => {
     const termsById = new Map(terms.map(term => [term.id, term]));
     const termIdBySpelling = new Map<string, string>();
@@ -67,11 +73,17 @@ export const createGlossary = <T extends GlossaryTopicRef>(
         'g'
     );
 
+    const skippedRanges = (text: string): [number, number][] =>
+        options.skip ? [...text.matchAll(options.skip)].map(m => [m.index ?? 0, (m.index ?? 0) + m[0].length]) : [];
+
     const segmentText = (text: string): TextSegment[] => {
         const segments: TextSegment[] = [];
+        const skipped = skippedRanges(text);
         let last = 0;
         for (const match of text.matchAll(pattern)) {
             const start = match.index ?? 0;
+            // A word inside a skipped span stays part of the plain text around it.
+            if (skipped.some(([from, to]) => start >= from && start < to)) continue;
             if (start > last) segments.push({ text: text.slice(last, start) });
             segments.push({ text: match[0], termId: termIdBySpelling.get(match[0]) });
             last = start + match[0].length;

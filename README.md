@@ -59,6 +59,26 @@ of four checks: **Explain**, **Derive**, **Build**, **Break**. A topic counts on
 are ticked without notes, and ticks come off again when an old topic fails its re-test.
 Original papers are marked optional, to come back to once the foundations are solid.
 
+### System Design
+High-level, low-level and AI/ML system design, from the building blocks to full design
+questions: ten phases and 72 topics. Every topic has a diagram, a plain-English lesson,
+a spoken interview answer and follow-up questions with answers. Technical words are
+underlined; tap one to see what it means. **Learn** mode takes one topic at a time;
+**Revise** mode lays the interview notes out flat for the night before.
+
+### SQL
+SQL from a first `SELECT` to interview problems: nine phases, 47 lessons and 14 classic
+interview problems (Nth highest salary, top N per group, gaps and islands, retention…).
+Everything runs on one small practice database of six tables, with the awkward cases planted
+on purpose: NULLs, ties, duplicates, a customer with no orders.
+
+Every example shows the exact rows it returns, and **Try it yourself** runs it in the
+browser on a real SQLite engine (sql.js), loaded only when first used. A test runs every
+example and checks its rows, so a result printed on a card can't be wrong. It also fails
+any query whose row order depends on luck rather than `ORDER BY`. Interview problems keep
+their solution hidden until you have tried.
+
 ### Also
 A global Pomodoro timer that keeps running as you move between pages, daily habits with
-streaks and a year of history, and a DSA hub tracking NeetCode 150.
+streaks and a year of history, and a DSA hub tracking NeetCode 150, with pattern guides and
+a "Which pattern?" drill.

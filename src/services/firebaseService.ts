@@ -18,6 +18,7 @@ import type { QuerySnapshot, DocumentData } from 'firebase/firestore';
 import type { FirebaseError } from 'firebase/app';
 import { db } from '../firebase';
 import type { SDCheckKey } from '../data/systemDesign';
+import type { SqlCheckKey } from '../data/sql';
 import type { DrillCardState, DrillState } from '../utils/patternDrill';
 
 // Collection names
@@ -851,6 +852,43 @@ export const saveSystemDesignCheck = async (
         await setDoc(docRef, { checks: { [topicId]: { [check]: done } }, updatedAt: Timestamp.now() }, { merge: true });
     } catch (error) {
         console.error('❌ Failed to save system design check:', error);
+        throw error;
+    }
+};
+
+// ============ SQL ============
+//
+// Same shape again: the course is static (data/sql.ts), and one document,
+// study_progress/sql, holds every ticked check.
+
+const SQL_DOC = 'sql';
+
+export interface SqlProgress {
+    checks: Record<string, Partial<Record<SqlCheckKey, boolean>>>;
+}
+
+export const subscribeToSql = (
+    callback: (progress: SqlProgress) => void
+) => {
+    return onSnapshot(doc(db, STUDY_PROGRESS_COLLECTION, SQL_DOC), (docSnap) => {
+        const data = docSnap.exists() ? docSnap.data() : {};
+        callback({ checks: data.checks ?? {} });
+    }, (error) => {
+        console.error('❌ SQL subscription error:', error.code, error.message);
+    });
+};
+
+export const saveSqlCheck = async (
+    topicId: string,
+    check: SqlCheckKey,
+    done: boolean
+) => {
+    try {
+        const docRef = doc(db, STUDY_PROGRESS_COLLECTION, SQL_DOC);
+        // A nested object with merge touches only this one flag.
+        await setDoc(docRef, { checks: { [topicId]: { [check]: done } }, updatedAt: Timestamp.now() }, { merge: true });
+    } catch (error) {
+        console.error('❌ Failed to save SQL check:', error);
         throw error;
     }
 };

@@ -255,6 +255,34 @@ const GlossaryWord = ({ text, termId }: { text: string; termId: string }) => {
     );
 };
 
+const InlineCode = styled('code')({
+    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
+    fontSize: '0.88em',
+    color: '#ffcc80',
+    backgroundColor: 'rgba(255,255,255,0.07)',
+    border: '1px solid rgba(255,255,255,0.08)',
+    borderRadius: 4,
+    padding: '0.05em 0.35em',
+    overflowWrap: 'anywhere',
+});
+
+/**
+ * Text that is not a glossary word. `Backticks` mark inline code (the SQL notes
+ * use them for snippets like `WHERE salary > 50000`); it is shown in a code font.
+ */
+const PlainText = ({ text }: { text: string }) => {
+    if (!text.includes('`')) return <>{text}</>;
+    // Splitting on a captured group puts the code at the odd positions.
+    const parts = text.split(/`([^`]+)`/);
+    return (
+        <>
+            {parts.map((part, index) =>
+                index % 2 === 1 ? <InlineCode key={index}>{part}</InlineCode> : <Fragment key={index}>{part}</Fragment>
+            )}
+        </>
+    );
+};
+
 /** Text with its glossary words underlined; tap one to see what it means. */
 export const GlossaryText = ({ segments }: { segments: TextSegment[] }) => (
     <>
@@ -262,7 +290,7 @@ export const GlossaryText = ({ segments }: { segments: TextSegment[] }) => (
             segment.termId ? (
                 <GlossaryWord key={index} text={segment.text} termId={segment.termId} />
             ) : (
-                <Fragment key={index}>{segment.text}</Fragment>
+                <PlainText key={index} text={segment.text} />
             )
         )}
     </>
@@ -270,7 +298,7 @@ export const GlossaryText = ({ segments }: { segments: TextSegment[] }) => (
 
 /** Plain text, or text with its glossary words marked. */
 export const ProseText = ({ value }: { value: Prose }) =>
-    typeof value === 'string' ? <>{value}</> : <GlossaryText segments={value} />;
+    typeof value === 'string' ? <PlainText text={value} /> : <GlossaryText segments={value} />;
 
 /** "New words in this topic": the words this topic is the first to use. */
 export const NewWordsBox = ({ topicId, accent }: { topicId: string; accent: string }) => {

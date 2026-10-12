@@ -37,6 +37,7 @@ import LeaderboardRoundedIcon from '@mui/icons-material/LeaderboardRounded';
 import GroupsRoundedIcon from '@mui/icons-material/GroupsRounded';
 import SchoolRoundedIcon from '@mui/icons-material/SchoolRounded';
 import ArchitectureRoundedIcon from '@mui/icons-material/ArchitectureRounded';
+import StorageRoundedIcon from '@mui/icons-material/StorageRounded';
 import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
 import BusinessRoundedIcon from '@mui/icons-material/BusinessRounded';
 import FitnessCenterRoundedIcon from '@mui/icons-material/FitnessCenterRounded';
@@ -407,6 +408,36 @@ const Sidebar = () => {
                                 <ArchitectureRoundedIcon />
                             </ListItemIcon>
                             {!isCollapsed && <ListItemText primary="System Design" />}
+                        </ListItemButton>
+                    </Tooltip>
+                </ListItem>
+
+                {/* SQL — from the first SELECT to interview problems */}
+                <ListItem disablePadding>
+                    <Tooltip title="SQL" placement="right" disableHoverListener={!isCollapsed}>
+                        <ListItemButton
+                            onClick={() => handleNavigation('/sql')}
+                            selected={isActive('/sql')}
+                            sx={{
+                                borderRadius: 2,
+                                mb: 0.5,
+                                mx: isCollapsed ? 0 : 2,
+                                justifyContent: isCollapsed ? 'center' : 'flex-start',
+                                px: isCollapsed ? 2 : 2,
+                                '&.Mui-selected': {
+                                    bgcolor: 'rgba(41, 121, 255, 0.1)',
+                                    color: 'primary.main',
+                                    '&:hover': { bgcolor: 'rgba(41, 121, 255, 0.15)' },
+                                    '& .MuiListItemIcon-root': {
+                                        color: 'primary.main',
+                                    },
+                                },
+                            }}
+                        >
+                            <ListItemIcon sx={{ minWidth: isCollapsed ? 0 : 40, mr: isCollapsed ? 0 : 0, justifyContent: 'center' }}>
+                                <StorageRoundedIcon />
+                            </ListItemIcon>
+                            {!isCollapsed && <ListItemText primary="SQL" />}
                         </ListItemButton>
                     </Tooltip>
                 </ListItem>

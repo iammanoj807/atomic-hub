@@ -26,6 +26,7 @@
     "react-player": "^3.4.0",
     "react-router-dom": "^7.13.0",
     "react-syntax-highlighter": "^16.1.0",
+    "sql.js": "1.13.0",
     "uuid": "^13.0.0"
   },
   "devDependencies": {
@@ -33,6 +34,7 @@
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",
+    "@types/sql.js": "^1.4.11",
     "@types/uuid": "^10.0.0",
     "@vitejs/plugin-react": "^5.1.1",
     "eslint": "^9.39.1",

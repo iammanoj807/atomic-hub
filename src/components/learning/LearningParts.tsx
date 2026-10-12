@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import {
     Box,
     Typography,
@@ -7,6 +7,7 @@ import {
     Accordion,
     AccordionSummary,
     AccordionDetails,
+    Button,
     ButtonBase,
     Link,
     ToggleButton,
@@ -15,6 +16,8 @@ import {
     type Theme,
 } from '@mui/material';
 import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import {
     TAP,
     TEXT_SIZE_LABELS,
@@ -28,6 +31,8 @@ import {
     type TextSize,
     type TextSizes,
 } from './learning';
+import { ProseText } from './GlossaryText';
+import { dropLeadingChars, proseText, type Prose } from './glossaryContext';
 
 // The building blocks the study pages share. Everything here is sized from
 // the page's text-size table, so it grows with the Text size control.
@@ -258,3 +263,154 @@ export const ReferencePanel = ({
         <AccordionDetails sx={{ pt: 0, pb: 2.5, px: { xs: 2, sm: 2.5 } }}>{children}</AccordionDetails>
     </Accordion>
 );
+
+// ============ LESSON BLOCKS ============
+//
+// The parts a topic's lesson is built from (System Design, SQL).
+
+/** A likely interview follow-up and its short answer. */
+export interface FollowUpItem {
+    q: string;
+    a: string;
+}
+
+/** A titled part of the lesson in Step 1. */
+export const Block = ({ title, children }: { title: string; children: ReactNode }) => (
+    <Box>
+        <Typography variant="body1" sx={{ fontWeight: 800, color: 'text.primary', mb: 0.75 }}>
+            {title}
+        </Typography>
+        {children}
+    </Box>
+);
+
+export const Bullets = ({
+    items,
+    marker = 'text.secondary',
+    mono = false,
+    variant = 'body1',
+}: {
+    items: Prose[];
+    marker?: string;
+    mono?: boolean;
+    variant?: 'body1' | 'body2';
+}) => {
+    const t = useTextSize();
+    const fontSize = px(mono ? t.code : t[variant]);
+    return (
+        <Stack component="ul" spacing={0.75} sx={{ listStyle: 'none', p: 0, m: 0 }}>
+            {items.map((item, index) => (
+                <Stack key={index} component="li" direction="row" spacing={1.25} alignItems="flex-start">
+                    {/* Centred on the first line of text, whatever the text size. */}
+                    <Box sx={{ fontSize, width: 6, height: 6, borderRadius: '50%', bgcolor: marker, flexShrink: 0, mt: 'calc(0.85em - 3px)' }} />
+                    <Typography
+                        variant={variant}
+                        sx={{
+                            minWidth: 0,
+                            overflowWrap: 'anywhere',
+                            ...(mono && { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace', fontSize, lineHeight: 1.7 }),
+                        }}
+                    >
+                        <ProseText value={item} />
+                    </Typography>
+                </Stack>
+            ))}
+        </Stack>
+    );
+};
+
+/**
+ * A numbered list. The evolution steps already start with "Version 1:",
+ * "Version 2:" and so on, so those show as V1, V2 instead of being numbered twice.
+ */
+export const NumberedSteps = ({ items, accent, variant = 'body1' }: { items: Prose[]; accent: string; variant?: 'body1' | 'body2' }) => (
+    <Stack component="ol" spacing={1.25} sx={{ listStyle: 'none', p: 0, m: 0 }}>
+        {items.map((item, index) => {
+            const version = proseText(item).match(/^Version (\d+):\s*/);
+            const marker = version ? `V${version[1]}` : `${index + 1}`;
+            const cut = version ? version[0].length : 0;
+            const text = typeof item === 'string' ? item.slice(cut) : dropLeadingChars(item, cut);
+            return (
+                <Stack key={index} component="li" direction="row" spacing={1.5} alignItems="flex-start">
+                    <Typography sx={{ color: accent, fontWeight: 800, minWidth: 26, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>
+                        {marker}
+                    </Typography>
+                    <Typography variant={variant} sx={{ minWidth: 0, overflowWrap: 'anywhere' }}>
+                        <ProseText value={text} />
+                    </Typography>
+                </Stack>
+            );
+        })}
+    </Stack>
+);
+
+export const CodeBlock = ({ code, language }: { code: string; language?: string }) => {
+    const t = useTextSize();
+    return (
+        <Box sx={{ borderRadius: 2, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)' }}>
+            <SyntaxHighlighter
+                language={language ?? 'python'}
+                style={vscDarkPlus}
+                customStyle={{ margin: 0, padding: '14px 16px', backgroundColor: '#000000', fontSize: px(t.code), lineHeight: 1.55 }}
+            >
+                {code}
+            </SyntaxHighlighter>
+        </Box>
+    );
+};
+
+export const QuoteBox = ({ accent, children }: { accent: string; children: ReactNode }) => (
+    <Box sx={{ p: 2, borderRadius: 2, bgcolor: `${accent}14`, borderLeft: '3px solid', borderColor: accent }}>
+        {children}
+    </Box>
+);
+
+/** Each question visible, each answer hidden until asked for, so it can be a self-test. */
+export const FollowUps = ({
+    topic,
+    accent,
+    marked,
+}: {
+    topic: { id: string; followUps: FollowUpItem[] };
+    accent: string;
+    marked: (section: 'followUps') => Prose[];
+}) => {
+    const [shown, setShown] = useState<Set<number>>(() => new Set());
+    const toggle = (index: number) =>
+        setShown(current => {
+            const next = new Set(current);
+            if (next.has(index)) next.delete(index);
+            else next.add(index);
+            return next;
+        });
+
+    return (
+        <Stack spacing={1.5}>
+            {topic.followUps.map((followUp, index) => {
+                const open = shown.has(index);
+                const answerId = `followup-${topic.id}-${index}`;
+                return (
+                    <Box key={followUp.q} sx={{ p: 1.5, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                        <Typography variant="body1" sx={{ fontWeight: 700, color: 'text.primary' }}>
+                            <ProseText value={marked('followUps')[2 * index] ?? followUp.q} />
+                        </Typography>
+                        <Button
+                            size="small"
+                            onClick={() => toggle(index)}
+                            aria-expanded={open}
+                            aria-controls={answerId}
+                            sx={{ minHeight: TAP, mt: 0.5, px: 1, textTransform: 'none', fontWeight: 700, color: accent }}
+                        >
+                            {open ? 'Hide answer' : 'Show answer'}
+                        </Button>
+                        {open && (
+                            <Typography id={answerId} variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                                <ProseText value={marked('followUps')[2 * index + 1] ?? followUp.a} />
+                            </Typography>
+                        )}
+                    </Box>
+                );
+            })}
+        </Stack>
+    );
+};
