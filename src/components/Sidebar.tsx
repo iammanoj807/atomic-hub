@@ -38,6 +38,7 @@ import GroupsRoundedIcon from '@mui/icons-material/GroupsRounded';
 import SchoolRoundedIcon from '@mui/icons-material/SchoolRounded';
 import ArchitectureRoundedIcon from '@mui/icons-material/ArchitectureRounded';
 import StorageRoundedIcon from '@mui/icons-material/StorageRounded';
+import TerminalRoundedIcon from '@mui/icons-material/TerminalRounded';
 import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
 import BusinessRoundedIcon from '@mui/icons-material/BusinessRounded';
 import FitnessCenterRoundedIcon from '@mui/icons-material/FitnessCenterRounded';
@@ -68,9 +69,19 @@ const categoryIcons: Record<Category, React.ReactNode> = {
     'Company Questions': <BusinessRoundedIcon />,
 };
 
+/** Whether the Technical Skills group is open, remembered between visits. */
+const TECH_OPEN_KEY = 'sidebarTechnicalSkillsOpen';
+
 const Sidebar = () => {
     const [mobileOpen, setMobileOpen] = useState(false);
     const [interviewOpen, setInterviewOpen] = useState(false);
+    const [techOpen, setTechOpen] = useState(() => {
+        try {
+            return localStorage.getItem(TECH_OPEN_KEY) !== 'false';
+        } catch {
+            return true;
+        }
+    });
     // const [isCollapsed, setIsCollapsed] = useState(false); // Removed local state //
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -135,6 +146,16 @@ const Sidebar = () => {
         setInterviewOpen(!interviewOpen);
     };
 
+    const handleTechToggle = () => {
+        const next = !techOpen;
+        setTechOpen(next);
+        try {
+            localStorage.setItem(TECH_OPEN_KEY, String(next));
+        } catch {
+            // Not remembered, but the group still opens and closes for this visit.
+        }
+    };
+
     const categories: Category[] = [
         'Personal Background',
         'Career Decisions',
@@ -166,6 +187,15 @@ const Sidebar = () => {
         || location.pathname.startsWith('/category')
         || location.pathname.startsWith('/core-stories');
     const isDSAActive = location.pathname.startsWith('/dsa');
+
+    // The study pages, grouped under Technical Skills.
+    const technicalSkills = [
+        { path: '/foundations', label: 'ML Foundations', Icon: SchoolRoundedIcon, active: isActive('/foundations') },
+        { path: '/system-design', label: 'System Design', Icon: ArchitectureRoundedIcon, active: isActive('/system-design') },
+        { path: '/sql', label: 'SQL', Icon: StorageRoundedIcon, active: isActive('/sql') },
+        { path: '/dsa', label: 'NeetCode 150', Icon: CodeRoundedIcon, active: isDSAActive },
+    ];
+    const isTechActive = technicalSkills.some(skill => skill.active);
 
     const currentDrawerWidth = isCollapsed ? DRAWER_WIDTH_COLLAPSED : DRAWER_WIDTH_EXPANDED;
 
@@ -352,18 +382,21 @@ const Sidebar = () => {
                     </Tooltip>
                 </ListItem>
 
-                {/* ML FOUNDATIONS — the self-paced roadmap, taken in order */}
-                <ListItem disablePadding>
-                    <Tooltip title="ML Foundations" placement="right" disableHoverListener={!isCollapsed}>
+                {/* TECHNICAL SKILLS (Collapsible) — ML Foundations, System Design, SQL, NeetCode 150.
+                    With the sidebar narrowed to icons there is no room for a group,
+                    so the header hides and each page shows as its own icon. */}
+                {!isCollapsed && (
+                    <ListItem disablePadding>
                         <ListItemButton
-                            onClick={() => handleNavigation('/foundations')}
-                            selected={isActive('/foundations')}
+                            onClick={handleTechToggle}
+                            // Highlighted only when closed, so you can still see you are inside it.
+                            selected={isTechActive && !techOpen}
+                            aria-expanded={techOpen}
                             sx={{
                                 borderRadius: 2,
                                 mb: 0.5,
-                                mx: isCollapsed ? 0 : 2,
-                                justifyContent: isCollapsed ? 'center' : 'flex-start',
-                                px: isCollapsed ? 2 : 2,
+                                mx: 2,
+                                px: 2,
                                 '&.Mui-selected': {
                                     bgcolor: 'rgba(41, 121, 255, 0.1)',
                                     color: 'primary.main',
@@ -374,103 +407,45 @@ const Sidebar = () => {
                                 },
                             }}
                         >
-                            <ListItemIcon sx={{ minWidth: isCollapsed ? 0 : 40, mr: isCollapsed ? 0 : 0, justifyContent: 'center' }}>
-                                <SchoolRoundedIcon />
+                            <ListItemIcon sx={{ minWidth: 40, justifyContent: 'center' }}>
+                                <TerminalRoundedIcon />
                             </ListItemIcon>
-                            {!isCollapsed && <ListItemText primary="ML Foundations" />}
+                            <ListItemText primary="Technical Skills" />
+                            {techOpen ? <ExpandLess /> : <ExpandMore />}
                         </ListItemButton>
-                    </Tooltip>
-                </ListItem>
+                    </ListItem>
+                )}
 
-                {/* SYSTEM DESIGN — HLD, LLD and AI/ML system design */}
-                <ListItem disablePadding>
-                    <Tooltip title="System Design" placement="right" disableHoverListener={!isCollapsed}>
-                        <ListItemButton
-                            onClick={() => handleNavigation('/system-design')}
-                            selected={isActive('/system-design')}
-                            sx={{
-                                borderRadius: 2,
-                                mb: 0.5,
-                                mx: isCollapsed ? 0 : 2,
-                                justifyContent: isCollapsed ? 'center' : 'flex-start',
-                                px: isCollapsed ? 2 : 2,
-                                '&.Mui-selected': {
-                                    bgcolor: 'rgba(41, 121, 255, 0.1)',
-                                    color: 'primary.main',
-                                    '&:hover': { bgcolor: 'rgba(41, 121, 255, 0.15)' },
-                                    '& .MuiListItemIcon-root': {
-                                        color: 'primary.main',
-                                    },
-                                },
-                            }}
-                        >
-                            <ListItemIcon sx={{ minWidth: isCollapsed ? 0 : 40, mr: isCollapsed ? 0 : 0, justifyContent: 'center' }}>
-                                <ArchitectureRoundedIcon />
-                            </ListItemIcon>
-                            {!isCollapsed && <ListItemText primary="System Design" />}
-                        </ListItemButton>
-                    </Tooltip>
-                </ListItem>
-
-                {/* SQL — from the first SELECT to interview problems */}
-                <ListItem disablePadding>
-                    <Tooltip title="SQL" placement="right" disableHoverListener={!isCollapsed}>
-                        <ListItemButton
-                            onClick={() => handleNavigation('/sql')}
-                            selected={isActive('/sql')}
-                            sx={{
-                                borderRadius: 2,
-                                mb: 0.5,
-                                mx: isCollapsed ? 0 : 2,
-                                justifyContent: isCollapsed ? 'center' : 'flex-start',
-                                px: isCollapsed ? 2 : 2,
-                                '&.Mui-selected': {
-                                    bgcolor: 'rgba(41, 121, 255, 0.1)',
-                                    color: 'primary.main',
-                                    '&:hover': { bgcolor: 'rgba(41, 121, 255, 0.15)' },
-                                    '& .MuiListItemIcon-root': {
-                                        color: 'primary.main',
-                                    },
-                                },
-                            }}
-                        >
-                            <ListItemIcon sx={{ minWidth: isCollapsed ? 0 : 40, mr: isCollapsed ? 0 : 0, justifyContent: 'center' }}>
-                                <StorageRoundedIcon />
-                            </ListItemIcon>
-                            {!isCollapsed && <ListItemText primary="SQL" />}
-                        </ListItemButton>
-                    </Tooltip>
-                </ListItem>
-
-                {/* 5. DSA HUB */}
-                <ListItem disablePadding>
-                    <Tooltip title="NeetCode 150" placement="right" disableHoverListener={!isCollapsed}>
-                        <ListItemButton
-                            onClick={() => handleNavigation('/dsa')}
-                            selected={isDSAActive}
-                            sx={{
-                                borderRadius: 2,
-                                mb: 0.5,
-                                mx: isCollapsed ? 0 : 2,
-                                justifyContent: isCollapsed ? 'center' : 'flex-start',
-                                px: isCollapsed ? 2 : 2,
-                                '&.Mui-selected': {
-                                    bgcolor: 'rgba(41, 121, 255, 0.1)',
-                                    color: 'primary.main',
-                                    '&:hover': { bgcolor: 'rgba(41, 121, 255, 0.15)' },
-                                    '& .MuiListItemIcon-root': {
-                                        color: 'primary.main',
-                                    },
-                                },
-                            }}
-                        >
-                            <ListItemIcon sx={{ minWidth: isCollapsed ? 0 : 40, mr: isCollapsed ? 0 : 0, justifyContent: 'center' }}>
-                                <CodeRoundedIcon />
-                            </ListItemIcon>
-                            {!isCollapsed && <ListItemText primary="NeetCode 150" />}
-                        </ListItemButton>
-                    </Tooltip>
-                </ListItem>
+                <Collapse in={techOpen || isCollapsed} timeout="auto" unmountOnExit>
+                    <List component="div" disablePadding sx={{ pl: isCollapsed ? 0 : 2 }}>
+                        {technicalSkills.map(({ path, label, Icon, active }) => (
+                            <Tooltip key={path} title={label} placement="right" disableHoverListener={!isCollapsed}>
+                                <ListItemButton
+                                    onClick={() => handleNavigation(path)}
+                                    selected={active}
+                                    sx={{
+                                        borderRadius: 2,
+                                        mb: 0.5,
+                                        mx: isCollapsed ? 0 : 2,
+                                        pl: isCollapsed ? 2 : 4,
+                                        justifyContent: isCollapsed ? 'center' : 'flex-start',
+                                        '&.Mui-selected': {
+                                            bgcolor: 'rgba(41, 121, 255, 0.1)',
+                                            color: 'primary.main',
+                                            '&:hover': { bgcolor: 'rgba(41, 121, 255, 0.15)' },
+                                            '& .MuiListItemIcon-root': { color: 'primary.main' },
+                                        },
+                                    }}
+                                >
+                                    <ListItemIcon sx={{ minWidth: isCollapsed ? 0 : 40, justifyContent: 'center' }}>
+                                        <Icon fontSize={isCollapsed ? 'medium' : 'small'} />
+                                    </ListItemIcon>
+                                    {!isCollapsed && <ListItemText primary={label} />}
+                                </ListItemButton>
+                            </Tooltip>
+                        ))}
+                    </List>
+                </Collapse>
 
                 {/* 6. INTERVIEW HUB (Collapsible) */}
                 <ListItem disablePadding>
