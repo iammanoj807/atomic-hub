@@ -1,9 +1,9 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { TaskProvider } from './context/TaskContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { OWNER_EMAIL, signInErrorMessage } from './utils/auth';
-import { Box, Toolbar, Typography, TextField, Button, AppBar, IconButton, Tooltip } from '@mui/material';
+import { Box, Toolbar, Typography, TextField, Button, AppBar, IconButton, Tooltip, CircularProgress } from '@mui/material';
 import WavingHandRoundedIcon from '@mui/icons-material/WavingHandRounded';
 import PersonRoundedIcon from '@mui/icons-material/PersonRounded';
 import Sidebar from './components/Sidebar';
@@ -13,7 +13,6 @@ import InterviewDashboard from './components/InterviewDashboard';
 import CategoryPage from './components/CategoryPage';
 import DSAHubPage from './components/DSAHubPage';
 import DSATopicDetailPage from './components/DSATopicDetailPage';
-import FoundationsPage from './components/FoundationsPage';
 import SystemDesignPage from './components/SystemDesignPage';
 import SqlPage from './components/SqlPage';
 import PatternDrillPage from './components/PatternDrillPage';
@@ -23,6 +22,17 @@ import CoreStoriesPage from './components/CoreStoriesPage';
 import IdentityBanner from './components/IdentityBanner';
 import GlobalTimer from './components/GlobalTimer';
 import ReactPlayer from 'react-player';
+
+// ML Foundations carries every lesson and animation (about 1 MB), so it loads
+// as its own chunk instead of making the whole app bigger. vite.config.ts
+// precaches it, so the installed app still opens it offline.
+const FoundationsPage = lazy(() => import('./components/FoundationsPage'));
+
+const PageLoading = () => (
+    <Box sx={{ display: 'flex', justifyContent: 'center', py: 10 }}>
+        <CircularProgress aria-label="Loading" />
+    </Box>
+);
 
 interface LoginScreenProps {
     isMuted: boolean;
@@ -215,7 +225,7 @@ function MainLayout() {
                         <Route path="/dsa/drill" element={<PatternDrillPage />} />
                         <Route path="/dsa/patterns" element={<DSAPatternsPage />} />
                         <Route path="/dsa/:topicId" element={<DSATopicDetailPage />} />
-                        <Route path="/foundations" element={<FoundationsPage />} />
+                        <Route path="/foundations" element={<Suspense fallback={<PageLoading />}><FoundationsPage /></Suspense>} />
                         <Route path="/system-design" element={<SystemDesignPage />} />
                         <Route path="/sql" element={<SqlPage />} />
                         {/* The 52-week plan lived under /study; old bookmarks

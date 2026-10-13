@@ -7,11 +7,17 @@ import { createGlossary } from './glossaryEngine';
 
 /** Every piece of prose in a topic, in reading order (no code, diagrams or resource titles). */
 export const foundationProse = (topic: FoundationTopic): string[] => [
+    topic.definition,
+    topic.problem,
     topic.note.idea,
+    ...topic.howItWorks,
     topic.note.analogy,
     topic.note.breaks,
     ...(topic.note.example ? [topic.note.example] : []),
+    ...topic.keyPoints,
+    ...topic.mistakes,
     ...CHECK_KEYS.map(key => topic.practice[key]),
+    ...topic.followUps.flatMap(item => [item.q, item.a]),
 ];
 
 export const foundationsGlossary = createGlossary(foundationsGlossaryTerms, allFoundationTopics, foundationProse);

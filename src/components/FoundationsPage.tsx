@@ -18,8 +18,6 @@ import {
 import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
 import LaunchRoundedIcon from '@mui/icons-material/LaunchRounded';
 import MenuBookRoundedIcon from '@mui/icons-material/MenuBookRounded';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import {
     foundationPhases,
     allFoundationTopics,
@@ -35,8 +33,10 @@ import {
     foundationRules,
     type FoundationTopic,
     type FoundationResource,
+    type TopicResource,
     type CheckKey,
 } from '../data/foundations';
+import { foundationAnimations } from '../data/foundationsAnimations';
 import { useFoundations } from '../hooks/useFoundations';
 import {
     checksPassed,
@@ -58,13 +58,22 @@ import {
     CheckDots,
     StepBar,
     ReferencePanel,
+    Block,
+    Bullets,
+    NumberedSteps,
+    CodeBlock,
+    QuoteBox,
+    FollowUps,
 } from './learning/LearningParts';
+import { AnimatedScene } from './learning/anim/AnimatedScene';
 import { GlossaryProvider, GlossaryTopic, NewWordsBox, ProseText } from './learning/GlossaryText';
 import { GlossaryDrawer } from './learning/GlossaryDrawer';
 import { MermaidDiagram } from './learning/MermaidDiagram';
 import { segmentSections } from './learning/glossaryContext';
 
 const MAX_IN_PROGRESS = 8;
+/** Bullet colour for common mistakes, as on the other study pages. */
+const WARNING = '#ffa726';
 
 // ============ SMALL PIECES ============
 
@@ -99,10 +108,10 @@ const PhaseResource = ({ resource, accent }: { resource: FoundationResource; acc
 // ============ THE TOPIC CARD ============
 
 const STEPS = [
-    { title: 'Read', time: '10 min', label: 'STEP 1 · READ THE NOTE' },
-    { title: 'Learn', time: 'about 1 hour', label: 'STEP 2 · LEARN FROM THESE, IN ORDER' },
+    { title: 'Understand', time: 'the lesson', label: 'STEP 1 · UNDERSTAND IT' },
+    { title: 'Go further', time: 'optional', label: 'STEP 2 · GO FURTHER (OPTIONAL)' },
     { title: 'Practise', time: 'about 1 hour', label: 'STEP 3 · PRACTISE, IN THIS ORDER' },
-    { title: 'Prove', time: 'next day, 15–20 min', label: 'STEP 4 · PROVE IT (NEXT DAY)' },
+    { title: 'Prove', time: 'next day', label: 'STEP 4 · CHECK YOURSELF, THEN PROVE IT' },
 ];
 
 /** Derive on paper first, so the code has something to be checked against. */
@@ -113,19 +122,53 @@ const PRACTICE_ORDER: { key: CheckKey; hint?: string }[] = [
     { key: 'explain' },
 ];
 
-type Section = 'idea' | 'analogy' | 'breaks' | 'example' | 'practice';
+type Section =
+    | 'definition'
+    | 'problem'
+    | 'idea'
+    | 'howItWorks'
+    | 'analogy'
+    | 'breaks'
+    | 'example'
+    | 'keyPoints'
+    | 'mistakes'
+    | 'practice'
+    | 'followUps';
 
 /**
  * The card's prose in the order it is shown, so only the first mention of each
  * word is underlined. Code, names, labels and resource titles are left out.
  */
 const cardSections = (topic: FoundationTopic): [Section, string[]][] => [
+    ['definition', [topic.definition]],
+    ['problem', [topic.problem]],
     ['idea', [topic.note.idea]],
+    ['howItWorks', topic.howItWorks],
     ['analogy', [topic.note.analogy]],
     ['breaks', [topic.note.breaks]],
     ['example', topic.note.example ? [topic.note.example] : []],
+    ['keyPoints', topic.keyPoints],
+    ['mistakes', topic.mistakes],
     ['practice', PRACTICE_ORDER.map(({ key }) => topic.practice[key])],
+    ['followUps', topic.followUps.flatMap(item => [item.q, item.a])],
 ];
+
+/** The topic's animation, if it has one. Its frames are only worked out once the card is open. */
+const TopicAnimation = ({ topicId, accent }: { topicId: string; accent: string }) => {
+    const spec = useMemo(() => foundationAnimations[topicId]?.(), [topicId]);
+    if (!spec) return null;
+    return <AnimatedScene spec={spec} accent={accent} />;
+};
+
+/** Worth-it extras first, then the rest by kind; papers last and unnumbered. */
+const orderResources = (resources: TopicResource[]) => {
+    const sorted = [...resources].sort(
+        (a, b) =>
+            Number(Boolean(b.recommended)) - Number(Boolean(a.recommended)) ||
+            RESOURCE_KIND_ORDER.indexOf(a.kind) - RESOURCE_KIND_ORDER.indexOf(b.kind)
+    );
+    return { core: sorted.filter(r => r.kind !== 'paper'), papers: sorted.filter(r => r.kind === 'paper') };
+};
 
 const TopicCard = ({
     topic,
@@ -148,11 +191,7 @@ const TopicCard = ({
     const passed = checksPassed(progress, topic.id);
     const confident = isTopicConfident(progress, topic.id);
     const { note } = topic;
-    const sorted = [...topic.resources].sort(
-        (a, b) => RESOURCE_KIND_ORDER.indexOf(a.kind) - RESOURCE_KIND_ORDER.indexOf(b.kind)
-    );
-    const core = sorted.filter(resource => resource.kind !== 'paper');
-    const papers = sorted.filter(resource => resource.kind === 'paper');
+    const { core, papers } = orderResources(topic.resources);
     const marked = useMemo(() => segmentSections(foundationsGlossary, cardSections(topic)), [topic]);
 
     return (
@@ -191,55 +230,67 @@ const TopicCard = ({
                 <GlossaryTopic topicId={topic.id}>
                     <StepBar topicId={topic.id} accent={accent} steps={STEPS} />
 
-                    {/* ---- STEP 1 ---- */}
+                    {/* ---- STEP 1 ---- the lesson, written to be enough on its own */}
                     <SectionLabel color={accent} id={stepId(topic.id, 1)}>{STEPS[0].label}</SectionLabel>
-                    <Stack spacing={1.5} sx={{ maxWidth: 760 }}>
-                        <NewWordsBox topicId={topic.id} accent={accent} />
-                        <Typography variant="body1">
-                            <strong>The idea.</strong> <ProseText value={marked('idea')[0]} />
-                        </Typography>
-                        <Box sx={{ py: 1 }}>
-                            <Typography variant="body1" sx={{ mb: 1 }}>
-                                <strong>Picture it.</strong>
-                            </Typography>
-                            <MermaidDiagram code={topic.diagram.code} caption={topic.diagram.caption} title={topic.name} />
-                        </Box>
-                        <Typography variant="body1">
-                            <strong>Analogy.</strong> <ProseText value={marked('analogy')[0]} />
-                        </Typography>
-                        <Typography variant="body1" color="text.secondary">
-                            <strong>Where the analogy breaks.</strong> <ProseText value={marked('breaks')[0]} />
-                        </Typography>
-                        {note.example && (
+                    <Stack spacing={3} sx={{ maxWidth: 760 }}>
+                        <QuoteBox accent={accent}>
                             <Typography variant="body1">
-                                <strong>Example.</strong> <ProseText value={marked('example')[0]} />
+                                <strong style={{ color: accent }}>In one line.</strong> <ProseText value={marked('definition')[0]} />
                             </Typography>
+                        </QuoteBox>
+                        <NewWordsBox topicId={topic.id} accent={accent} />
+                        <Block title="The problem it solves">
+                            <Typography variant="body1"><ProseText value={marked('problem')[0]} /></Typography>
+                        </Block>
+                        <Block title="Watch it happen">
+                            <TopicAnimation topicId={topic.id} accent={accent} />
+                        </Block>
+                        <Block title="The idea">
+                            <Typography variant="body1"><ProseText value={marked('idea')[0]} /></Typography>
+                        </Block>
+                        <Block title="How it works, step by step">
+                            <NumberedSteps items={marked('howItWorks')} accent={accent} />
+                        </Block>
+                        <Block title="Picture it">
+                            <MermaidDiagram code={topic.diagram.code} caption={topic.diagram.caption} title={topic.name} />
+                        </Block>
+                        <Block title="Analogy">
+                            <Typography variant="body1"><ProseText value={marked('analogy')[0]} /></Typography>
+                        </Block>
+                        <Block title="Where the analogy breaks">
+                            <Typography variant="body1" color="text.secondary"><ProseText value={marked('breaks')[0]} /></Typography>
+                        </Block>
+                        {(note.example || note.code) && (
+                            <Block title="Worked example">
+                                <Stack spacing={1.5}>
+                                    {note.example && (
+                                        <Typography variant="body1"><ProseText value={marked('example')[0]} /></Typography>
+                                    )}
+                                    {note.code && <CodeBlock code={note.code} language={note.codeLanguage} />}
+                                </Stack>
+                            </Block>
                         )}
-                        {note.code && (
-                            <Box sx={{ borderRadius: 2, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)' }}>
-                                <SyntaxHighlighter
-                                    language={note.codeLanguage ?? 'python'}
-                                    style={vscDarkPlus}
-                                    customStyle={{ margin: 0, padding: '14px 16px', backgroundColor: '#000000', fontSize: px(t.code), lineHeight: 1.55 }}
-                                >
-                                    {note.code}
-                                </SyntaxHighlighter>
-                            </Box>
-                        )}
+                        <Block title="Must-know points">
+                            <Bullets items={marked('keyPoints')} marker={accent} />
+                        </Block>
+                        <Block title="Common mistakes">
+                            <Bullets items={marked('mistakes')} marker={WARNING} />
+                        </Block>
                     </Stack>
 
-                    {/* ---- STEP 2 ---- */}
+                    {/* ---- STEP 2 ---- optional extras */}
                     <SectionLabel color={accent} id={stepId(topic.id, 2)}>{STEPS[1].label}</SectionLabel>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1.75, maxWidth: 760 }}>
+                        The lesson above is enough on its own. These free extras are optional: a second explanation, more pictures, or more practice.
+                        {core.some(r => r.recommended) && ' If you only open one, open the one marked Worth it.'}
+                    </Typography>
                     <Stack spacing={1.75} sx={{ maxWidth: 760 }}>
                         {core.map((resource, index) => (
-                            <TopicResourceRow key={`${resource.kind}-${resource.title}`} resource={resource} accent={accent} number={index + 1} kindLabels={RESOURCE_KIND_LABELS} />
+                            <TopicResourceRow key={`${resource.kind}-${resource.title}`} resource={resource} accent={accent} number={index + 1} kindLabels={RESOURCE_KIND_LABELS} allOptional />
                         ))}
                         {papers.map(resource => (
-                            <TopicResourceRow key={`${resource.kind}-${resource.title}`} resource={resource} accent={accent} number={null} kindLabels={RESOURCE_KIND_LABELS} />
+                            <TopicResourceRow key={`${resource.kind}-${resource.title}`} resource={resource} accent={accent} number={null} kindLabels={RESOURCE_KIND_LABELS} allOptional />
                         ))}
-                        <Typography color="text.secondary" sx={{ fontStyle: 'italic', pt: 0.5, fontSize: px(t.small) }}>
-                            Watch first, then read, then code along. For a full lesson, ask Claude "teach me {topic.name.toLowerCase()}".
-                        </Typography>
                     </Stack>
 
                     {/* ---- STEP 3 ---- */}
@@ -275,37 +326,47 @@ const TopicCard = ({
                         </Box>
                     </Stack>
 
-                    {/* ---- STEP 4 ---- the checks live here, at the end of the work */}
+                    {/* ---- STEP 4 ---- check understanding, then the checks, at the end of the work */}
                     <SectionLabel color={accent} id={stepId(topic.id, 4)}>{STEPS[3].label}</SectionLabel>
-                    <Typography variant="body2" sx={{ color: 'text.primary', mb: 1.5, maxWidth: 760 }}>
-                        Do this the next day with your notes closed. Tick only what you can do from memory.
-                    </Typography>
-                    <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                        {CHECK_KEYS.map(key => {
-                            const done = progress.checks[topic.id]?.[key] === true;
-                            const fill = confident ? CONFIDENT : accent;
-                            return (
-                                <Tooltip key={key} title={CHECK_MEANINGS[key]} arrow>
-                                    <Chip
-                                        label={CHECK_LABELS[key]}
-                                        onClick={() => onToggleCheck(key)}
-                                        aria-pressed={done}
-                                        sx={{
-                                            height: TAP,
-                                            px: 1,
-                                            borderRadius: TAP / 2,
-                                            fontSize: px(t.small),
-                                            fontWeight: 700,
-                                            color: done ? '#0b0f14' : 'text.secondary',
-                                            bgcolor: done ? fill : 'rgba(255,255,255,0.05)',
-                                            border: '1px solid',
-                                            borderColor: done ? 'transparent' : 'rgba(255,255,255,0.14)',
-                                            '&:hover': { bgcolor: done ? fill : 'rgba(255,255,255,0.1)' },
-                                        }}
-                                    />
-                                </Tooltip>
-                            );
-                        })}
+                    <Stack spacing={3} sx={{ maxWidth: 760 }}>
+                        <Block title="Check you understood">
+                            <Typography color="text.secondary" sx={{ mb: 1.25, fontSize: px(t.small) }}>
+                                Answer in your head first, then tap to compare.
+                            </Typography>
+                            <FollowUps topic={topic} accent={accent} marked={marked} />
+                        </Block>
+                        <Box>
+                            <Typography variant="body2" sx={{ color: 'text.primary', mb: 1.5 }}>
+                                Then prove it the next day with your notes closed. Tick only what you can do from memory.
+                            </Typography>
+                            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                                {CHECK_KEYS.map(key => {
+                                    const done = progress.checks[topic.id]?.[key] === true;
+                                    const fill = confident ? CONFIDENT : accent;
+                                    return (
+                                        <Tooltip key={key} title={CHECK_MEANINGS[key]} arrow>
+                                            <Chip
+                                                label={CHECK_LABELS[key]}
+                                                onClick={() => onToggleCheck(key)}
+                                                aria-pressed={done}
+                                                sx={{
+                                                    height: TAP,
+                                                    px: 1,
+                                                    borderRadius: TAP / 2,
+                                                    fontSize: px(t.small),
+                                                    fontWeight: 700,
+                                                    color: done ? '#0b0f14' : 'text.secondary',
+                                                    bgcolor: done ? fill : 'rgba(255,255,255,0.05)',
+                                                    border: '1px solid',
+                                                    borderColor: done ? 'transparent' : 'rgba(255,255,255,0.14)',
+                                                    '&:hover': { bgcolor: done ? fill : 'rgba(255,255,255,0.1)' },
+                                                }}
+                                            />
+                                        </Tooltip>
+                                    );
+                                })}
+                            </Stack>
+                        </Box>
                     </Stack>
                 </GlossaryTopic>
             </AccordionDetails>
@@ -318,8 +379,9 @@ const TopicCard = ({
 /**
  * ML Foundations: the self-paced roadmap, taken in order.
  *
- * Every topic is worked in four steps: read the note, learn from its
- * resources, practise its exercises, and the next day prove it with the four
+ * Every topic is worked in four steps: understand the lesson (written to be
+ * enough on its own, with an animation), optionally go further with free
+ * extras, practise its exercises, and the next day prove it with the four
  * checks. A topic only counts once all four are ticked, and ticks can come off
  * again — the re-test rule depends on it.
  *
@@ -410,7 +472,7 @@ const FoundationsPage = () => {
                             Learn it, practise it, prove it
                         </Typography>
                         <Typography variant="body1" color="text.secondary">
-                            AI and ML from scratch. Every topic has a plain-English note, its own resources, and one exercise for each check.
+                            AI and ML from scratch. Every topic is a full lesson: an animation, the idea step by step, a worked example and exercises. Videos and readings are optional extras.
                         </Typography>
                     </Box>
 

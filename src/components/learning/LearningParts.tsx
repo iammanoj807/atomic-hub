@@ -108,21 +108,28 @@ export const Tag = ({ label, color = 'text.secondary', bgcolor = 'rgba(255,255,2
 /**
  * One resource in a topic's resource step. Numbered in the order to use them;
  * papers are not numbered at all, because they are not part of the order yet.
+ *
+ * With `allOptional`, the lesson itself is the main resource: nothing is
+ * "Start here", every row says Optional, and a `recommended` one is marked
+ * as worth it, with the reason under it.
  */
 export const TopicResourceRow = <K extends string>({
     resource,
     accent,
     number,
     kindLabels,
+    allOptional = false,
 }: {
     resource: LearningResource<K>;
     accent: string;
     /** Null for an optional paper. */
     number: number | null;
     kindLabels: Record<K, string>;
+    allOptional?: boolean;
 }) => {
     const t = useTextSize();
     const optional = number === null;
+    const worthIt = allOptional && !optional && Boolean(resource.recommended);
     return (
         <Stack direction="row" spacing={1.5} alignItems="flex-start" sx={{ opacity: optional ? 0.55 : 1 }}>
             <Typography
@@ -144,8 +151,10 @@ export const TopicResourceRow = <K extends string>({
                     >
                         {optional ? 'PAPER' : kindLabels[resource.kind]}
                     </Typography>
-                    {number === 1 && <Tag label="Start here" color="#0b0f14" bgcolor={accent} />}
+                    {number === 1 && !allOptional && <Tag label="Start here" color="#0b0f14" bgcolor={accent} />}
                     {optional && <Tag label="Optional — skip for now" />}
+                    {worthIt && <Tag label={resource.kind === 'watch' ? '★ Worth watching' : '★ Worth it'} color="#0b0f14" bgcolor={accent} />}
+                    {allOptional && !optional && !worthIt && <Tag label="Optional" />}
                 </Stack>
                 {resource.url ? (
                     <Link
@@ -164,6 +173,12 @@ export const TopicResourceRow = <K extends string>({
                 <Typography component="span" color="text.secondary" sx={{ ml: 1, fontSize: px(t.small) }}>
                     {resource.source}
                 </Typography>
+                {worthIt && (
+                    <Typography sx={{ mt: 0.5, color: 'text.primary', fontSize: px(t.small) }}>
+                        <Box component="span" sx={{ color: accent, fontWeight: 800 }}>Why: </Box>
+                        {resource.recommended}
+                    </Typography>
+                )}
             </Box>
         </Stack>
     );

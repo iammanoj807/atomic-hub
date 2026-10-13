@@ -32,8 +32,9 @@ export default defineConfig({
         // Install only the app shell: the page, the entry bundle, its styles
         // and the icons. The heavy chunks (Mermaid, the SQL engine, video
         // players) add ~8 MB and are cached the first time they're used.
-        globPatterns: ['index.html', 'assets/index-*.{js,css}', 'icons/*.png', 'atomic_hub.png'],
-        // The entry bundle is ~3.5 MB, over Workbox's 2 MiB default.
+        // ML Foundations is the home page but its own chunk, so it is installed too.
+        globPatterns: ['index.html', 'assets/index-*.{js,css}', 'assets/FoundationsPage-*.js', 'icons/*.png', 'atomic_hub.png'],
+        // The entry bundle is ~3.1 MB, over Workbox's 2 MiB default.
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         navigateFallback: 'index.html',
         // Firebase Hosting's reserved /__/ URLs must always reach the server.

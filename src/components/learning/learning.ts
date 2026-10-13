@@ -149,4 +149,6 @@ export interface LearningResource<K extends string = string> {
     title: string;
     source: string;
     url?: string;
+    /** Why this optional extra is worth the time. Only set on the few that really are. */
+    recommended?: string;
 }
