@@ -3,6 +3,25 @@ import ReactDOM from 'react-dom/client'
 import App from './App'
 import './index.css'
 import { CssBaseline, ThemeProvider, createTheme } from '@mui/material';
+import { registerSW } from 'virtual:pwa-register';
+
+// Offline shell and home-screen install. A new deploy is picked up the next
+// time the app opens or comes back to the foreground, and the page reloads
+// onto it. iPhone home-screen apps resume rather than restart, so the
+// foreground check is what makes a deploy show up there.
+registerSW({
+    immediate: true,
+    onRegisteredSW(_url, registration) {
+        if (!registration) return;
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                registration.update().catch(() => {
+                    // Offline: try again next time.
+                });
+            }
+        });
+    },
+});
 
 // Create a premium theme
 const theme = createTheme({

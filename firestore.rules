@@ -2,91 +2,98 @@ rules_version = '2';
 
 // Atomic Hub — Firestore rules.
 //
-// READ THIS BEFORE TRUSTING IT.
+// Private to one account. Every read and every write needs a Firebase Auth
+// sign-in as the owner's uid; with no sign-in, or as anyone else, the database
+// refuses everything. This is what actually protects the data — the login page
+// only decides what the UI shows.
 //
-// This app has no Firebase Auth, so there is no identity to check. These rules
-// cannot tell you apart from anyone else who knows the project id — what they
-// do is stop the database being used as free general-purpose storage:
+// Checking the uid rather than just `request.auth != null` matters: anyone with
+// the project's public API key can create an account, so "signed in" alone
+// would let strangers in.
 //
-//   - only the collections this app actually uses can be written at all
-//   - documents are size- and shape-checked, so it can't be filled with junk
-//   - anything not listed here is denied outright
-//
-// That is meaningfully better than the default open database, and it is NOT
-// the same as being private. The real fix is Firebase Auth (anonymous or email
-// sign-in) plus `allow read, write: if request.auth.uid == '<your-uid>';` on
-// every collection. Until then, treat everything in here as public.
+// On top of that, writes are size- and shape-checked so a bug can't fill the
+// database with junk, and anything not listed here is denied outright.
 //
 // Deploy with: firebase deploy --only firestore:rules
+// (Deploy the app first. The old build had no sign-in and would stop working.)
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // The owner's Firebase Auth uid (Firebase console → Authentication → Users).
+    function isOwner() {
+      return request.auth != null && request.auth.uid == 'LF8D0a5HgZdBvcntGwuVlda3bst1';
+    }
+
     // Interview content
     match /tasks/{taskId} {
-      allow read: if true;
-      allow write: if request.resource == null
-                   || request.resource.data.keys().hasAll(['title', 'category']);
+      allow read: if isOwner();
+      allow write: if isOwner()
+                   && (request.resource == null
+                       || request.resource.data.keys().hasAll(['title', 'category']));
     }
 
     match /companies/{companyId} {
-      allow read: if true;
-      allow write: if request.resource == null
-                   || request.resource.data.keys().hasAll(['name']);
+      allow read: if isOwner();
+      allow write: if isOwner()
+                   && (request.resource == null
+                       || request.resource.data.keys().hasAll(['name']));
     }
 
     // Habits, logs and streaks
     match /dailyHabits/{habitId} {
-      allow read, write: if true;
+      allow read, write: if isOwner();
     }
 
     match /daily_logs/{date} {
-      allow read, write: if true;
+      allow read, write: if isOwner();
     }
 
     match /stats/{docId} {
-      allow read, write: if true;
+      allow read, write: if isOwner();
     }
 
     // DSA hub
     match /dsa_progress/{topicId} {
-      allow read, write: if true;
+      allow read, write: if isOwner();
     }
 
     // Job search
     match /job_outreach_logs/{date} {
-      allow read, write: if true;
+      allow read, write: if isOwner();
     }
 
     match /weekly_goals/{weekStart} {
-      allow read, write: if true;
+      allow read, write: if isOwner();
     }
 
     // Evidence log — one short line per day
     match /evidenceLog/{date} {
-      allow read: if true;
-      allow write: if request.resource == null
-                   || (request.resource.data.text is string
-                       && request.resource.data.text.size() <= 500);
+      allow read: if isOwner();
+      allow write: if isOwner()
+                   && (request.resource == null
+                       || (request.resource.data.text is string
+                           && request.resource.data.text.size() <= 500));
     }
 
     // ML Foundations — which of the four checks each topic has passed. The
     // roadmap itself ships in the bundle; only the ticks are stored, in
     // study_progress/foundations.
     match /study_progress/{docId} {
-      allow read, write: if true;
+      allow read, write: if isOwner();
     }
 
     // Practice tracking
     match /practiceRecords/{questionId} {
-      allow read: if true;
-      allow write: if request.resource == null
-                   || (request.resource.data.reps is int
-                       && request.resource.data.confidence in [1, 2, 3]);
+      allow read: if isOwner();
+      allow write: if isOwner()
+                   && (request.resource == null
+                       || (request.resource.data.reps is int
+                           && request.resource.data.confidence in [1, 2, 3]));
     }
 
     match /daily_drill/{date} {
-      allow read, write: if true;
+      allow read, write: if isOwner();
     }
 
     // Everything else is denied — including any collection added later, which

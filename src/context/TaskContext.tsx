@@ -40,6 +40,7 @@ import { MISSION_HABITS, parseRoleTags } from '../data/missionTypes';
 import type { Role } from '../data/missionTypes';
 import { getLondonDateString } from '../utils/date';
 import { calculateStreak } from '../utils/streak';
+import { useAuth } from './AuthContext';
 
 export type Category =
     | 'Personal Background'
@@ -107,7 +108,6 @@ interface TaskContextType {
     categories: Category[];
     userStats: UserStats;
     isAdmin: boolean;
-    verifyAdmin: (code: string) => boolean;
     logoutAdmin: () => void;
     selectedDate: string;
     changeDate: (date: string) => void;
@@ -137,19 +137,6 @@ interface TaskContextType {
     toggleTimerVisibility: () => void;
 }
 
-// Soft lock, not security. It keeps the app private on a shared screen; it does
-// not protect the database, because anyone can read a Vite env var out of the
-// built bundle. Real protection would need Firebase Auth plus rules that check it.
-const ADMIN_CODE = import.meta.env.VITE_ADMIN_CODE ?? '';
-const ADMIN_STORAGE_KEY = "is_admin_authenticated";
-
-if (!ADMIN_CODE) {
-    console.error(
-        '⚠️ VITE_ADMIN_CODE is not set — the app cannot be unlocked. ' +
-        'Copy .env.example to .env and set it, then restart the dev server.'
-    );
-}
-
 const TaskContext = createContext<TaskContextType | undefined>(undefined);
 
 export const ALL_CATEGORIES: Category[] = [
@@ -170,7 +157,19 @@ const defaultHabits: DailyHabit[] = [
     { id: '2', title: 'Solve 3 DSA questions', completed: false, note: '' },
 ];
 
-export const TaskProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+interface TaskProviderProps {
+    children: ReactNode;
+    // Music lives above this provider so it keeps playing from the login page
+    // into the app; it's passed in so pages keep reading it from here.
+    isMuted: boolean;
+    setIsMuted: (muted: boolean) => void;
+}
+
+// Mount this only once signed in. Every Firestore subscription starts here or
+// in a page below it, and the rules refuse reads without the owner's sign-in;
+// a listener that is refused stops for good, so starting early would leave the
+// app empty. Unmounting on sign-out closes every listener.
+export const TaskProvider: React.FC<TaskProviderProps> = ({ children, isMuted, setIsMuted }) => {
     const [tasks, setTasks] = useState<Task[]>([]);
     const [companies, setCompanies] = useState<Company[]>([]);
     const [dailyHabits, setDailyHabits] = useState<DailyHabit[]>([]);
@@ -179,9 +178,8 @@ export const TaskProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         longestStreak: 0,
         lastCompletionDate: null
     });
-    const [isAdmin, setIsAdmin] = useState<boolean>(() => {
-        return localStorage.getItem(ADMIN_STORAGE_KEY) === 'true';
-    });
+    const { status, signOut } = useAuth();
+    const isAdmin = status === 'signedIn';
 
     const [isLoading, setIsLoading] = useState(true);
 
@@ -645,19 +643,9 @@ export const TaskProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
     };
 
-    const verifyAdmin = (code: string): boolean => {
-        // An unset ADMIN_CODE must never match, or an empty box would unlock it.
-        if (ADMIN_CODE && code === ADMIN_CODE) {
-            setIsAdmin(true);
-            localStorage.setItem(ADMIN_STORAGE_KEY, 'true');
-            return true;
-        }
-        return false;
-    };
-
+    // Signing out unmounts this provider (see App), which closes every listener.
     const logoutAdmin = () => {
-        setIsAdmin(false);
-        localStorage.removeItem(ADMIN_STORAGE_KEY);
+        signOut().catch(err => console.error('❌ Failed to sign out:', err));
     };
 
     // --- UI State ---
@@ -665,7 +653,6 @@ export const TaskProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const saved = localStorage.getItem('sidebarCollapsed');
         return saved ? JSON.parse(saved) : false;
     });
-    const [isMuted, setIsMuted] = useState(true);
 
     const toggleSidebar = () => {
         setIsSidebarCollapsed((prev: boolean) => {
@@ -731,7 +718,6 @@ export const TaskProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 categories: ALL_CATEGORIES,
                 userStats,
                 isAdmin,
-                verifyAdmin,
                 logoutAdmin,
                 selectedDate,
                 changeDate,

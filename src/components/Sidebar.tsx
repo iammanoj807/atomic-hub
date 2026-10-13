@@ -14,15 +14,8 @@ import {
     Toolbar,
     AppBar,
     Collapse,
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    TextField,
-    DialogActions,
-    Button,
     Tooltip,
 } from '@mui/material';
-import LockRoundedIcon from '@mui/icons-material/LockRounded';
 import LockOpenRoundedIcon from '@mui/icons-material/LockOpenRounded';
 import HomeRoundedIcon from '@mui/icons-material/HomeRounded';
 import AssignmentTurnedInRoundedIcon from '@mui/icons-material/AssignmentTurnedInRounded';
@@ -88,8 +81,6 @@ const Sidebar = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const { 
-        isAdmin, 
-        verifyAdmin, 
         logoutAdmin, 
         isSidebarCollapsed, 
         toggleSidebar,
@@ -100,25 +91,6 @@ const Sidebar = () => {
     // Use isSidebarCollapsed from context instead of local state
     // On mobile, never collapse the sidebar drawer content
     const isCollapsed = isMobile ? false : isSidebarCollapsed;
-
-    // Admin Dialog State
-    const [isAdminDialogOpen, setIsAdminDialogOpen] = useState(false);
-    const [adminCode, setAdminCode] = useState('');
-    const [adminError, setAdminError] = useState(false);
-
-    const handleAdminLogin = () => {
-        if (verifyAdmin(adminCode)) {
-            setIsAdminDialogOpen(false);
-            setAdminCode('');
-            setAdminError(false);
-        } else {
-            setAdminError(true);
-        }
-    };
-
-    const handleAdminLogout = () => {
-        logoutAdmin();
-    };
 
     const toggleMute = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -269,19 +241,20 @@ const Sidebar = () => {
 
                     {!isCollapsed && (
                         <>
-                            <Tooltip title={isAdmin ? "Lock App" : "Unlock App"}>
+                            <Tooltip title="Sign out">
                                 <IconButton
-                                    onClick={() => isAdmin ? logoutAdmin() : setIsAdminDialogOpen(true)}
+                                    aria-label="Sign out"
+                                    onClick={logoutAdmin}
                                     size="small"
                                     sx={{
-                                        color: isAdmin ? 'success.main' : 'text.disabled',
+                                        color: 'success.main',
                                         '&:hover': {
-                                            color: isAdmin ? 'error.main' : 'primary.main',
-                                            bgcolor: isAdmin ? 'rgba(211, 47, 47, 0.1)' : 'rgba(41, 121, 255, 0.1)',
+                                            color: 'error.main',
+                                            bgcolor: 'rgba(211, 47, 47, 0.1)',
                                         }
                                     }}
                                 >
-                                    {isAdmin ? <LockOpenRoundedIcon fontSize="small" /> : <LockRoundedIcon fontSize="small" />}
+                                    <LockOpenRoundedIcon fontSize="small" />
                                 </IconButton>
                             </Tooltip>
                         </>
@@ -591,35 +564,6 @@ const Sidebar = () => {
                 </Tooltip>
             </Box>
 
-            {/* Admin Login Dialog */}
-            <Dialog open={isAdminDialogOpen} onClose={() => setIsAdminDialogOpen(false)} maxWidth="xs" fullWidth>
-                <DialogTitle>Unlock App</DialogTitle>
-                <DialogContent>
-                    <Box sx={{ pt: 1 }}>
-                        <TextField
-                            autoFocus
-                            label="Password"
-                            type="password"
-                            fullWidth
-                            variant="outlined"
-                            value={adminCode}
-                            onChange={(e) => {
-                                setAdminCode(e.target.value);
-                                setAdminError(false);
-                            }}
-                            error={adminError}
-                            helperText={adminError ? "Incorrect password" : ""}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter') handleAdminLogin();
-                            }}
-                        />
-                    </Box>
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={() => setIsAdminDialogOpen(false)}>Cancel</Button>
-                    <Button onClick={handleAdminLogin} variant="contained">Unlock</Button>
-                </DialogActions>
-            </Dialog>
         </Box >
     );
 
@@ -699,19 +643,20 @@ const Sidebar = () => {
                                     </Box>
                                 </IconButton>
                             </Tooltip>
-                            <Tooltip title={isAdmin ? "Lock App" : "Unlock App"}>
+                            <Tooltip title="Sign out">
                                 <IconButton
-                                    onClick={() => isAdmin ? handleAdminLogout() : setIsAdminDialogOpen(true)}
+                                    aria-label="Sign out"
+                                    onClick={logoutAdmin}
                                     size="small"
                                     sx={{
-                                        color: isAdmin ? 'success.main' : 'text.disabled',
+                                        color: 'success.main',
                                         '&:hover': {
-                                            color: isAdmin ? 'error.main' : 'primary.main',
-                                            bgcolor: isAdmin ? 'rgba(211, 47, 47, 0.1)' : 'rgba(41, 121, 255, 0.1)',
+                                            color: 'error.main',
+                                            bgcolor: 'rgba(211, 47, 47, 0.1)',
                                         }
                                     }}
                                 >
-                                    {isAdmin ? <LockOpenRoundedIcon fontSize="small" /> : <LockRoundedIcon fontSize="small" />}
+                                    <LockOpenRoundedIcon fontSize="small" />
                                 </IconButton>
                             </Tooltip>
                             <IconButton

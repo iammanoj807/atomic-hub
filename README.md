@@ -6,7 +6,7 @@ It started as somewhere to keep my interview answers. It became the thing that a
 trains me: what to practise today, whether I'm getting better, and — on the bad days —
 proof that I've been showing up.
 
-**Stack:** React 19 · TypeScript · Vite · MUI v7 · Firebase Firestore · Firebase Hosting
+**Stack:** React 19 · TypeScript · Vite · MUI v7 · Firebase Auth · Firebase Firestore · Firebase Hosting · PWA
 
 ---
 
@@ -82,3 +82,27 @@ their solution hidden until you have tried.
 A global Pomodoro timer that keeps running as you move between pages, daily habits with
 streaks and a year of history, and a DSA hub tracking NeetCode 150, with pattern guides and
 a "Which pattern?" drill.
+
+---
+
+## Sign-in and privacy
+
+One account, signed in with Firebase Auth (email and password). The login page asks only
+for the password; the email comes from `VITE_OWNER_EMAIL`. The password is checked by
+Firebase and never appears in the code, and repeated wrong guesses are rate-limited.
+
+The data is protected by `firestore.rules`, not by the page: every read and write needs
+the owner's uid. Signed in as anyone else, or not at all, the database refuses everything.
+
+Setup: enable **Email/Password** under Firebase console → Authentication → Sign-in method,
+add the one user under **Users**, put its email in `.env` as `VITE_OWNER_EMAIL`, and put its
+uid in `isOwner()` in `firestore.rules`. Deploy the app before the rules.
+
+## On the phone
+
+The same build installs as an app. On iPhone, open the site in Safari, then
+**Share → Add to Home Screen**. It opens full screen with its own icon. Everything lives
+in Firestore, so the phone and the browser always show the same data. The home-screen app
+keeps its own storage, so it asks you to sign in once. Small view settings (sidebar
+collapsed, timer shown, Learn or Revise mode) are per device.
+
