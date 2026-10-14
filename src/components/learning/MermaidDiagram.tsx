@@ -120,7 +120,8 @@ export const MermaidDiagram = ({ code, caption, title }: { code: string; caption
                 }
                 const { svg } = await mermaid.render(id, code);
                 if (!cancelled) setRendered({ code, svg, width: naturalWidth(svg) });
-            } catch {
+            } catch (err) {
+                console.error('MERMAID-DEBUG', id, err);
                 // Mermaid can leave its scratch element behind when it fails.
                 document.getElementById(`d${id}`)?.remove();
                 document.getElementById(id)?.remove();

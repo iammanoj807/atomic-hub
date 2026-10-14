@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { allFoundationTopics } from '../../data/foundations';
 import { foundationAnimations } from '../../data/foundationsAnimations';
-import { DEFAULT_HEIGHT, DEFAULT_WIDTH, isColor, tweenShapes, type Shape } from '../../components/learning/anim/scene';
+import { tweenShapes, type Shape } from '../../components/learning/anim/scene';
+import { animationProblems } from './animationChecks';
 
 const lessons = allFoundationTopics;
 
@@ -32,26 +33,6 @@ describe('foundations lessons', () => {
     });
 });
 
-const numbersIn = (shape: Shape): number[] => {
-    const values: number[] = [];
-    for (const value of Object.values(shape)) {
-        if (typeof value === 'number') values.push(value);
-        if (Array.isArray(value)) value.forEach(p => values.push(...p));
-    }
-    return values;
-};
-
-/** The points a shape covers, for the "inside the picture" check. */
-const extent = (shape: Shape): [number, number][] => {
-    switch (shape.kind) {
-        case 'rect': return [[shape.x, shape.y], [shape.x + shape.w, shape.y + shape.h]];
-        case 'circle': return [[shape.x - shape.r, shape.y - shape.r], [shape.x + shape.r, shape.y + shape.r]];
-        case 'line': return [[shape.x1, shape.y1], [shape.x2, shape.y2]];
-        case 'path': return shape.points;
-        case 'text': return [[shape.x, shape.y]];
-    }
-};
-
 describe('foundations animations', () => {
     it('gives every lesson an animation, and none to topics that do not exist', () => {
         const ids = new Set(allFoundationTopics.map(t => t.id));
@@ -60,37 +41,7 @@ describe('foundations animations', () => {
     });
 
     it('builds every frame from valid shapes that fit the picture', () => {
-        const problems: string[] = [];
-        for (const [topicId, build] of Object.entries(foundationAnimations)) {
-            const spec = build();
-            const w = spec.width ?? DEFAULT_WIDTH;
-            const h = spec.height ?? DEFAULT_HEIGHT;
-            if (!spec.title.trim()) problems.push(`${topicId}: no title`);
-            if (spec.variants.length === 0) problems.push(`${topicId}: no variants`);
-            const labels = spec.variants.map(v => v.label);
-            if (new Set(labels).size !== labels.length) problems.push(`${topicId}: repeated variant label`);
-            for (const variant of spec.variants) {
-                if (variant.frames.length < 2) problems.push(`${topicId}/${variant.label}: fewer than 2 frames`);
-                if (variant.frames.length > 16) problems.push(`${topicId}/${variant.label}: more than 16 frames`);
-                variant.frames.forEach((frame, index) => {
-                    const where = `${topicId}/${variant.label}#${index}`;
-                    if (!frame.caption.trim()) problems.push(`${where}: no caption`);
-                    const ids = frame.shapes.map(s => s.id);
-                    const repeated = ids.filter((id, i) => ids.indexOf(id) !== i);
-                    if (repeated.length) problems.push(`${where}: repeated ids ${repeated.join(', ')}`);
-                    for (const shape of frame.shapes) {
-                        if (numbersIn(shape).some(n => !Number.isFinite(n))) problems.push(`${where}: ${shape.id} has a non-finite number`);
-                        for (const key of ['fill', 'stroke', 'textColor'] as const) {
-                            const value = (shape as unknown as Record<string, unknown>)[key];
-                            if (typeof value === 'string' && !isColor(value)) problems.push(`${where}: ${shape.id} bad ${key} ${value}`);
-                        }
-                        // A little slack for strokes and arrowheads at the edge.
-                        if (extent(shape).some(([x, y]) => x < -4 || y < -4 || x > w + 4 || y > h + 4)) problems.push(`${where}: ${shape.id} is outside the ${w}×${h} picture`);
-                    }
-                });
-            }
-        }
-        expect(problems).toEqual([]);
+        expect(animationProblems(foundationAnimations)).toEqual([]);
     });
 });
 

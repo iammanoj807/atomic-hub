@@ -23,6 +23,22 @@ registerSW({
     },
 });
 
+// A page still running the previous deploy asks for chunks that deploy
+// removed (Mermaid's, when a diagram opens). Reload once onto the current
+// deploy instead of leaving the diagram undrawn. The time check stops a
+// reload loop if a chunk is genuinely broken; offline, a reload can't help.
+window.addEventListener('vite:preloadError', () => {
+    if (!navigator.onLine) return;
+    const key = 'chunk-reload-at';
+    try {
+        if (Date.now() - Number(sessionStorage.getItem(key) ?? 0) < 30_000) return;
+        sessionStorage.setItem(key, String(Date.now()));
+    } catch {
+        return; // No storage, so no loop guard: don't risk reloading.
+    }
+    window.location.reload();
+});
+
 // Create a premium theme
 const theme = createTheme({
     palette: {

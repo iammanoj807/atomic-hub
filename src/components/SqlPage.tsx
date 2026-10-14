@@ -74,6 +74,8 @@ import {
 import { GlossaryProvider, GlossaryTopic, NewWordsBox, ProseText } from './learning/GlossaryText';
 import { GlossaryDrawer } from './learning/GlossaryDrawer';
 import { MermaidDiagram } from './learning/MermaidDiagram';
+import { AnimatedScene } from './learning/anim/AnimatedScene';
+import { useTopicAnimation } from './learning/anim/useTopicAnimation';
 import { segmentSections, type Prose } from './learning/glossaryContext';
 import { ExampleBlock, ExampleOutcome, MONO, PracticeDatabase, SqlRunBox } from './sql/SqlParts';
 
@@ -246,6 +248,20 @@ const TopicTags = ({ topic }: { topic: SqlTopic }) => (
     </>
 );
 
+/** The animations load as their own chunk, the first time a lesson is opened. */
+const loadAnimations = () => import('../data/sqlAnimations').then(m => m.sqlAnimations);
+
+/** The lesson's animation, once loaded. Topics without one show nothing. */
+const TopicAnimation = ({ topicId, accent }: { topicId: string; accent: string }) => {
+    const spec = useTopicAnimation(loadAnimations, topicId);
+    if (!spec) return null;
+    return (
+        <Block title="Watch it happen">
+            <AnimatedScene spec={spec} accent={accent} />
+        </Block>
+    );
+};
+
 const PictureIt = ({ topic }: { topic: SqlTopic }) => (
     <Block title="Picture it">
         <MermaidDiagram code={topic.diagram.code} caption={topic.diagram.caption} title={topic.name} />
@@ -268,6 +284,7 @@ const LessonBody = ({ topic, accent, marked }: { topic: SqlLesson; accent: strin
         <Block title="Why you need it">
             <Typography variant="body1"><ProseText value={marked('problem')[0]} /></Typography>
         </Block>
+        <TopicAnimation topicId={topic.id} accent={accent} />
         <PictureIt topic={topic} />
         <Block title="The idea">
             <Typography variant="body1"><ProseText value={marked('idea')[0]} /></Typography>

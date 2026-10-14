@@ -76,6 +76,8 @@ import {
 import { GlossaryProvider, GlossaryTopic, NewWordsBox, ProseText } from './learning/GlossaryText';
 import { GlossaryDrawer } from './learning/GlossaryDrawer';
 import { MermaidDiagram } from './learning/MermaidDiagram';
+import { AnimatedScene } from './learning/anim/AnimatedScene';
+import { useTopicAnimation } from './learning/anim/useTopicAnimation';
 import { segmentSections, type Prose } from './learning/glossaryContext';
 
 const MAX_IN_PROGRESS = 8;
@@ -234,6 +236,20 @@ const TopicTags = ({ topic }: { topic: SDTopic }) => (
 
 // ============ STEP 1: THE LESSON ============
 
+/** The animations load as their own chunk, the first time a lesson is opened. */
+const loadAnimations = () => import('../data/systemDesignAnimations').then(m => m.systemDesignAnimations);
+
+/** The lesson's animation, once loaded. Topics without one show nothing. */
+const TopicAnimation = ({ topicId, accent }: { topicId: string; accent: string }) => {
+    const spec = useTopicAnimation(loadAnimations, topicId);
+    if (!spec) return null;
+    return (
+        <Block title="Watch it happen">
+            <AnimatedScene spec={spec} accent={accent} />
+        </Block>
+    );
+};
+
 const PictureIt = ({ topic }: { topic: SDTopic }) => (
     <Block title="Picture it">
         <MermaidDiagram code={topic.diagram.code} caption={topic.diagram.caption} title={topic.name} />
@@ -245,6 +261,7 @@ const ConceptLesson = ({ topic, accent, marked }: { topic: Extract<SDTopic, { ki
         <Block title="The problem it solves">
             <Typography variant="body1"><ProseText value={marked('problem')[0]} /></Typography>
         </Block>
+        <TopicAnimation topicId={topic.id} accent={accent} />
         <PictureIt topic={topic} />
         <Block title="The idea">
             <Typography variant="body1"><ProseText value={marked('idea')[0]} /></Typography>
@@ -280,6 +297,7 @@ const DesignLesson = ({ topic, accent, marked }: { topic: SDDesign; accent: stri
         <Block title="Why interviewers ask this">
             <Typography variant="body1"><ProseText value={marked('problem')[0]} /></Typography>
         </Block>
+        <TopicAnimation topicId={topic.id} accent={accent} />
         <Block title="Requirements">
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
                 <Box sx={{ minWidth: 0 }}>

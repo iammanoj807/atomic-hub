@@ -33,6 +33,8 @@ import { useTaskContext } from '../context/TaskContext';
 import { CONFIDENT, CYAN, TAP, px, stepId, useTextSize, useTextSizeChoice, type LearningStep } from './learning/learning';
 import { LearningPageFrame, TextSizeControl, SectionLabel, StepBar, ReferencePanel } from './learning/LearningParts';
 import { MermaidDiagram } from './learning/MermaidDiagram';
+import { AnimatedScene } from './learning/anim/AnimatedScene';
+import { useTopicAnimation } from './learning/anim/useTopicAnimation';
 
 /** The 3-second gut check stands out from everything else on the page. */
 const GUT_CHECK = '#ffca28';
@@ -43,6 +45,9 @@ const MONO = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
 const DIFFICULTY_COLOURS: Record<'Easy' | 'Medium' | 'Hard', string> = { Easy: '#43a047', Medium: '#ffa726', Hard: '#ef5350' };
 
 const topics = dsaCurriculum.flatMap(phase => phase.sections.flatMap(section => section.topics));
+
+/** The animations come as their own chunk, the first time a topic page opens. */
+const loadAnimations = () => import('../data/dsaAnimations').then(m => m.dsaAnimations);
 
 // ============ SMALL PIECES ============
 
@@ -70,6 +75,17 @@ const Bullets = ({ items, marker = 'text.secondary', variant = 'body1' }: { item
                 </Stack>
             ))}
         </Stack>
+    );
+};
+
+/** The topic's two worked examples, played step by step. Nothing shows until it has loaded. */
+const TopicAnimation = ({ topicId }: { topicId: string }) => {
+    const spec = useTopicAnimation(loadAnimations, topicId);
+    if (!spec) return null;
+    return (
+        <Block title="Watch it happen">
+            <AnimatedScene spec={spec} accent={CYAN} />
+        </Block>
     );
 };
 
@@ -393,6 +409,7 @@ const DSATopicDetailPage = () => {
                     <Block title="The idea">
                         <Typography variant="body1">{guide.idea}</Typography>
                     </Block>
+                    <TopicAnimation topicId={topicId} />
                     <Block title="Picture it">
                         <MermaidDiagram code={guide.diagram.code} caption={guide.diagram.caption} title={content.title} />
                     </Block>
