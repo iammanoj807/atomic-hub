@@ -1,4 +1,4 @@
-import { useState, useRef, lazy, Suspense } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { TaskProvider } from './context/TaskContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -248,7 +248,6 @@ function AppShell() {
     const { status } = useAuth();
     // Not remembered: the music starts muted on every visit.
     const [isMuted, setIsMuted] = useState(true);
-    const audioRef = useRef<any>(null);
 
     return (
         <Box
@@ -265,24 +264,13 @@ function AppShell() {
                 </TaskProvider>
             )}
             <ReactPlayer
-                ref={audioRef}
-                src="https://youtu.be/j9nhecEWMuE"
+                src="https://youtu.be/5DriU6n_imk"
                 autoPlay={!isMuted}
                 loop
                 volume={1}
                 width="1px"
                 height="1px"
                 style={{ position: 'fixed', bottom: 0, left: 0, opacity: 0, pointerEvents: 'none', zIndex: -1 }}
-                {...{
-                    onProgress: (state: any) => {
-                        // Loop music after 30 minutes (1800 seconds)
-                        if (state.playedSeconds >= 1800) {
-                            if (audioRef.current && typeof audioRef.current.seekTo === 'function') {
-                                audioRef.current.seekTo(0, 'seconds');
-                            }
-                        }
-                    },
-                } as any}
                 config={{
                     youtube: {
                         start: 0,
