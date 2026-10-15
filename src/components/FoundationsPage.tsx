@@ -14,10 +14,13 @@ import {
     LinearProgress,
     Tooltip,
     Button,
+    TextField,
+    InputAdornment,
 } from '@mui/material';
 import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
 import LaunchRoundedIcon from '@mui/icons-material/LaunchRounded';
 import MenuBookRoundedIcon from '@mui/icons-material/MenuBookRounded';
+import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import {
     foundationPhases,
     allFoundationTopics,
@@ -79,6 +82,11 @@ const WARNING = '#ffa726';
 
 const phaseIndexOf = (topicId: string) =>
     Math.max(0, foundationPhases.findIndex(phase => phase.topics.some(topic => topic.id === topicId)));
+
+const matchesQuery = (topic: FoundationTopic, query: string) => {
+    const q = query.trim().toLowerCase();
+    return !q || topic.name.toLowerCase().includes(q) || topic.definition.toLowerCase().includes(q);
+};
 
 const PhaseResource = ({ resource, accent }: { resource: FoundationResource; accent: string }) => (
     <Box sx={{ pl: 2, py: 1, borderLeft: '3px solid', borderColor: accent }}>
@@ -401,7 +409,16 @@ const FoundationsPage = () => {
     const [expanded, setExpanded] = useState<string | null>(null);
     const [glossaryOpen, setGlossaryOpen] = useState(false);
 
+    // A search looks through every phase, since there is no "all phases" tab here.
+    const [query, setQuery] = useState('');
+    const searching = query.trim() !== '';
+    const matches = (topic: FoundationTopic) => matchesQuery(topic, query);
+    const matchCount = allFoundationTopics.filter(matches).length;
+
     const openTopic = (topicId: string) => {
+        const topic = allFoundationTopics.find(item => item.id === topicId);
+        // A search that hides the topic would leave nothing to open.
+        if (topic && !matches(topic)) setQuery('');
         setChosenTab(phaseIndexOf(topicId));
         setExpanded(topicId);
         // Wait for the tab to render, and any card above to finish closing, before scrolling.
@@ -544,7 +561,7 @@ const FoundationsPage = () => {
                     </Stack>
 
                     {/* ---- HOW TO LEARN A TOPIC ---- said once, and closed once read */}
-                    <Box sx={{ mb: 5 }}>
+                    <Box sx={{ mb: 3 }}>
                         <ReferencePanel title="How to learn a topic (read once)" tint="rgba(77,208,225,0.07)" border="rgba(77,208,225,0.25)">
                             <Typography variant="body1" sx={{ color: 'text.primary' }}>
                                 {CONFIDENT_RULE}
@@ -579,10 +596,29 @@ const FoundationsPage = () => {
                         </ReferencePanel>
                     </Box>
 
-                    {/* ---- PHASES ---- */}
+                    {/* ---- SEARCH ---- */}
+                    <TextField
+                        type="search"
+                        value={query}
+                        onChange={event => setQuery(event.target.value)}
+                        placeholder="Search topics"
+                        sx={{ width: { xs: '100%', sm: 320 }, mb: 2, '& .MuiInputBase-root': { minHeight: TAP } }}
+                        slotProps={{
+                            htmlInput: { 'aria-label': 'Search topics by name or definition, in every phase' },
+                            input: {
+                                startAdornment: (
+                                    <InputAdornment position="start">
+                                        <SearchRoundedIcon sx={{ color: 'text.secondary' }} />
+                                    </InputAdornment>
+                                ),
+                            },
+                        }}
+                    />
+
+                    {/* ---- PHASES ---- no tab is selected during a search, so any tab ends it */}
                     <Tabs
-                        value={tab}
-                        onChange={(_, value) => { setChosenTab(value); setExpanded(null); }}
+                        value={searching ? false : tab}
+                        onChange={(_, value) => { setChosenTab(value); setExpanded(null); setQuery(''); }}
                         variant="scrollable"
                         scrollButtons="auto"
                         allowScrollButtonsMobile
@@ -598,131 +634,187 @@ const FoundationsPage = () => {
                         ))}
                     </Tabs>
 
-                    <Box sx={{ pb: 6 }}>
-                        {/* Title and goal */}
-                        <Typography variant="caption" sx={{ color: phase.accent, fontWeight: 800, letterSpacing: 1.2 }}>
-                            PHASE {phase.number}
-                        </Typography>
-                        <Typography variant="h4" fontWeight="bold" color="text.primary" sx={{ mt: 0.5, mb: 1 }}>
-                            {phase.title}
-                        </Typography>
-                        <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 760 }}>
-                            {phase.goal}
-                        </Typography>
-
-                        <Stack direction="row" spacing={2} alignItems="center" sx={{ mt: 2.5, maxWidth: 760 }}>
-                            <LinearProgress
-                                variant="determinate"
-                                value={(phaseConfident / phase.topics.length) * 100}
-                                sx={{ flex: 1, height: 4, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.06)', '& .MuiLinearProgress-bar': { bgcolor: CONFIDENT } }}
-                            />
-                            <Typography color="text.secondary" sx={{ whiteSpace: 'nowrap', fontSize: px(t.small) }}>
-                                {phaseConfident} of {phase.topics.length} confident
-                            </Typography>
-                        </Stack>
-
-                        {/* Big picture */}
-                        <Box sx={{ mt: 3, p: 2, borderRadius: 2, maxWidth: 760, bgcolor: `${phase.accent}14`, borderLeft: '3px solid', borderColor: phase.accent }}>
-                            <Typography variant="body1">
-                                <strong style={{ color: phase.accent }}>The big picture.</strong> {phase.bigPicture}
-                            </Typography>
-                        </Box>
-
-                        {/* Topics */}
-                        <SectionLabel>TOPICS, IN ORDER</SectionLabel>
-                        <Stack spacing={1.25}>
-                            {phase.topics.map((topic, index) => (
-                                <TopicCard
-                                    key={topic.id}
-                                    topic={topic}
-                                    number={index + 1}
-                                    accent={phase.accent}
-                                    progress={progress}
-                                    expanded={expanded === topic.id}
-                                    onExpand={open => setExpanded(open ? topic.id : null)}
-                                    onToggleCheck={check => { void toggleCheck(topic.id, check); }}
-                                />
-                            ))}
-                        </Stack>
-
-                        {/* Mini-builds */}
-                        <SectionLabel>MINI-BUILDS</SectionLabel>
-                        <Stack spacing={1}>
-                            {phase.builds.map(build => {
-                                const done = progress.builds[build.id] === true;
-                                return (
-                                    <Stack
-                                        key={build.id}
-                                        component="label"
-                                        direction="row"
-                                        spacing={1}
-                                        alignItems="flex-start"
-                                        sx={{
-                                            p: 1.25, minHeight: TAP, borderRadius: 2, cursor: 'pointer',
-                                            border: '1px solid',
-                                            borderColor: done ? 'rgba(102,187,106,0.35)' : 'rgba(255,255,255,0.08)',
-                                            bgcolor: done ? 'rgba(102,187,106,0.06)' : 'transparent',
-                                        }}
-                                    >
-                                        <Checkbox
-                                            checked={done}
-                                            onChange={() => { void toggleBuild(build.id); }}
-                                            sx={{ p: 0.25, color: 'text.secondary', '&.Mui-checked': { color: CONFIDENT } }}
-                                        />
-                                        <Typography variant="body2" sx={{ pt: 0.25 }}>
-                                            {build.text}
+                    {searching ? (
+                        <Box sx={{ pb: 6 }}>
+                            {matchCount > 0 ? (
+                                <>
+                                    <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap sx={{ mb: 2 }}>
+                                        <Typography variant="body2" color="text.secondary">
+                                            {matchCount} {matchCount === 1 ? 'topic matches' : 'topics match'}, across every phase.
                                         </Typography>
+                                        <Button onClick={() => setQuery('')} sx={{ minHeight: TAP, px: 1, textTransform: 'none', fontWeight: 700 }}>
+                                            Clear search
+                                        </Button>
                                     </Stack>
-                                );
-                            })}
-                        </Stack>
-
-                        {/* Ready questions */}
-                        <SectionLabel>READY WHEN YOU CAN ANSWER</SectionLabel>
-                        <Stack component="ul" spacing={0.75} sx={{ pl: 2.5, m: 0, maxWidth: 760 }}>
-                            {phase.ready.map(question => (
-                                <Typography key={question} component="li" variant="body2">
-                                    {question}
-                                </Typography>
-                            ))}
-                        </Stack>
-
-                        {/* Phase books and courses — reference, not the path */}
-                        <Box sx={{ mt: 4 }}>
-                            <ReferencePanel
-                                key={phase.id}
-                                title="Phase books and courses (for reference)"
-                                tint="rgba(255,255,255,0.02)"
-                                border="rgba(255,255,255,0.08)"
-                            >
-                                <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5, maxWidth: 760 }}>
-                                    The main courses and books for this whole phase. Each topic above already lists its own exact chapters and videos.
-                                </Typography>
-                                <SectionLabel>PHASE BACKBONE RESOURCES</SectionLabel>
-                                <Stack spacing={1.5}>
-                                    {phase.main.map(resource => <PhaseResource key={resource.title} resource={resource} accent={phase.accent} />)}
-                                </Stack>
-                                {phase.deeper.length > 0 && (
-                                    <>
-                                        <SectionLabel>GO DEEPER (OPTIONAL)</SectionLabel>
-                                        <Stack spacing={1.5}>
-                                            {phase.deeper.map(resource => <PhaseResource key={resource.title} resource={resource} accent="rgba(255,255,255,0.15)" />)}
-                                        </Stack>
-                                    </>
-                                )}
-                            </ReferencePanel>
+                                    {foundationPhases.map(p => {
+                                        if (!p.topics.some(matches)) return null;
+                                        return (
+                                            <Box key={p.id} sx={{ mb: 4 }}>
+                                                <Typography variant="caption" sx={{ display: 'block', color: p.accent, fontWeight: 800, letterSpacing: 1.2 }}>
+                                                    PHASE {p.number}
+                                                </Typography>
+                                                <Typography variant="h5" fontWeight="bold" color="text.primary" sx={{ mt: 0.25, mb: 2 }}>
+                                                    {p.title}
+                                                </Typography>
+                                                <Stack spacing={1.25}>
+                                                    {/* Numbered by place in the phase, so a topic keeps its number. */}
+                                                    {p.topics.map((topic, index) =>
+                                                        matches(topic) && (
+                                                            <TopicCard
+                                                                key={topic.id}
+                                                                topic={topic}
+                                                                number={index + 1}
+                                                                accent={p.accent}
+                                                                progress={progress}
+                                                                expanded={expanded === topic.id}
+                                                                onExpand={open => setExpanded(open ? topic.id : null)}
+                                                                onToggleCheck={check => { void toggleCheck(topic.id, check); }}
+                                                            />
+                                                        )
+                                                    )}
+                                                </Stack>
+                                            </Box>
+                                        );
+                                    })}
+                                </>
+                            ) : (
+                                <Box sx={{ p: 2.5, borderRadius: 2, border: '1px dashed rgba(255,255,255,0.15)' }}>
+                                    <Typography variant="body2" color="text.secondary">
+                                        No topics match "{query.trim()}".
+                                    </Typography>
+                                    <Button onClick={() => setQuery('')} sx={{ minHeight: TAP, mt: 1, px: 1, textTransform: 'none', fontWeight: 700 }}>
+                                        Clear search
+                                    </Button>
+                                </Box>
+                            )}
                         </Box>
+                    ) : (
+                        <Box sx={{ pb: 6 }}>
+                            {/* Title and goal */}
+                            <Typography variant="caption" sx={{ color: phase.accent, fontWeight: 800, letterSpacing: 1.2 }}>
+                                PHASE {phase.number}
+                            </Typography>
+                            <Typography variant="h4" fontWeight="bold" color="text.primary" sx={{ mt: 0.5, mb: 1 }}>
+                                {phase.title}
+                            </Typography>
+                            <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 760 }}>
+                                {phase.goal}
+                            </Typography>
 
-                        {/* Rules */}
-                        <SectionLabel>RULES</SectionLabel>
-                        <Stack component="ol" spacing={0.75} sx={{ pl: 2.5, m: 0, maxWidth: 760 }}>
-                            {foundationRules.map(rule => (
-                                <Typography key={rule} component="li" variant="body2" color="text.secondary">
-                                    {rule}
+                            <Stack direction="row" spacing={2} alignItems="center" sx={{ mt: 2.5, maxWidth: 760 }}>
+                                <LinearProgress
+                                    variant="determinate"
+                                    value={(phaseConfident / phase.topics.length) * 100}
+                                    sx={{ flex: 1, height: 4, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.06)', '& .MuiLinearProgress-bar': { bgcolor: CONFIDENT } }}
+                                />
+                                <Typography color="text.secondary" sx={{ whiteSpace: 'nowrap', fontSize: px(t.small) }}>
+                                    {phaseConfident} of {phase.topics.length} confident
                                 </Typography>
-                            ))}
-                        </Stack>
-                    </Box>
+                            </Stack>
+
+                            {/* Big picture */}
+                            <Box sx={{ mt: 3, p: 2, borderRadius: 2, maxWidth: 760, bgcolor: `${phase.accent}14`, borderLeft: '3px solid', borderColor: phase.accent }}>
+                                <Typography variant="body1">
+                                    <strong style={{ color: phase.accent }}>The big picture.</strong> {phase.bigPicture}
+                                </Typography>
+                            </Box>
+
+                            {/* Topics */}
+                            <SectionLabel>TOPICS, IN ORDER</SectionLabel>
+                            <Stack spacing={1.25}>
+                                {phase.topics.map((topic, index) => (
+                                    <TopicCard
+                                        key={topic.id}
+                                        topic={topic}
+                                        number={index + 1}
+                                        accent={phase.accent}
+                                        progress={progress}
+                                        expanded={expanded === topic.id}
+                                        onExpand={open => setExpanded(open ? topic.id : null)}
+                                        onToggleCheck={check => { void toggleCheck(topic.id, check); }}
+                                    />
+                                ))}
+                            </Stack>
+
+                            {/* Mini-builds */}
+                            <SectionLabel>MINI-BUILDS</SectionLabel>
+                            <Stack spacing={1}>
+                                {phase.builds.map(build => {
+                                    const done = progress.builds[build.id] === true;
+                                    return (
+                                        <Stack
+                                            key={build.id}
+                                            component="label"
+                                            direction="row"
+                                            spacing={1}
+                                            alignItems="flex-start"
+                                            sx={{
+                                                p: 1.25, minHeight: TAP, borderRadius: 2, cursor: 'pointer',
+                                                border: '1px solid',
+                                                borderColor: done ? 'rgba(102,187,106,0.35)' : 'rgba(255,255,255,0.08)',
+                                                bgcolor: done ? 'rgba(102,187,106,0.06)' : 'transparent',
+                                            }}
+                                        >
+                                            <Checkbox
+                                                checked={done}
+                                                onChange={() => { void toggleBuild(build.id); }}
+                                                sx={{ p: 0.25, color: 'text.secondary', '&.Mui-checked': { color: CONFIDENT } }}
+                                            />
+                                            <Typography variant="body2" sx={{ pt: 0.25 }}>
+                                                {build.text}
+                                            </Typography>
+                                        </Stack>
+                                    );
+                                })}
+                            </Stack>
+
+                            {/* Ready questions */}
+                            <SectionLabel>READY WHEN YOU CAN ANSWER</SectionLabel>
+                            <Stack component="ul" spacing={0.75} sx={{ pl: 2.5, m: 0, maxWidth: 760 }}>
+                                {phase.ready.map(question => (
+                                    <Typography key={question} component="li" variant="body2">
+                                        {question}
+                                    </Typography>
+                                ))}
+                            </Stack>
+
+                            {/* Phase books and courses — reference, not the path */}
+                            <Box sx={{ mt: 4 }}>
+                                <ReferencePanel
+                                    key={phase.id}
+                                    title="Phase books and courses (for reference)"
+                                    tint="rgba(255,255,255,0.02)"
+                                    border="rgba(255,255,255,0.08)"
+                                >
+                                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5, maxWidth: 760 }}>
+                                        The main courses and books for this whole phase. Each topic above already lists its own exact chapters and videos.
+                                    </Typography>
+                                    <SectionLabel>PHASE BACKBONE RESOURCES</SectionLabel>
+                                    <Stack spacing={1.5}>
+                                        {phase.main.map(resource => <PhaseResource key={resource.title} resource={resource} accent={phase.accent} />)}
+                                    </Stack>
+                                    {phase.deeper.length > 0 && (
+                                        <>
+                                            <SectionLabel>GO DEEPER (OPTIONAL)</SectionLabel>
+                                            <Stack spacing={1.5}>
+                                                {phase.deeper.map(resource => <PhaseResource key={resource.title} resource={resource} accent="rgba(255,255,255,0.15)" />)}
+                                            </Stack>
+                                        </>
+                                    )}
+                                </ReferencePanel>
+                            </Box>
+
+                            {/* Rules */}
+                            <SectionLabel>RULES</SectionLabel>
+                            <Stack component="ol" spacing={0.75} sx={{ pl: 2.5, m: 0, maxWidth: 760 }}>
+                                {foundationRules.map(rule => (
+                                    <Typography key={rule} component="li" variant="body2" color="text.secondary">
+                                        {rule}
+                                    </Typography>
+                                ))}
+                            </Stack>
+                        </Box>
+                    )}
                 </Box>
             </GlossaryProvider>
         </LearningPageFrame>

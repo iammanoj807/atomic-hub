@@ -1,5 +1,6 @@
-import { Fragment, useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
-import { Box, Button, Paper, Popover, Popper, Stack, Typography, styled } from '@mui/material';
+import { Fragment, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { Box, Button, Collapse, Paper, Popover, Popper, Stack, Typography, styled } from '@mui/material';
+import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
 import type { GlossaryTerm, TextSegment } from '../../utils/glossaryEngine';
 import { CYAN, TAP } from './learning';
 import {
@@ -17,7 +18,6 @@ import {
 // the one explanation box for the whole page; each underlined word only asks
 // it to open. That keeps thousands of words cheap in Revise mode.
 
-const NEW_WORDS_SHOWN = 6;
 /** How long the hover explanation waits before closing, so the mouse can move onto it. */
 const HOVER_CLOSE_DELAY = 200;
 const POPUP_BG = '#1e2430';
@@ -300,38 +300,54 @@ export const GlossaryText = ({ segments }: { segments: TextSegment[] }) => (
 export const ProseText = ({ value }: { value: Prose }) =>
     typeof value === 'string' ? <PlainText text={value} /> : <GlossaryText segments={value} />;
 
-/** "New words in this topic": the words this topic is the first to use. */
+/**
+ * "New words in this topic": the words this topic is the first to use. They sit
+ * behind one button so the lesson starts straight after its definition.
+ */
 export const NewWordsBox = ({ topicId, accent }: { topicId: string; accent: string }) => {
     const actions = useGlossaryActions();
     const source = actions?.source;
     const words = useMemo(() => source?.newWordsForTopicId(topicId) ?? [], [source, topicId]);
-    const [showAll, setShowAll] = useState(false);
+    const [open, setOpen] = useState(false);
+    const listId = useId();
     if (words.length === 0) return null;
-    const visible = showAll ? words : words.slice(0, NEW_WORDS_SHOWN);
 
     return (
-        <Box sx={{ p: { xs: 1.75, sm: 2 }, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-            <Typography variant="caption" sx={{ display: 'block', color: accent, fontWeight: 800, letterSpacing: 1.2, mb: 0.25 }}>
-                NEW WORDS IN THIS TOPIC
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-                Read these first. Underlined words below can be tapped at any time.
-            </Typography>
-            <Stack spacing={1}>
-                {visible.map(term => (
-                    <TermEntry key={term.id} term={term} topicId={topicId} onLearn={id => actions?.openTopic(id)} />
-                ))}
-            </Stack>
-            {words.length > NEW_WORDS_SHOWN && (
-                <Button
-                    size="small"
-                    onClick={() => setShowAll(value => !value)}
-                    aria-expanded={showAll}
-                    sx={{ minHeight: TAP, mt: 0.5, px: 1, ml: -1, textTransform: 'none', fontWeight: 700, color: accent }}
-                >
-                    {showAll ? 'Show fewer' : `Show all (${words.length})`}
-                </Button>
-            )}
+        <Box>
+            <Button
+                variant="outlined"
+                onClick={() => setOpen(value => !value)}
+                aria-expanded={open}
+                aria-controls={listId}
+                endIcon={
+                    <ExpandMoreRoundedIcon sx={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 150ms' }} />
+                }
+                sx={{
+                    minHeight: TAP,
+                    px: 2,
+                    textTransform: 'none',
+                    fontWeight: 700,
+                    color: accent,
+                    borderColor: `${accent}66`,
+                    '&:hover': { borderColor: accent, bgcolor: `${accent}14` },
+                    '&:focus': { outline: 'none' },
+                    '&:focus-visible': { outline: `2px solid ${accent}`, outlineOffset: 2 },
+                }}
+            >
+                New words in this topic ({words.length})
+            </Button>
+            <Collapse in={open} id={listId}>
+                <Box sx={{ mt: 1.25, p: { xs: 1.75, sm: 2 }, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+                        Underlined words in the lesson can be tapped at any time.
+                    </Typography>
+                    <Stack spacing={1}>
+                        {words.map(term => (
+                            <TermEntry key={term.id} term={term} topicId={topicId} onLearn={id => actions?.openTopic(id)} />
+                        ))}
+                    </Stack>
+                </Box>
+            </Collapse>
         </Box>
     );
 };

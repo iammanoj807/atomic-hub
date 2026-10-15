@@ -50,7 +50,7 @@ because the app's job is to make coming back easy, not to punish a gap.
 
 ### ML Foundations
 A self-paced roadmap through machine learning and AI engineering, from scratch: eight phases
-and 97 topics, taken in order. It is also the home page. There are no dates and no weeks. The
+and 97 topics, taken in order. There are no dates and no weeks. The
 next thing to do is simply the first topic that is not yet confident.
 
 Every topic has a plain-English note (the idea, an analogy, where the analogy breaks, an

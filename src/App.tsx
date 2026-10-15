@@ -216,8 +216,8 @@ function MainLayout() {
                     <Toolbar sx={{ display: { md: 'none' } }} />
                     <IdentityBanner />
                     <Routes>
-                        {/* ML Foundations is the thing being worked on, so it is home. */}
-                        <Route path="/" element={<Navigate to="/foundations" replace />} />
+                        {/* Opening the app lands on Home, the sidebar's first item. */}
+                        <Route path="/" element={<Navigate to="/dashboard" replace />} />
                         <Route path="/dashboard" element={<Dashboard />} />
                         <Route path="/daily-tasks" element={<DailyHabitsPage />} />
                         <Route path="/evidence" element={<EvidenceLogPage />} />
