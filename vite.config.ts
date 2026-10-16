@@ -40,6 +40,12 @@ export default defineConfig({
         // Firebase Hosting's reserved /__/ URLs must always reach the server.
         navigateFallbackDenylist: [/^\/__\//],
         cleanupOutdatedCaches: true,
+        // A new deploy takes over at once. The plugin only turns these on for
+        // autoUpdate when it injects the registration itself; main.tsx
+        // registers instead, so without them every deploy waited until all
+        // tabs (and the iPhone app) were fully closed.
+        skipWaiting: true,
+        clientsClaim: true,
         // Only these are cached at runtime. Everything else, Firestore and
         // sign-in included, goes straight to the network.
         runtimeCaching: [

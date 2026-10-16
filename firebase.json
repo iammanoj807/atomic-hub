@@ -21,7 +21,7 @@
         "headers": [
           {
             "key": "Cache-Control",
-            "value": "public, max-age=15552000, immutable"
+            "value": "public, max-age=86400"
           }
         ]
       },
@@ -36,6 +36,15 @@
       },
       {
         "source": "/sw.js",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache"
+          }
+        ]
+      },
+      {
+        "regex": "^/[^.]*$",
         "headers": [
           {
             "key": "Cache-Control",

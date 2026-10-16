@@ -28,6 +28,8 @@ import ReactPlayer from 'react-player';
 // precaches it, so the installed app still opens it offline.
 const FoundationsPage = lazy(() => import('./components/FoundationsPage'));
 
+const PLAYER_CONFIG = { youtube: { start: 0, rel: 0 as const } };
+
 const PageLoading = () => (
     <Box sx={{ display: 'flex', justifyContent: 'center', py: 10 }}>
         <CircularProgress aria-label="Loading" />
@@ -263,20 +265,18 @@ function AppShell() {
                     <MainLayout />
                 </TaskProvider>
             )}
+            {/* `playing` pauses and resumes in place. Toggling `autoPlay`
+                instead rebuilt the YouTube player, so the song restarted. */}
             <ReactPlayer
                 src="https://youtu.be/5DriU6n_imk"
-                autoPlay={!isMuted}
+                playing={!isMuted}
                 loop
+                playsInline
                 volume={1}
                 width="1px"
                 height="1px"
                 style={{ position: 'fixed', bottom: 0, left: 0, opacity: 0, pointerEvents: 'none', zIndex: -1 }}
-                config={{
-                    youtube: {
-                        start: 0,
-                        rel: 0,
-                    },
-                }}
+                config={PLAYER_CONFIG}
             />
         </Box>
     );
