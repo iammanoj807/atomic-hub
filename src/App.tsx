@@ -21,14 +21,12 @@ import EvidenceLogPage from './components/EvidenceLogPage';
 import CoreStoriesPage from './components/CoreStoriesPage';
 import IdentityBanner from './components/IdentityBanner';
 import GlobalTimer from './components/GlobalTimer';
-import ReactPlayer from 'react-player';
+import BackgroundMusic from './components/BackgroundMusic';
 
 // ML Foundations carries every lesson and animation (about 1 MB), so it loads
 // as its own chunk instead of making the whole app bigger. vite.config.ts
 // precaches it, so the installed app still opens it offline.
 const FoundationsPage = lazy(() => import('./components/FoundationsPage'));
-
-const PLAYER_CONFIG = { youtube: { start: 0, rel: 0 as const } };
 
 const PageLoading = () => (
     <Box sx={{ display: 'flex', justifyContent: 'center', py: 10 }}>
@@ -265,19 +263,7 @@ function AppShell() {
                     <MainLayout />
                 </TaskProvider>
             )}
-            {/* `playing` pauses and resumes in place. Toggling `autoPlay`
-                instead rebuilt the YouTube player, so the song restarted. */}
-            <ReactPlayer
-                src="https://youtu.be/5DriU6n_imk"
-                playing={!isMuted}
-                loop
-                playsInline
-                volume={1}
-                width="1px"
-                height="1px"
-                style={{ position: 'fixed', bottom: 0, left: 0, opacity: 0, pointerEvents: 'none', zIndex: -1 }}
-                config={PLAYER_CONFIG}
-            />
+            <BackgroundMusic isMuted={isMuted} setIsMuted={setIsMuted} />
         </Box>
     );
 }
