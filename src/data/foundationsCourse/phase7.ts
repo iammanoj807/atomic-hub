@@ -256,11 +256,11 @@ export const foundationPhase7: FoundationPhase = {
         { id: 'f7-b3', text: 'Tabular Q-learning on a grid world, then REINFORCE and PPO on CartPole, with the learning curves side by side.' },
     ],
     ready: [
-        'What does each term of the ELBO do? What happens if you drop one?',
-        'Why do VAE samples tend to be blurry?',
-        'What does a diffusion model learn to predict during training, and why is generation slow?',
-        'What is the credit-assignment problem in reinforcement learning?',
-        'Why does PPO clip the probability ratio?',
-        'How is reinforcement learning used in RLHF for language models?',
+        { q: 'What does each term of the ELBO do? What happens if you drop one?', a: 'The reconstruction term, E[log p(x | z)], makes the decoder rebuild the input from its code. The KL term, KL(q(z | x) ‖ p(z)), keeps the codes close to the prior, so random codes from the prior decode to sensible samples. Drop the KL and you get a plain autoencoder: good reconstructions, but random samples are nonsense. Drop the reconstruction and the codes carry no information: everything decodes to the same average output.' },
+        { q: 'Why do VAE samples tend to be blurry?', a: 'Each image maps to a fuzzy region of codes, not a single point, and the decoder is trained with a per-pixel loss over that region. When it is unsure about a detail, the output that minimises the loss is the average of the plausible images, which looks blurred. A small latent space adds to it.' },
+        { q: 'What does a diffusion model learn to predict during training, and why is generation slow?', a: 'Given a noisy image x_t and the step t, it learns to predict the noise that was added (equivalently, the clean image), by minimising the squared error to the true noise. Generation is slow because it runs the process in reverse, step by step, from pure noise: one full network pass per step, traditionally hundreds to a thousand steps.' },
+        { q: 'What is the credit-assignment problem in reinforcement learning?', a: 'Rewards often arrive long after the actions that caused them, as in winning a chess game after 40 moves. The problem is working out which earlier actions deserve the credit or the blame. Returns with discounting, value functions learned by temporal-difference updates, and advantages are the tools that spread credit back to the right actions.' },
+        { q: 'Why does PPO clip the probability ratio?', a: 'The advantages were estimated with the old policy, so they are only trustworthy while the new policy stays close to it. Clipping the ratio π_new / π_old to [1 − ε, 1 + ε] removes the incentive to move further than that in one update: a simple trust region. It stops one batch from wrecking a good policy, and makes it safe to reuse each batch for several epochs.' },
+        { q: 'How is reinforcement learning used in RLHF for language models?', a: 'People compare pairs of model answers. A reward model is trained to predict those preferences. The language model is then the policy: it is optimised, usually with PPO, to produce answers the reward model scores highly, with a KL penalty keeping it close to the original model so it doesn\'t exploit the reward model. DPO reaches a similar result straight from the comparisons, without the separate RL step.' },
     ],
 };

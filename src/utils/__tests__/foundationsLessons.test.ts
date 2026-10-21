@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { allFoundationTopics } from '../../data/foundations';
+import { allFoundationTopics, foundationPhases, CHECK_KEYS } from '../../data/foundations';
+import { foundationAnswers } from '../../data/foundationsAnswers';
 import { foundationAnimations } from '../../data/foundationsAnimations';
 import { tweenShapes, type Shape } from '../../components/learning/anim/scene';
 import { animationProblems } from './animationChecks';
@@ -22,6 +23,24 @@ describe('foundations lessons', () => {
             if (!topic.note.example?.trim()) problems.push(`${topic.id}: no worked example`);
         }
         expect(problems).toEqual([]);
+    });
+
+    it('gives every practice exercise one good answer, and none to topics that do not exist', () => {
+        const ids = new Set(allFoundationTopics.map(t => t.id));
+        const missing = allFoundationTopics.flatMap(topic =>
+            CHECK_KEYS.filter(key => !foundationAnswers[topic.id]?.[key]?.answer.trim()).map(key => `${topic.id}: no ${key} answer`)
+        );
+        expect(missing).toEqual([]);
+        expect(Object.keys(foundationAnswers).filter(id => !ids.has(id))).toEqual([]);
+    });
+
+    it('answers every phase question it asks', () => {
+        for (const phase of foundationPhases) {
+            for (const item of phase.ready) {
+                expect(item.q.trim(), phase.id).not.toBe('');
+                expect(item.a.trim().length, `${phase.id}: ${item.q}`).toBeGreaterThan(40);
+            }
+        }
     });
 
     it('marks at most one extra per topic as worth it, always with a reason', () => {

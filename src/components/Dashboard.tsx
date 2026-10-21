@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 import EvidencePrompt from './EvidencePrompt';
+import StartHere from './StartHere';
 
 const Dashboard: React.FC = () => {
     return (
@@ -40,6 +41,9 @@ const Dashboard: React.FC = () => {
             <Box sx={{ transform: { xs: 'scale(1.05)', md: 'scale(1.25)' }, transformOrigin: 'top center', width: '100%', display: 'flex', justifyContent: 'center' }}>
                 <EvidencePrompt />
             </Box>
+
+            {/* What each part of the app is for, and the order to use it in */}
+            <StartHere />
         </Box>
     );
 };

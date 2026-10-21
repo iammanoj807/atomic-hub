@@ -373,8 +373,8 @@ export const foundationPhase0: FoundationPhase = {
         { id: 'f0-b2', text: 'Create one GitHub repo for this whole roadmap, with a folder per phase, a README and pytest set up.' },
     ],
     ready: [
-        'A is (32, 10) and B is (10, 4). What is the shape of A @ B, and why?',
-        'What happens when you add a (3, 1) array to a (1, 4) array? Draw it.',
-        'Why is softmax usually computed as exp(x − max(x))?',
+        { q: 'A is (32, 10) and B is (10, 4). What is the shape of A @ B, and why?', a: '(32, 4). For A @ B the inner sizes must match (10 and 10), and they disappear: each of the 32 rows of A is dotted with each of the 4 columns of B, giving one number per (row, column) pair.' },
+        { q: 'What happens when you add a (3, 1) array to a (1, 4) array? Draw it.', a: 'Broadcasting. Lined up from the right, 1 fits 4 and 3 fits 1, so the result is (3, 4): the column is stretched across 4 columns, the row is stretched down 3 rows, and they are added cell by cell, result[i, j] = a[i, 0] + b[0, j]. Draw a 3 × 4 grid with the column values down the left edge and the row values along the top; each cell is its row\'s value plus its column\'s value.' },
+        { q: 'Why is softmax usually computed as exp(x − max(x))?', a: 'Because exp of a large number overflows: exp(1000) is inf, and inf / inf is nan. Subtracting the largest value makes the biggest exponent exp(0) = 1, so nothing can overflow, and the answer is unchanged, because the same factor exp(−max) appears on the top and the bottom and cancels.' },
     ],
 };

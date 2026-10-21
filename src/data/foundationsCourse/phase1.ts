@@ -927,11 +927,11 @@ export const foundationPhase1: FoundationPhase = {
         { id: 'f1-b4', text: 'Fit a Gaussian with maximum likelihood. Show that the best mean is the sample mean.' },
     ],
     ready: [
-        'What does a matrix with rank lower than its size do to space?',
-        'Compute the gradient of f(x, y) = x²y + sin(y) by hand.',
-        'Why does the gradient point in the direction of steepest increase?',
-        'Show that minimising mean squared error is the same as maximum likelihood with Gaussian noise.',
-        'What is the difference between cross-entropy and KL divergence?',
-        'Explain eigenvectors to someone who has never seen a matrix.',
+        { q: 'What does a matrix with rank lower than its size do to space?', a: 'It squashes space into fewer dimensions. A 3 × 3 matrix of rank 2 flattens all of 3D space onto a plane through the origin; rank 1 flattens it onto a line. Whole directions are sent to zero, so many different inputs land on the same output: the matrix can\'t be undone (no inverse), and its determinant is 0.' },
+        { q: 'Compute the gradient of f(x, y) = x²y + sin(y) by hand.', a: 'Treat the other variable as a constant each time. ∂f/∂x = 2xy. ∂f/∂y = x² + cos(y). So ∇f = [2xy, x² + cos(y)]. At (1, 0), for example, it is [0, 2].' },
+        { q: 'Why does the gradient point in the direction of steepest increase?', a: 'The slope in any unit direction u is the directional derivative ∇f · u = |∇f| · cos(θ), where θ is the angle between u and the gradient. That is largest when θ = 0, when u points along the gradient, and the steepest slope is then |∇f|. Walking the opposite way, θ = 180°, is the steepest descent, which is what gradient descent uses.' },
+        { q: 'Show that minimising mean squared error is the same as maximum likelihood with Gaussian noise.', a: 'Assume y = f(x) + ε with ε ~ N(0, σ²). One point\'s likelihood is (1/√(2πσ²)) · exp(−(y − f(x))² / (2σ²)). The log-likelihood of all n points is −(n/2) log(2πσ²) − Σ(y − f(x))² / (2σ²). With σ fixed, the first term is a constant and the second is minus the sum of squared errors over a positive constant, so maximising the likelihood is exactly minimising Σ(y − f(x))², and so the mean squared error.' },
+        { q: 'What is the difference between cross-entropy and KL divergence?', a: 'Cross-entropy H(p, q) is the average cost of describing outcomes from p using a code built for q. KL(p ‖ q) is only the extra cost beyond the best possible, H(p): H(p, q) = H(p) + KL(p ‖ q). When p is fixed, as with training labels, H(p) is a constant, so minimising cross-entropy and minimising KL give the same gradients. KL is 0 when q = p; cross-entropy is then H(p).' },
+        { q: 'Explain eigenvectors to someone who has never seen a matrix.', a: 'Imagine a rule that moves every point in a picture, say by stretching it. Most arrows drawn on the picture end up pointing in a new direction. But a few special directions only get longer or shorter, never turned: those are the eigenvectors, and how much they are stretched is the eigenvalue. Like the axis of a spinning globe, which stays put while everything else moves.' },
     ],
 };

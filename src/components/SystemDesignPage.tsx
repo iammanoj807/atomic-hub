@@ -55,6 +55,8 @@ import {
     stepId,
     useTextSize,
     useTextSizeChoice,
+    readStudyMode,
+    writeStudyMode,
     type LearningStep,
 } from './learning/learning';
 import {
@@ -75,6 +77,8 @@ import {
 } from './learning/LearningParts';
 import { GlossaryProvider, GlossaryTopic, NewWordsBox, ProseText } from './learning/GlossaryText';
 import { GlossaryDrawer } from './learning/GlossaryDrawer';
+import { InterviewQuestionsView } from './learning/InterviewQuestions';
+import { systemDesignInterviewSet } from '../data/interviewPrep/systemDesign';
 import { MermaidDiagram } from './learning/MermaidDiagram';
 import { AnimatedScene } from './learning/anim/AnimatedScene';
 import { useTopicAnimation } from './learning/anim/useTopicAnimation';
@@ -176,29 +180,19 @@ type Marked = (section: Section) => Prose[];
 
 // ============ MODE AND FILTERS ============
 
-type Mode = 'learn' | 'revise';
+type Mode = 'learn' | 'revise' | 'interview';
+const MODES: Mode[] = ['learn', 'revise', 'interview'];
+const MODE_LABELS: Record<Mode, string> = { learn: 'Learn', revise: 'Revise', interview: 'Interview questions' };
 type PriorityFilter = 'all' | SDPriority;
 /** A phase number, or every phase at once (Revise mode only). */
 type TabValue = number | 'all';
 
 const MODE_KEY = 'system-design-mode';
 
-const readMode = (): Mode => {
-    try {
-        if (localStorage.getItem(MODE_KEY) === 'revise') return 'revise';
-    } catch {
-        // Blocked storage: start in Learn mode.
-    }
-    return 'learn';
-};
+/** The mode last used on this device, or the one a link asks for with ?mode=. */
+const readMode = (): Mode => readStudyMode(MODE_KEY, MODES);
 
-const writeMode = (mode: Mode) => {
-    try {
-        localStorage.setItem(MODE_KEY, mode);
-    } catch {
-        // Not remembered, but the switch still works for this visit.
-    }
-};
+const writeMode = (mode: Mode) => writeStudyMode(MODE_KEY, mode);
 
 const PRIORITY_FILTERS: { value: PriorityFilter; label: string }[] = [
     { value: 'all', label: 'All' },
@@ -742,13 +736,13 @@ const SystemDesignPage = () => {
                             onChange={(_, value: Mode | null) => changeMode(value)}
                             aria-label="Mode"
                         >
-                            {(['learn', 'revise'] as Mode[]).map(value => (
+                            {MODES.map(value => (
                                 <ToggleButton
                                     key={value}
                                     value={value}
                                     sx={{ minHeight: TAP, px: 3, textTransform: 'none', fontWeight: 700, '&:focus': { outline: 'none' } }}
                                 >
-                                    {value === 'learn' ? 'Learn' : 'Revise'}
+                                    {MODE_LABELS[value]}
                                 </ToggleButton>
                             ))}
                         </ToggleButtonGroup>
@@ -764,257 +758,269 @@ const SystemDesignPage = () => {
                     </Stack>
                     <GlossaryDrawer open={glossaryOpen} onClose={() => setGlossaryOpen(false)} onOpenTopic={openTopic} />
 
-                    {/* ---- STATS ---- */}
-                    <Stack direction="row" spacing={4} sx={{ mb: 3 }} flexWrap="wrap" useFlexGap>
-                        {[
-                            { value: confident, total: allSystemDesignTopics.length, label: 'TOPICS CONFIDENT', color: CONFIDENT },
-                            { value: checksDone, total: allSystemDesignTopics.length * SD_CHECK_KEYS.length, label: 'CHECKS PASSED', color: CYAN },
-                            { value: mustConfident, total: mustTopics.length, label: 'MUST-KNOW CONFIDENT', color: MUST },
-                        ].map(stat => (
-                            <Box key={stat.label}>
-                                <Typography variant="h3" fontWeight="bold" sx={{ color: stat.color, lineHeight: 1 }}>
-                                    {stat.value}
-                                    <Typography component="span" variant="h5" color="text.secondary"> / {stat.total}</Typography>
-                                </Typography>
-                                <Typography variant="caption" color="text.secondary" sx={{ letterSpacing: 1.2, fontWeight: 700 }}>
-                                    {stat.label}
-                                </Typography>
-                            </Box>
-                        ))}
-                    </Stack>
-
-                    {/* ---- NEXT UP ---- Learn mode only */}
-                    {mode === 'learn' && (
-                        <Box sx={{ p: 2.5, borderRadius: 3, mb: 3, bgcolor: 'rgba(102,187,106,0.06)', border: '1px solid rgba(102,187,106,0.3)' }}>
-                            {next ? (
-                                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'flex-start', sm: 'center' }}>
-                                    <Box sx={{ flex: 1 }}>
-                                        <Typography variant="caption" sx={{ display: 'block', color: CONFIDENT, fontWeight: 800, letterSpacing: 1.2 }}>
-                                            NEXT UP · PHASE {phaseOf(next.id).number}
-                                        </Typography>
-                                        <Typography variant="h6" fontWeight="bold" color="text.primary">
-                                            {next.name}
-                                        </Typography>
-                                        <Typography variant="body2" color="text.secondary">
-                                            {checksPassed(progress, next.id)} of 4 checks passed
-                                        </Typography>
-                                        <Typography variant="body2" sx={{ color: 'text.primary', mt: 1 }}>
-                                            Open the topic and follow Steps 1 → 4.
-                                        </Typography>
-                                    </Box>
-                                    <Button
-                                        variant="contained"
-                                        onClick={() => openTopic(next.id)}
-                                        sx={{ minHeight: TAP, px: 2.5, textTransform: 'none', fontWeight: 700 }}
-                                    >
-                                        Open topic
-                                    </Button>
-                                </Stack>
-                            ) : (
-                                <Typography variant="body1" color="text.primary" fontWeight={700}>
-                                    Every topic is confident. Keep re-testing old ones every two weeks, and untick any you fail.
-                                </Typography>
-                            )}
-                            {inProgress.length > 0 && (
-                                <>
-                                    <Typography variant="body2" color="text.secondary" sx={{ mt: 2.5, mb: 1 }}>
-                                        Also started, not finished:
+                    {mode === 'interview' ? (
+                        <InterviewQuestionsView
+                            sets={[systemDesignInterviewSet]}
+                            glossary={systemDesignGlossary}
+                            accent={CYAN}
+                            topicName={id => allSystemDesignTopics.find(topic => topic.id === id)?.name}
+                            openTopic={openTopic}
+                        />
+                    ) : (
+                        <>
+                        {/* ---- STATS ---- */}
+                        <Stack direction="row" spacing={4} sx={{ mb: 3 }} flexWrap="wrap" useFlexGap>
+                            {[
+                                { value: confident, total: allSystemDesignTopics.length, label: 'TOPICS CONFIDENT', color: CONFIDENT },
+                                { value: checksDone, total: allSystemDesignTopics.length * SD_CHECK_KEYS.length, label: 'CHECKS PASSED', color: CYAN },
+                                { value: mustConfident, total: mustTopics.length, label: 'MUST-KNOW CONFIDENT', color: MUST },
+                            ].map(stat => (
+                                <Box key={stat.label}>
+                                    <Typography variant="h3" fontWeight="bold" sx={{ color: stat.color, lineHeight: 1 }}>
+                                        {stat.value}
+                                        <Typography component="span" variant="h5" color="text.secondary"> / {stat.total}</Typography>
                                     </Typography>
-                                    <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                                        {inProgress.slice(0, MAX_IN_PROGRESS).map(topicChip)}
-                                        {inProgress.length > MAX_IN_PROGRESS && (
-                                            <Typography variant="body2" color="text.secondary" sx={{ alignSelf: 'center' }}>
-                                                and {inProgress.length - MAX_IN_PROGRESS} more
+                                    <Typography variant="caption" color="text.secondary" sx={{ letterSpacing: 1.2, fontWeight: 700 }}>
+                                        {stat.label}
+                                    </Typography>
+                                </Box>
+                            ))}
+                        </Stack>
+
+                        {/* ---- NEXT UP ---- Learn mode only */}
+                        {mode === 'learn' && (
+                            <Box sx={{ p: 2.5, borderRadius: 3, mb: 3, bgcolor: 'rgba(102,187,106,0.06)', border: '1px solid rgba(102,187,106,0.3)' }}>
+                                {next ? (
+                                    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'flex-start', sm: 'center' }}>
+                                        <Box sx={{ flex: 1 }}>
+                                            <Typography variant="caption" sx={{ display: 'block', color: CONFIDENT, fontWeight: 800, letterSpacing: 1.2 }}>
+                                                NEXT UP · PHASE {phaseOf(next.id).number}
                                             </Typography>
+                                            <Typography variant="h6" fontWeight="bold" color="text.primary">
+                                                {next.name}
+                                            </Typography>
+                                            <Typography variant="body2" color="text.secondary">
+                                                {checksPassed(progress, next.id)} of 4 checks passed
+                                            </Typography>
+                                            <Typography variant="body2" sx={{ color: 'text.primary', mt: 1 }}>
+                                                Open the topic and follow Steps 1 → 4.
+                                            </Typography>
+                                        </Box>
+                                        <Button
+                                            variant="contained"
+                                            onClick={() => openTopic(next.id)}
+                                            sx={{ minHeight: TAP, px: 2.5, textTransform: 'none', fontWeight: 700 }}
+                                        >
+                                            Open topic
+                                        </Button>
+                                    </Stack>
+                                ) : (
+                                    <Typography variant="body1" color="text.primary" fontWeight={700}>
+                                        Every topic is confident. Keep re-testing old ones every two weeks, and untick any you fail.
+                                    </Typography>
+                                )}
+                                {inProgress.length > 0 && (
+                                    <>
+                                        <Typography variant="body2" color="text.secondary" sx={{ mt: 2.5, mb: 1 }}>
+                                            Also started, not finished:
+                                        </Typography>
+                                        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                                            {inProgress.slice(0, MAX_IN_PROGRESS).map(topicChip)}
+                                            {inProgress.length > MAX_IN_PROGRESS && (
+                                                <Typography variant="body2" color="text.secondary" sx={{ alignSelf: 'center' }}>
+                                                    and {inProgress.length - MAX_IN_PROGRESS} more
+                                                </Typography>
+                                            )}
+                                        </Stack>
+                                    </>
+                                )}
+                            </Box>
+                        )}
+
+                        {/* ---- HOW TO STUDY ---- said once, and closed once read */}
+                        <Box sx={{ mb: 3 }}>
+                            <ReferencePanel title="How to study system design (read once)" tint="rgba(77,208,225,0.07)" border="rgba(77,208,225,0.25)">
+                                <Stack component="ol" spacing={1} sx={{ pl: 2.5, m: 0 }}>
+                                    {sdHowToStudy.map(line => (
+                                        <Typography key={line} component="li" variant="body2" sx={{ color: 'text.primary' }}>
+                                            {line}
+                                        </Typography>
+                                    ))}
+                                </Stack>
+                                <Typography variant="body1" sx={{ color: 'text.primary', mt: 2.5 }}>
+                                    {SD_CONFIDENT_RULE}
+                                </Typography>
+                                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5, mt: 2.5 }}>
+                                    {SD_CHECK_KEYS.map((key, index) => (
+                                        <Box key={key} sx={{ p: 1.5, borderRadius: 2, bgcolor: 'rgba(0,0,0,0.2)' }}>
+                                            <Typography variant="body2" fontWeight={800} color="text.primary">
+                                                {index + 1}. {SD_CHECK_LABELS[key]}
+                                            </Typography>
+                                            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
+                                                {SD_CHECK_MEANINGS[key]}
+                                            </Typography>
+                                        </Box>
+                                    ))}
+                                </Box>
+                            </ReferencePanel>
+                        </Box>
+
+                        {/* ---- FILTERS ---- */}
+                        <Stack
+                            direction={{ xs: 'column', sm: 'row' }}
+                            spacing={1.5}
+                            alignItems={{ xs: 'stretch', sm: 'center' }}
+                            justifyContent="space-between"
+                            sx={{ mb: 2 }}
+                            useFlexGap
+                        >
+                            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap role="group" aria-label="Filter by priority">
+                                {PRIORITY_FILTERS.map(filter => {
+                                    const selected = priority === filter.value;
+                                    const color = filter.value === 'must' ? MUST : CYAN;
+                                    return (
+                                        <Chip
+                                            key={filter.value}
+                                            label={filter.label}
+                                            onClick={() => setPriority(filter.value)}
+                                            aria-pressed={selected}
+                                            sx={{
+                                                height: TAP,
+                                                px: 0.5,
+                                                borderRadius: TAP / 2,
+                                                fontSize: px(t.small),
+                                                fontWeight: 700,
+                                                color: selected ? '#0b0f14' : 'text.secondary',
+                                                bgcolor: selected ? color : 'rgba(255,255,255,0.05)',
+                                                border: '1px solid',
+                                                borderColor: selected ? 'transparent' : 'rgba(255,255,255,0.14)',
+                                                '&:hover': { bgcolor: selected ? color : 'rgba(255,255,255,0.1)' },
+                                            }}
+                                        />
+                                    );
+                                })}
+                            </Stack>
+                            <TextField
+                                type="search"
+                                value={query}
+                                onChange={event => setQuery(event.target.value)}
+                                placeholder="Search topics"
+                                sx={{ width: { xs: '100%', sm: 280 }, '& .MuiInputBase-root': { minHeight: TAP } }}
+                                slotProps={{
+                                    htmlInput: { 'aria-label': 'Search topics by name or definition' },
+                                    input: {
+                                        startAdornment: (
+                                            <InputAdornment position="start">
+                                                <SearchRoundedIcon sx={{ color: 'text.secondary' }} />
+                                            </InputAdornment>
+                                        ),
+                                    },
+                                }}
+                            />
+                        </Stack>
+
+                        {/* ---- PHASES ---- */}
+                        <Tabs
+                            value={tab}
+                            onChange={(_, value: TabValue) => { setChosenTab(value); setExpanded(null); }}
+                            variant="scrollable"
+                            scrollButtons="auto"
+                            allowScrollButtonsMobile
+                            sx={{
+                                mb: 3,
+                                borderBottom: 1,
+                                borderColor: 'rgba(255,255,255,0.08)',
+                                '& .MuiTab-root': { minHeight: TAP, textTransform: 'none', fontWeight: 700, fontSize: px(t.small), '&:focus': { outline: 'none' } },
+                            }}
+                        >
+                            {mode === 'revise' && <Tab value="all" label="All phases" />}
+                            {systemDesignPhases.map(p => (
+                                <Tab key={p.id} value={p.number} label={`${p.number} ${p.short} · ${confidentCount(progress, p.topics)}/${p.topics.length}`} />
+                            ))}
+                        </Tabs>
+
+                        {mode === 'learn' ? (
+                            <Box sx={{ pb: 6 }}>
+                                {/* Title and goal */}
+                                <Typography variant="caption" sx={{ color: phase.accent, fontWeight: 800, letterSpacing: 1.2 }}>
+                                    PHASE {phase.number}
+                                </Typography>
+                                <Typography variant="h4" fontWeight="bold" color="text.primary" sx={{ mt: 0.5, mb: 1 }}>
+                                    {phase.title}
+                                </Typography>
+                                <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 760 }}>
+                                    {phase.goal}
+                                </Typography>
+
+                                <Stack direction="row" spacing={2} alignItems="center" sx={{ mt: 2.5, maxWidth: 760 }}>
+                                    <LinearProgress
+                                        variant="determinate"
+                                        value={(phaseConfident / phase.topics.length) * 100}
+                                        sx={{ flex: 1, height: 4, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.06)', '& .MuiLinearProgress-bar': { bgcolor: CONFIDENT } }}
+                                    />
+                                    <Typography color="text.secondary" sx={{ whiteSpace: 'nowrap', fontSize: px(t.small) }}>
+                                        {phaseConfident} of {phase.topics.length} confident
+                                    </Typography>
+                                </Stack>
+
+                                {/* Big picture */}
+                                <Box sx={{ mt: 3, p: 2, borderRadius: 2, maxWidth: 760, bgcolor: `${phase.accent}14`, borderLeft: '3px solid', borderColor: phase.accent }}>
+                                    <Typography variant="body1">
+                                        <strong style={{ color: phase.accent }}>The big picture.</strong> {phase.bigPicture}
+                                    </Typography>
+                                </Box>
+
+                                {/* Topics */}
+                                <SectionLabel>TOPICS, IN ORDER</SectionLabel>
+                                {phase.topics.some(matches) ? (
+                                    <Stack spacing={1.25}>
+                                        {phase.topics.map((topic, index) =>
+                                            matches(topic) && (
+                                                <TopicCard
+                                                    key={topic.id}
+                                                    topic={topic}
+                                                    number={index + 1}
+                                                    accent={phase.accent}
+                                                    progress={progress}
+                                                    expanded={expanded === topic.id}
+                                                    onExpand={open => setExpanded(open ? topic.id : null)}
+                                                    onToggleCheck={check => { void toggleCheck(topic.id, check); }}
+                                                />
+                                            )
                                         )}
                                     </Stack>
-                                </>
-                            )}
-                        </Box>
-                    )}
-
-                    {/* ---- HOW TO STUDY ---- said once, and closed once read */}
-                    <Box sx={{ mb: 3 }}>
-                        <ReferencePanel title="How to study system design (read once)" tint="rgba(77,208,225,0.07)" border="rgba(77,208,225,0.25)">
-                            <Stack component="ol" spacing={1} sx={{ pl: 2.5, m: 0 }}>
-                                {sdHowToStudy.map(line => (
-                                    <Typography key={line} component="li" variant="body2" sx={{ color: 'text.primary' }}>
-                                        {line}
-                                    </Typography>
-                                ))}
-                            </Stack>
-                            <Typography variant="body1" sx={{ color: 'text.primary', mt: 2.5 }}>
-                                {SD_CONFIDENT_RULE}
-                            </Typography>
-                            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5, mt: 2.5 }}>
-                                {SD_CHECK_KEYS.map((key, index) => (
-                                    <Box key={key} sx={{ p: 1.5, borderRadius: 2, bgcolor: 'rgba(0,0,0,0.2)' }}>
-                                        <Typography variant="body2" fontWeight={800} color="text.primary">
-                                            {index + 1}. {SD_CHECK_LABELS[key]}
-                                        </Typography>
-                                        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
-                                            {SD_CHECK_MEANINGS[key]}
-                                        </Typography>
-                                    </Box>
-                                ))}
+                                ) : (
+                                    noMatches
+                                )}
                             </Box>
-                        </ReferencePanel>
-                    </Box>
-
-                    {/* ---- FILTERS ---- */}
-                    <Stack
-                        direction={{ xs: 'column', sm: 'row' }}
-                        spacing={1.5}
-                        alignItems={{ xs: 'stretch', sm: 'center' }}
-                        justifyContent="space-between"
-                        sx={{ mb: 2 }}
-                        useFlexGap
-                    >
-                        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap role="group" aria-label="Filter by priority">
-                            {PRIORITY_FILTERS.map(filter => {
-                                const selected = priority === filter.value;
-                                const color = filter.value === 'must' ? MUST : CYAN;
-                                return (
-                                    <Chip
-                                        key={filter.value}
-                                        label={filter.label}
-                                        onClick={() => setPriority(filter.value)}
-                                        aria-pressed={selected}
-                                        sx={{
-                                            height: TAP,
-                                            px: 0.5,
-                                            borderRadius: TAP / 2,
-                                            fontSize: px(t.small),
-                                            fontWeight: 700,
-                                            color: selected ? '#0b0f14' : 'text.secondary',
-                                            bgcolor: selected ? color : 'rgba(255,255,255,0.05)',
-                                            border: '1px solid',
-                                            borderColor: selected ? 'transparent' : 'rgba(255,255,255,0.14)',
-                                            '&:hover': { bgcolor: selected ? color : 'rgba(255,255,255,0.1)' },
-                                        }}
-                                    />
-                                );
-                            })}
-                        </Stack>
-                        <TextField
-                            type="search"
-                            value={query}
-                            onChange={event => setQuery(event.target.value)}
-                            placeholder="Search topics"
-                            sx={{ width: { xs: '100%', sm: 280 }, '& .MuiInputBase-root': { minHeight: TAP } }}
-                            slotProps={{
-                                htmlInput: { 'aria-label': 'Search topics by name or definition' },
-                                input: {
-                                    startAdornment: (
-                                        <InputAdornment position="start">
-                                            <SearchRoundedIcon sx={{ color: 'text.secondary' }} />
-                                        </InputAdornment>
-                                    ),
-                                },
-                            }}
-                        />
-                    </Stack>
-
-                    {/* ---- PHASES ---- */}
-                    <Tabs
-                        value={tab}
-                        onChange={(_, value: TabValue) => { setChosenTab(value); setExpanded(null); }}
-                        variant="scrollable"
-                        scrollButtons="auto"
-                        allowScrollButtonsMobile
-                        sx={{
-                            mb: 3,
-                            borderBottom: 1,
-                            borderColor: 'rgba(255,255,255,0.08)',
-                            '& .MuiTab-root': { minHeight: TAP, textTransform: 'none', fontWeight: 700, fontSize: px(t.small), '&:focus': { outline: 'none' } },
-                        }}
-                    >
-                        {mode === 'revise' && <Tab value="all" label="All phases" />}
-                        {systemDesignPhases.map(p => (
-                            <Tab key={p.id} value={p.number} label={`${p.number} ${p.short} · ${confidentCount(progress, p.topics)}/${p.topics.length}`} />
-                        ))}
-                    </Tabs>
-
-                    {mode === 'learn' ? (
-                        <Box sx={{ pb: 6 }}>
-                            {/* Title and goal */}
-                            <Typography variant="caption" sx={{ color: phase.accent, fontWeight: 800, letterSpacing: 1.2 }}>
-                                PHASE {phase.number}
-                            </Typography>
-                            <Typography variant="h4" fontWeight="bold" color="text.primary" sx={{ mt: 0.5, mb: 1 }}>
-                                {phase.title}
-                            </Typography>
-                            <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 760 }}>
-                                {phase.goal}
-                            </Typography>
-
-                            <Stack direction="row" spacing={2} alignItems="center" sx={{ mt: 2.5, maxWidth: 760 }}>
-                                <LinearProgress
-                                    variant="determinate"
-                                    value={(phaseConfident / phase.topics.length) * 100}
-                                    sx={{ flex: 1, height: 4, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.06)', '& .MuiLinearProgress-bar': { bgcolor: CONFIDENT } }}
-                                />
-                                <Typography color="text.secondary" sx={{ whiteSpace: 'nowrap', fontSize: px(t.small) }}>
-                                    {phaseConfident} of {phase.topics.length} confident
-                                </Typography>
-                            </Stack>
-
-                            {/* Big picture */}
-                            <Box sx={{ mt: 3, p: 2, borderRadius: 2, maxWidth: 760, bgcolor: `${phase.accent}14`, borderLeft: '3px solid', borderColor: phase.accent }}>
-                                <Typography variant="body1">
-                                    <strong style={{ color: phase.accent }}>The big picture.</strong> {phase.bigPicture}
-                                </Typography>
+                        ) : (
+                            <Box sx={{ pb: 6 }}>
+                                {visiblePhases.some(p => p.topics.some(matches)) ? (
+                                    visiblePhases.map(p => {
+                                        const shown = p.topics.filter(matches);
+                                        if (shown.length === 0) return null;
+                                        return (
+                                            <Box key={p.id} sx={{ mb: 4 }}>
+                                                <Typography variant="caption" sx={{ display: 'block', color: p.accent, fontWeight: 800, letterSpacing: 1.2 }}>
+                                                    PHASE {p.number}
+                                                </Typography>
+                                                <Typography variant="h5" fontWeight="bold" color="text.primary" sx={{ mt: 0.25, mb: 2 }}>
+                                                    {p.title}
+                                                </Typography>
+                                                <Stack spacing={2}>
+                                                    {shown.map(topic => (
+                                                        <ReviseCard key={topic.id} topic={topic} accent={p.accent} onOpen={() => openTopic(topic.id)} />
+                                                    ))}
+                                                </Stack>
+                                            </Box>
+                                        );
+                                    })
+                                ) : (
+                                    noMatches
+                                )}
                             </Box>
-
-                            {/* Topics */}
-                            <SectionLabel>TOPICS, IN ORDER</SectionLabel>
-                            {phase.topics.some(matches) ? (
-                                <Stack spacing={1.25}>
-                                    {phase.topics.map((topic, index) =>
-                                        matches(topic) && (
-                                            <TopicCard
-                                                key={topic.id}
-                                                topic={topic}
-                                                number={index + 1}
-                                                accent={phase.accent}
-                                                progress={progress}
-                                                expanded={expanded === topic.id}
-                                                onExpand={open => setExpanded(open ? topic.id : null)}
-                                                onToggleCheck={check => { void toggleCheck(topic.id, check); }}
-                                            />
-                                        )
-                                    )}
-                                </Stack>
-                            ) : (
-                                noMatches
-                            )}
-                        </Box>
-                    ) : (
-                        <Box sx={{ pb: 6 }}>
-                            {visiblePhases.some(p => p.topics.some(matches)) ? (
-                                visiblePhases.map(p => {
-                                    const shown = p.topics.filter(matches);
-                                    if (shown.length === 0) return null;
-                                    return (
-                                        <Box key={p.id} sx={{ mb: 4 }}>
-                                            <Typography variant="caption" sx={{ display: 'block', color: p.accent, fontWeight: 800, letterSpacing: 1.2 }}>
-                                                PHASE {p.number}
-                                            </Typography>
-                                            <Typography variant="h5" fontWeight="bold" color="text.primary" sx={{ mt: 0.25, mb: 2 }}>
-                                                {p.title}
-                                            </Typography>
-                                            <Stack spacing={2}>
-                                                {shown.map(topic => (
-                                                    <ReviseCard key={topic.id} topic={topic} accent={p.accent} onOpen={() => openTopic(topic.id)} />
-                                                ))}
-                                            </Stack>
-                                        </Box>
-                                    );
-                                })
-                            ) : (
-                                noMatches
-                            )}
-                        </Box>
+                        )}
+                        </>
                     )}
                 </Box>
             </GlossaryProvider>

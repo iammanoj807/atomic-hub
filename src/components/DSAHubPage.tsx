@@ -24,6 +24,7 @@ import SchoolRoundedIcon from '@mui/icons-material/SchoolRounded';
 import LocalFireDepartmentRoundedIcon from '@mui/icons-material/LocalFireDepartmentRounded';
 import StyleRoundedIcon from '@mui/icons-material/StyleRounded';
 import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded';
+import RecordVoiceOverRoundedIcon from '@mui/icons-material/RecordVoiceOverRounded';
 
 import { dsaCurriculum, getTotalTopics, getTotalProblems } from '../data/dsaCurriculum';
 import type { DSATopic } from '../data/dsaCurriculum';
@@ -359,7 +360,7 @@ const DSAHubPage = () => {
             </Stack>
 
             {/* Recognition: the drill and the cheat sheet */}
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5, mb: 3 }}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr' }, gap: 1.5, mb: 3 }}>
                 {[
                     {
                         to: '/dsa/drill',
@@ -374,6 +375,13 @@ const DSAHubPage = () => {
                         title: 'Which pattern? cheat sheet',
                         note: 'Three questions, two diagrams, every pattern at a glance.',
                         colour: '#ffca28',
+                    },
+                    {
+                        to: '/dsa/interview',
+                        icon: <RecordVoiceOverRoundedIcon />,
+                        title: 'Coding interview questions',
+                        note: 'How to approach any problem, and the fundamentals they ask, with answers.',
+                        colour: '#ce93d8',
                     },
                 ].map(link => (
                     <ButtonBase

@@ -8,7 +8,8 @@
 //     mistakes,
 //   - a Mermaid picture, plus an animation (foundationsAnimations/),
 //   - quick questions WITH answers, to check you understood,
-//   - one practice exercise for each of the four checks. No answers, on purpose,
+//   - one practice exercise for each of the four checks, each with one good
+//     answer (foundationsAnswers/) that stays hidden until asked for,
 //   - free resources, all optional. A resource marked `recommended` is the one
 //     extra worth your time, and says why.
 //
@@ -64,7 +65,7 @@ export interface LoopStep {
 export const topicLoop: LoopStep[] = [
     { step: 'UNDERSTAND', detail: 'The lesson: play the animation, then read the idea, the steps, the worked example and the common mistakes. It is written to be enough on its own.' },
     { step: 'GO FURTHER', detail: 'Optional. Free videos, visual explainers and readings for a second explanation. If one is marked "Worth it", that is the one to pick, and it says why.' },
-    { step: 'PRACTISE', detail: "The four exercises. No answers are given. Try first, then ask Claude to 'check my answer'." },
+    { step: 'PRACTISE', detail: 'The four exercises. Try each one yourself first, then tap "Show answer" to check yours against one good answer.' },
     { step: 'PROVE', detail: 'Tick each check only when you can do it without notes. Re-test old topics every two weeks, and untick any you fail.' },
 ];
 
@@ -126,6 +127,17 @@ export interface TopicNote {
 
 export type TopicPractice = Record<CheckKey, string>;
 
+/** One good answer to a practice exercise, kept hidden until you have tried it yourself. */
+export interface PracticeAnswer {
+    /** The answer in plain words. A blank line starts a new paragraph. */
+    answer: string;
+    /** Code that has been run, when the answer is a program or a picture. */
+    code?: string;
+    codeLanguage?: 'python' | 'bash' | 'text';
+}
+
+export type TopicAnswers = Record<CheckKey, PracticeAnswer>;
+
 /** A picture of the idea, in Mermaid syntax, and a sentence on how to read it. */
 export interface TopicDiagram {
     code: string;
@@ -178,8 +190,8 @@ export interface FoundationPhase {
     deeper: FoundationResource[];
     topics: FoundationTopic[];
     builds: MiniBuild[];
-    /** Interview-style questions. Answer out loud before looking anything up. */
-    ready: string[];
+    /** Interview-style questions, with short answers to compare yours against. Answer out loud first. */
+    ready: TopicFollowUp[];
 }
 
 export const foundationPhases: FoundationPhase[] = [

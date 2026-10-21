@@ -160,11 +160,12 @@ const Sidebar = () => {
         || location.pathname.startsWith('/core-stories');
     const isDSAActive = location.pathname.startsWith('/dsa');
 
-    // The study pages, grouped under Technical Skills.
+    // The study pages, grouped under Technical Skills. Matched by path alone,
+    // so a link such as /sql?mode=interview still highlights its page.
     const technicalSkills = [
-        { path: '/foundations', label: 'ML Foundations', Icon: SchoolRoundedIcon, active: isActive('/foundations') },
-        { path: '/system-design', label: 'System Design', Icon: ArchitectureRoundedIcon, active: isActive('/system-design') },
-        { path: '/sql', label: 'SQL', Icon: StorageRoundedIcon, active: isActive('/sql') },
+        { path: '/foundations', label: 'ML Foundations', Icon: SchoolRoundedIcon, active: location.pathname === '/foundations' },
+        { path: '/system-design', label: 'System Design', Icon: ArchitectureRoundedIcon, active: location.pathname === '/system-design' },
+        { path: '/sql', label: 'SQL', Icon: StorageRoundedIcon, active: location.pathname === '/sql' },
         { path: '/dsa', label: 'NeetCode 150', Icon: CodeRoundedIcon, active: isDSAActive },
     ];
     const isTechActive = technicalSkills.some(skill => skill.active);

@@ -527,8 +527,8 @@ export const foundationPhase6: FoundationPhase = {
         { id: 'f6-b3', text: 'Quantise your model to int8. Measure speed and quality.' },
     ],
     ready: [
-        'How much memory does a 7B model need for inference in bf16? For training with Adam?',
-        'Is your training compute-bound or memory-bound? How can you tell?',
-        'What does quantisation trade away?',
+        { q: 'How much memory does a 7B model need for inference in bf16? For training with Adam?', a: 'Inference: 7B × 2 bytes = 14 GB for the weights, plus the KV cache and activations. Training with Adam in mixed precision: about 16 bytes per parameter (weights, gradients, a full-precision copy and two Adam states), so about 112 GB before activations, which needs several GPUs, sharding of the optimiser state, or a method like LoRA.' },
+        { q: 'Is your training compute-bound or memory-bound? How can you tell?', a: 'Profile it. If most time is in large matrix multiplies and the achieved FLOPs per second are close to the GPU\'s peak, it is compute-bound. If most time is in element-wise and normalisation operations, with low FLOPs per second but high memory traffic, it is memory-bound. If the GPU sits idle between steps, it is neither: it is waiting for data or for Python. Comparing an operation\'s arithmetic intensity with the GPU\'s ratio of compute to bandwidth predicts which it will be.' },
+        { q: 'What does quantisation trade away?', a: 'Precision: each weight (and sometimes activation) is rounded to fewer bits, which adds small errors. Usually the quality loss is small, but it can be larger with outlier values, at very low bit widths, or on demanding tasks like long reasoning. It may also need calibration data and special kernels. In return you get much less memory and faster inference.' },
     ],
 };

@@ -105,6 +105,31 @@ export const useTextSizeChoice = () => {
 
 // ============ SMALL HELPERS ============
 
+/**
+ * A study page's mode (such as Learn or Interview). A link can ask for one
+ * with ?mode=interview; otherwise the page opens in the mode last used on
+ * this device, or the first one.
+ */
+export const readStudyMode = <M extends string>(key: string, modes: readonly M[]): M => {
+    try {
+        const asked = new URLSearchParams(window.location.search).get('mode');
+        if (asked && (modes as readonly string[]).includes(asked)) return asked as M;
+        const saved = localStorage.getItem(key);
+        if (saved && (modes as readonly string[]).includes(saved)) return saved as M;
+    } catch {
+        // Blocked storage: start in the first mode.
+    }
+    return modes[0];
+};
+
+export const writeStudyMode = (key: string, mode: string) => {
+    try {
+        localStorage.setItem(key, mode);
+    } catch {
+        // Not remembered, but the switch still works for this visit.
+    }
+};
+
 export const scrollToId = (id: string) =>
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 

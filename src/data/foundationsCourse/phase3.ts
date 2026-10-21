@@ -940,11 +940,11 @@ export const foundationPhase3: FoundationPhase = {
         { id: 'f3-b4', text: 'A CNN on CIFAR-10 in PyTorch, then add residual blocks. Keep an experiment log: what you changed, what happened, and why.' },
     ],
     ready: [
-        'Derive backprop for a 2-layer network with softmax and cross-entropy.',
-        'Why do we need non-linear activation functions?',
-        'What does Adam do that plain SGD does not?',
-        'Batch norm vs layer norm: what gets normalised, and when do you use each?',
-        'Your loss becomes NaN after 200 steps. What do you check, in order?',
-        'Why do residual connections make deep networks trainable?',
+        { q: 'Derive backprop for a 2-layer network with softmax and cross-entropy.', a: 'Forward: z₁ = XW₁ + b₁, h = relu(z₁), z₂ = hW₂ + b₂, p = softmax(z₂), L = −mean log p[correct]. Backward, with Y one-hot and n examples: dz₂ = (p − Y) / n; dW₂ = hᵀ dz₂; db₂ = sum of dz₂ over the batch; dh = dz₂ W₂ᵀ; dz₁ = dh ⊙ (z₁ > 0); dW₁ = Xᵀ dz₁; db₁ = sum of dz₁. Check it with a numerical gradient checker.' },
+        { q: 'Why do we need non-linear activation functions?', a: 'Without them, stacked linear layers collapse into one: W₂(W₁x) = (W₂W₁)x, so a deep network could only draw straight boundaries. A non-linearity between layers, such as ReLU, lets each layer bend the space, so the network can represent curved, complicated functions.' },
+        { q: 'What does Adam do that plain SGD does not?', a: 'Two things. Momentum: it follows a running average of recent gradients, so noise cancels and consistent directions speed up. And a per-weight step size: it divides each weight\'s step by the running root-mean-square of its gradients, so steep, noisy directions take small steps and flat ones larger steps. Bias correction fixes the first steps. The cost: two extra numbers stored per weight.' },
+        { q: 'Batch norm vs layer norm: what gets normalised, and when do you use each?', a: 'Batch norm normalises each feature across the examples in the batch; it needs reasonably large batches and uses running averages at inference, and it suits CNNs. Layer norm normalises each example across its own features; it doesn\'t depend on the batch at all, behaves the same in training and inference, and suits transformers, RNNs and small batches.' },
+        { q: 'Your loss becomes NaN after 200 steps. What do you check, in order?', a: '1. The learning rate: lower it, add warm-up, and clip gradients. 2. The data: any NaN or inf values, or broken labels, in the batch where it happened. 3. Unsafe maths: log(0), division by zero, exp overflow; use stable versions such as log-softmax. 4. Precision: fp16 overflow; use bf16 or a gradient scaler. Print gradient norms per layer to see where it first explodes.' },
+        { q: 'Why do residual connections make deep networks trainable?', a: 'A residual block outputs x + F(x), so its gradient is 1 + F′(x). The 1 is a direct path for the gradient, so it doesn\'t vanish however many blocks you stack, and each block only has to learn a small correction to the identity. That is what lets networks with 50 or 100+ layers train well.' },
     ],
 };

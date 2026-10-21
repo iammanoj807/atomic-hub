@@ -17,6 +17,7 @@ import SystemDesignPage from './components/SystemDesignPage';
 import SqlPage from './components/SqlPage';
 import PatternDrillPage from './components/PatternDrillPage';
 import DSAPatternsPage from './components/DSAPatternsPage';
+import DSAInterviewPage from './components/DSAInterviewPage';
 import EvidenceLogPage from './components/EvidenceLogPage';
 import CoreStoriesPage from './components/CoreStoriesPage';
 import IdentityBanner from './components/IdentityBanner';
@@ -224,6 +225,7 @@ function MainLayout() {
                         <Route path="/dsa" element={<DSAHubPage />} />
                         <Route path="/dsa/drill" element={<PatternDrillPage />} />
                         <Route path="/dsa/patterns" element={<DSAPatternsPage />} />
+                        <Route path="/dsa/interview" element={<DSAInterviewPage />} />
                         <Route path="/dsa/:topicId" element={<DSATopicDetailPage />} />
                         <Route path="/foundations" element={<Suspense fallback={<PageLoading />}><FoundationsPage /></Suspense>} />
                         <Route path="/system-design" element={<SystemDesignPage />} />

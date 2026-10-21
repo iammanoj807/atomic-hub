@@ -1006,11 +1006,11 @@ export const foundationPhase2: FoundationPhase = {
         { id: 'f2-b3', text: 'Solve 20 classical ML problems on Deep-ML.' },
     ],
     ready: [
-        'On a whiteboard: logistic regression model, loss, gradient and update rule.',
-        'Your fraud model has 99% accuracy. Why might it be useless?',
-        'Explain overfitting and three ways to reduce it.',
-        'Why does L1 regularisation give sparse weights, but L2 does not?',
-        'How does a random forest reduce variance?',
-        'What is data leakage? Give a real example.',
+        { q: 'On a whiteboard: logistic regression model, loss, gradient and update rule.', a: 'Model: p = σ(wᵀx + b), where σ(z) = 1 / (1 + e⁻ᶻ). Loss (binary cross-entropy): L = −(1/n) Σ [y log p + (1 − y) log(1 − p)]. Gradient: ∇w = (1/n) Xᵀ(p − y) and ∂L/∂b = mean(p − y). Update: w ← w − η ∇w and b ← b − η ∂L/∂b, repeated until the loss stops improving.' },
+        { q: 'Your fraud model has 99% accuracy. Why might it be useless?', a: 'If only 1% of transactions are fraud, a model that always says "not fraud" is 99% accurate and catches no fraud at all. Accuracy is dominated by the easy majority. Look at recall and precision for the fraud class, the confusion matrix, and the precision–recall curve instead.' },
+        { q: 'Explain overfitting and three ways to reduce it.', a: 'Overfitting is when a model learns the noise and quirks of its training data instead of the real pattern: it scores well on training data and badly on new data, and the gap between training and validation error is the sign. Three fixes: more (or augmented) data; regularisation, such as L2 weight decay or dropout; and a simpler model or early stopping at the lowest validation loss.' },
+        { q: 'Why does L1 regularisation give sparse weights, but L2 does not?', a: 'L1\'s penalty pushes every weight towards zero with the same force, λ·sign(w), however small the weight is, so small weights are pushed all the way to exactly 0. L2\'s push, 2λw, shrinks as the weight shrinks, so weights get small but almost never reach exactly 0. Geometrically, the L1 constraint region has corners on the axes, and the best point often lands on a corner, where some weights are 0.' },
+        { q: 'How does a random forest reduce variance?', a: 'It averages many deep trees, each trained on a different bootstrap sample and choosing from a random subset of features at each split. Each tree overfits in its own way, so averaging cancels much of the noise. The random features make the trees less alike, which matters because averaging only removes the part of the errors that differs between trees.' },
+        { q: 'What is data leakage? Give a real example.', a: 'Leakage is when information that won\'t be available at prediction time gets into training or evaluation, so the model looks much better than it really is. Real examples: scaling features with the mean of the whole dataset, test rows included; a churn model using "date the account was closed"; the same patient\'s scans in both the training and the test set.' },
     ],
 };

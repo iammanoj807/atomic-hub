@@ -55,9 +55,12 @@ next thing to do is simply the first topic that is not yet confident.
 
 Every topic has a plain-English note (the idea, an analogy, where the analogy breaks, an
 example), its own resources to watch, read and code with, and one practice exercise for each
-of four checks: **Explain**, **Derive**, **Build**, **Break**. A topic counts only when all four
-are ticked without notes, and ticks come off again when an old topic fails its re-test.
-Original papers are marked optional, to come back to once the foundations are solid.
+of four checks: **Explain**, **Derive**, **Build**, **Break**. Every exercise has one good
+answer behind a **Show answer** tap, so it can be tried first and checked after; every code
+answer has been run, and the numbers it quotes are the ones it printed. A topic counts only
+when all four are ticked without notes, and ticks come off again when an old topic fails its
+re-test. Each phase ends with interview-style questions, also with hidden answers. Original
+papers are marked optional, to come back to once the foundations are solid.
 
 ### System Design
 High-level, low-level and AI/ML system design, from the building blocks to full design
@@ -65,6 +68,16 @@ questions: ten phases and 72 topics. Every topic has a diagram, a plain-English 
 a spoken interview answer and follow-up questions with answers. Technical words are
 underlined; tap one to see what it means. **Learn** mode takes one topic at a time;
 **Revise** mode lays the interview notes out flat for the night before.
+
+### Interview questions
+ML Foundations, System Design and SQL each have an **Interview questions** mode, and the DSA
+hub has a page of coding-interview questions: 61 in all, beginner to advanced, many of them
+"it broke, what do you do?" scenarios (a RAG system that suddenly gives wrong answers, a
+database that falls over when the cache restarts, a double charge). Each answer is hidden
+until asked for and comes with what the interviewer is checking, the answer to say out loud,
+an analogy, a diagram, the steps to work through, traps, follow-up questions, and links back to
+the lessons it is built on. The Interview Hub links to all four; `?mode=interview` opens a
+study page in that mode.
 
 ### SQL
 SQL from a first `SELECT` to interview problems: nine phases, 47 lessons and 14 classic
@@ -79,6 +92,9 @@ any query whose row order depends on luck rather than `ORDER BY`. Interview prob
 their solution hidden until you have tried.
 
 ### Also
+The home page has a **Start here** map: what each part of the app is for, an order to take
+the study pages in as a beginner, and where interview practice lives. It folds away once read.
+
 A global Pomodoro timer that keeps running as you move between pages, daily habits with
 streaks and a year of history, and a DSA hub tracking NeetCode 150, with pattern guides and
 a "Which pattern?" drill.
