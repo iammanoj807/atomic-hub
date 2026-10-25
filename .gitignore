@@ -27,4 +27,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-public/Golden Gate Video.mp4
+
+# Firebase deploy cache
+.firebase/
