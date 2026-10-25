@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
-import { Box, Button, CircularProgress, Stack, TextField, Typography } from '@mui/material';
+import { Box, Button, CircularProgress, IconButton, Stack, TextField, Typography } from '@mui/material';
+import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
 import RestartAltRoundedIcon from '@mui/icons-material/RestartAltRounded';
 import HistoryRoundedIcon from '@mui/icons-material/HistoryRounded';
@@ -331,20 +332,17 @@ export const SqlRunBox = ({
                     {showHistory && (
                         <Stack spacing={1} sx={{ mt: 0.5 }}>
                             {history.map(entry => (
-                                <SavedQueryCard key={entry.id} entry={entry}>
-                                    <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mt: 0.5, ml: -1 }}>
-                                        <Button
-                                            size="small"
-                                            onClick={() => {
-                                                replaceText(entry.sql);
-                                                inputRef.current?.focus();
-                                            }}
-                                            sx={{ minHeight: TAP, px: 1, textTransform: 'none', fontWeight: 700, color: accent, fontSize: px(t.small) }}
-                                        >
-                                            Put it back in the box
-                                        </Button>
-                                        <DeleteButton onDelete={() => removeSaved(entry.id)} />
-                                    </Stack>
+                                <SavedQueryCard key={entry.id} entry={entry} onDelete={() => removeSaved(entry.id)}>
+                                    <Button
+                                        size="small"
+                                        onClick={() => {
+                                            replaceText(entry.sql);
+                                            inputRef.current?.focus();
+                                        }}
+                                        sx={{ minHeight: TAP, px: 1, ml: -1, textTransform: 'none', fontWeight: 700, color: accent, fontSize: px(t.small) }}
+                                    >
+                                        Put it back in the box
+                                    </Button>
                                 </SavedQueryCard>
                             ))}
                         </Stack>
@@ -385,7 +383,8 @@ export const SavedQueriesPanel = ({ accent, openTopic }: { accent: string; openT
             <Typography variant="body2" sx={{ color: 'text.primary' }}>
                 Every query you wrote (or changed) and ran is saved here automatically, newest first, with the topic and the step
                 you ran it in. Running the same query again in the same place moves it to the top instead of saving a copy.
-                The newest {MAX_SAVED_QUERIES} are kept.
+                The newest {MAX_SAVED_QUERIES} are kept, in your account rather than this browser, so clearing cookies or
+                browser data doesn't lose them. Tap × on one to delete it.
             </Typography>
             <TextField
                 size="small"
@@ -416,8 +415,8 @@ export const SavedQueriesPanel = ({ accent, openTopic }: { accent: string; openT
                     </Stack>
                     <Stack spacing={1}>
                         {group.entries.map(entry => (
-                            <SavedQueryCard key={entry.id} entry={entry} showPlace>
-                                <SavedQueryActions sql={entry.sql} accent={accent} onDelete={() => store?.remove(entry.id)} />
+                            <SavedQueryCard key={entry.id} entry={entry} showPlace onDelete={() => store?.remove(entry.id)}>
+                                <TrySavedQuery sql={entry.sql} accent={accent} />
                             </SavedQueryCard>
                         ))}
                     </Stack>
@@ -427,60 +426,47 @@ export const SavedQueriesPanel = ({ accent, openTopic }: { accent: string; openT
     );
 };
 
-/** Delete a saved query, after a second tap so one slip doesn't lose it. */
-const DeleteButton = ({ onDelete }: { onDelete: () => void }) => {
+/** Run a saved query again, without saving it a second time. */
+const TrySavedQuery = ({ sql, accent }: { sql: string; accent: string }) => {
     const t = useTextSize();
-    const [confirming, setConfirming] = useState(false);
-    return (
+    const [trying, setTrying] = useState(false);
+    return trying ? (
+        <Box sx={{ mt: 1 }}>
+            <SqlRunBox initialSql={sql} accent={accent} />
+        </Box>
+    ) : (
         <Button
             size="small"
-            onClick={() => (confirming ? onDelete() : setConfirming(true))}
-            onBlur={() => setConfirming(false)}
-            sx={{ minHeight: TAP, px: 1, textTransform: 'none', fontWeight: 700, fontSize: px(t.small), color: confirming ? ERROR : 'text.secondary' }}
+            onClick={() => setTrying(true)}
+            startIcon={<PlayArrowRoundedIcon />}
+            sx={{ minHeight: TAP, px: 1, ml: -1, textTransform: 'none', fontWeight: 700, fontSize: px(t.small), color: accent }}
         >
-            {confirming ? 'Tap again to delete' : 'Delete'}
+            Try it yourself
         </Button>
     );
 };
 
-/** Run a saved query again (without saving it a second time), or delete it. */
-const SavedQueryActions = ({ sql, accent, onDelete }: { sql: string; accent: string; onDelete: () => void }) => {
-    const t = useTextSize();
-    const [trying, setTrying] = useState(false);
-    return (
-        <>
-            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mt: 0.5, ml: -1 }}>
-                {!trying && (
-                    <Button
-                        size="small"
-                        onClick={() => setTrying(true)}
-                        startIcon={<PlayArrowRoundedIcon />}
-                        sx={{ minHeight: TAP, px: 1, textTransform: 'none', fontWeight: 700, fontSize: px(t.small), color: accent }}
-                    >
-                        Try it yourself
-                    </Button>
-                )}
-                <DeleteButton onDelete={onDelete} />
-            </Stack>
-            {trying && (
-                <Box sx={{ mt: 1 }}>
-                    <SqlRunBox initialSql={sql} accent={accent} />
-                </Box>
-            )}
-        </>
-    );
-};
-
-/** One saved query: when and where it ran, what it gave, and the SQL. Actions go underneath. */
-const SavedQueryCard = ({ entry, showPlace = false, children }: { entry: SavedSqlQueryEntry; showPlace?: boolean; children?: ReactNode }) => {
+/** One saved query: when and where it ran, what it gave, and the SQL, with a × to delete it. Actions go underneath. */
+const SavedQueryCard = ({ entry, showPlace = false, onDelete, children }: { entry: SavedSqlQueryEntry; showPlace?: boolean; onDelete: () => void; children?: ReactNode }) => {
     const t = useTextSize();
     return (
         <Box sx={{ p: 1.25, borderRadius: 2, bgcolor: 'rgba(0,0,0,0.25)', border: '1px solid rgba(255,255,255,0.08)', minWidth: 0 }}>
-            <Typography color="text.secondary" sx={{ fontSize: px(t.small) }}>
-                {showPlace && <Box component="span" sx={{ color: 'text.primary', fontWeight: 700 }}>{entry.place} · </Box>}
-                {format(entry.ranAt, 'd MMM yyyy, HH:mm')} ·{' '}
-                <Box component="span" sx={{ color: entry.ok ? CONFIDENT : ERROR }}>{entry.outcome}</Box>
-            </Typography>
+            <Stack direction="row" spacing={1} useFlexGap alignItems="flex-start">
+                <Typography color="text.secondary" sx={{ flex: 1, minWidth: 0, fontSize: px(t.small) }}>
+                    {showPlace && <Box component="span" sx={{ color: 'text.primary', fontWeight: 700 }}>{entry.place} · </Box>}
+                    {format(entry.ranAt, 'd MMM yyyy, HH:mm')} ·{' '}
+                    <Box component="span" sx={{ color: entry.ok ? CONFIDENT : ERROR }}>{entry.outcome}</Box>
+                </Typography>
+                {/* Pulled into the card's padding, so the tap target stays full size without making the row taller. */}
+                <IconButton
+                    aria-label="Delete this saved query"
+                    title="Delete"
+                    onClick={onDelete}
+                    sx={{ width: TAP, height: TAP, my: -1.25, mr: -1, color: 'text.secondary', '&:hover': { color: ERROR } }}
+                >
+                    <CloseRoundedIcon fontSize="small" />
+                </IconButton>
+            </Stack>
             <Box
                 component="pre"
                 sx={{ m: 0, mt: 0.75, fontFamily: MONO, fontSize: px(t.code), lineHeight: 1.5, color: 'text.primary', whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', maxHeight: '12em', overflowY: 'auto' }}

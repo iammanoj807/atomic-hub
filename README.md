@@ -100,8 +100,9 @@ return and can be run, and the same test checks them like the examples.
 
 Select part of a run box to run only that part. Every query you write (or change) and run is
 saved automatically, with the topic and step it was run in (Step 3's practice box, a worked
-example, the practice database…), and synced through Firestore. Each box lists its own past
-queries, and **My saved queries** at the top of the page lists them all, grouped by topic.
+example, the practice database…), and synced through Firestore, so clearing the browser's data
+doesn't lose them. Each box lists its own past queries, and **My saved queries** at the top of
+the page lists them all, grouped by topic. Tap × on one to delete it.
 
 ### Also
 The home page has a **Start here** map: what each part of the app is for, an order to take
