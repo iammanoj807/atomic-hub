@@ -196,6 +196,12 @@ export const SqlRunBox = ({
         setSaved(false);
     };
 
+    // Deleting a saved query leaves the box as it is, even when the box was showing that query.
+    const removeSaved = (id: string) => {
+        if (draft === null) changeText(query);
+        store?.remove(id);
+    };
+
     const run = async () => {
         const el = inputRef.current;
         const { sql, partial } = sqlToRun(query, el?.selectionStart ?? 0, el?.selectionEnd ?? 0);
@@ -326,16 +332,19 @@ export const SqlRunBox = ({
                         <Stack spacing={1} sx={{ mt: 0.5 }}>
                             {history.map(entry => (
                                 <SavedQueryCard key={entry.id} entry={entry}>
-                                    <Button
-                                        size="small"
-                                        onClick={() => {
-                                            replaceText(entry.sql);
-                                            inputRef.current?.focus();
-                                        }}
-                                        sx={{ minHeight: TAP, px: 1, ml: -1, textTransform: 'none', fontWeight: 700, color: accent, fontSize: px(t.small) }}
-                                    >
-                                        Put it back in the box
-                                    </Button>
+                                    <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mt: 0.5, ml: -1 }}>
+                                        <Button
+                                            size="small"
+                                            onClick={() => {
+                                                replaceText(entry.sql);
+                                                inputRef.current?.focus();
+                                            }}
+                                            sx={{ minHeight: TAP, px: 1, textTransform: 'none', fontWeight: 700, color: accent, fontSize: px(t.small) }}
+                                        >
+                                            Put it back in the box
+                                        </Button>
+                                        <DeleteButton onDelete={() => removeSaved(entry.id)} />
+                                    </Stack>
                                 </SavedQueryCard>
                             ))}
                         </Stack>
@@ -418,28 +427,40 @@ export const SavedQueriesPanel = ({ accent, openTopic }: { accent: string; openT
     );
 };
 
-/** Run a saved query again (without saving it a second time), or delete it after a second tap. */
+/** Delete a saved query, after a second tap so one slip doesn't lose it. */
+const DeleteButton = ({ onDelete }: { onDelete: () => void }) => {
+    const t = useTextSize();
+    const [confirming, setConfirming] = useState(false);
+    return (
+        <Button
+            size="small"
+            onClick={() => (confirming ? onDelete() : setConfirming(true))}
+            onBlur={() => setConfirming(false)}
+            sx={{ minHeight: TAP, px: 1, textTransform: 'none', fontWeight: 700, fontSize: px(t.small), color: confirming ? ERROR : 'text.secondary' }}
+        >
+            {confirming ? 'Tap again to delete' : 'Delete'}
+        </Button>
+    );
+};
+
+/** Run a saved query again (without saving it a second time), or delete it. */
 const SavedQueryActions = ({ sql, accent, onDelete }: { sql: string; accent: string; onDelete: () => void }) => {
     const t = useTextSize();
     const [trying, setTrying] = useState(false);
-    const [confirming, setConfirming] = useState(false);
-    const buttonSx = { minHeight: TAP, px: 1, textTransform: 'none', fontWeight: 700, fontSize: px(t.small) } as const;
     return (
         <>
             <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mt: 0.5, ml: -1 }}>
                 {!trying && (
-                    <Button size="small" onClick={() => setTrying(true)} startIcon={<PlayArrowRoundedIcon />} sx={{ ...buttonSx, color: accent }}>
+                    <Button
+                        size="small"
+                        onClick={() => setTrying(true)}
+                        startIcon={<PlayArrowRoundedIcon />}
+                        sx={{ minHeight: TAP, px: 1, textTransform: 'none', fontWeight: 700, fontSize: px(t.small), color: accent }}
+                    >
                         Try it yourself
                     </Button>
                 )}
-                <Button
-                    size="small"
-                    onClick={() => (confirming ? onDelete() : setConfirming(true))}
-                    onBlur={() => setConfirming(false)}
-                    sx={{ ...buttonSx, color: confirming ? ERROR : 'text.secondary' }}
-                >
-                    {confirming ? 'Tap again to delete' : 'Delete'}
-                </Button>
+                <DeleteButton onDelete={onDelete} />
             </Stack>
             {trying && (
                 <Box sx={{ mt: 1 }}>
