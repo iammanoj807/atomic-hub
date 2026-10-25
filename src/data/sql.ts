@@ -8,7 +8,9 @@
 //   - must-know points, common mistakes, and where MySQL, PostgreSQL and
 //     SQL Server differ from the SQLite used here,
 //   - a spoken interview answer and follow-up questions WITH answers,
-//   - one practice exercise for each of the four checks, and free resources.
+//   - one practice exercise for each of the four checks, each with one good
+//     answer (sqlAnswers/) that stays hidden until asked for — a test runs every
+//     answer query and checks the rows it shows — and free resources.
 // The last phase is interview problems: the question, how to spot its pattern,
 // the approach, then a hidden solution.
 //
@@ -183,6 +185,16 @@ export interface SqlProblem extends SqlTopicBase {
 }
 
 export type SqlTopic = SqlLesson | SqlProblem;
+
+/** One good answer to a practice exercise, kept hidden until you have tried it yourself. */
+export interface SqlPracticeAnswer {
+    /** The answer in plain words. A blank line starts a new paragraph. */
+    answer: string;
+    /** A query that shows it, with the exact rows it returns (or the error, for one meant to fail). A test runs every one. */
+    query?: Pick<SqlExample, 'sql' | 'result' | 'error'>;
+}
+
+export type SqlTopicAnswers = Record<SqlCheckKey, SqlPracticeAnswer>;
 
 export interface SqlPhase {
     id: string;

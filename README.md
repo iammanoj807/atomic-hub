@@ -65,9 +65,12 @@ papers are marked optional, to come back to once the foundations are solid.
 ### System Design
 High-level, low-level and AI/ML system design, from the building blocks to full design
 questions: ten phases and 72 topics. Every topic has a diagram, a plain-English lesson,
-a spoken interview answer and follow-up questions with answers. Technical words are
-underlined; tap one to see what it means. **Learn** mode takes one topic at a time;
-**Revise** mode lays the interview notes out flat for the night before.
+a spoken interview answer and follow-up questions with answers. Each topic has one practice
+exercise for each of four checks (**Explain**, **Draw**, **Apply**, **Trade-offs**), and every
+exercise has one good answer behind **Show answer**: a sketch to compare your drawing with,
+the working for every estimate, and Python for the low-level designs, all of it run.
+Technical words are underlined; tap one to see what it means. **Learn** mode takes one topic
+at a time; **Revise** mode lays the interview notes out flat for the night before.
 
 ### Interview questions
 ML Foundations, System Design and SQL each have an **Interview questions** mode, and the DSA
@@ -90,6 +93,10 @@ browser on a real SQLite engine (sql.js), loaded only when first used. A test ru
 example and checks its rows, so a result printed on a card can't be wrong. It also fails
 any query whose row order depends on luck rather than `ORDER BY`. Interview problems keep
 their solution hidden until you have tried.
+
+Each topic's four practice exercises (**Explain**, **Write**, **Predict**, **Edge cases**) have
+one good answer each, behind **Show answer**. Answers that are queries show the rows they
+return and can be run, and the same test checks them like the examples.
 
 ### Also
 The home page has a **Start here** map: what each part of the app is for, an order to take

@@ -35,6 +35,7 @@ import {
     type SDPriority,
     type SDCheckKey,
     type SDResourceKind,
+    type SDTopicAnswers,
 } from '../data/systemDesign';
 import { useSystemDesign } from '../hooks/useSystemDesign';
 import { systemDesignGlossary } from '../utils/glossary';
@@ -74,6 +75,7 @@ import {
     CodeBlock,
     QuoteBox,
     FollowUps,
+    AnswerReveal,
 } from './learning/LearningParts';
 import { GlossaryProvider, GlossaryTopic, NewWordsBox, ProseText } from './learning/GlossaryText';
 import { GlossaryDrawer } from './learning/GlossaryDrawer';
@@ -82,6 +84,7 @@ import { systemDesignInterviewSet } from '../data/interviewPrep/systemDesign';
 import { MermaidDiagram } from './learning/MermaidDiagram';
 import { AnimatedScene } from './learning/anim/AnimatedScene';
 import { useTopicAnimation } from './learning/anim/useTopicAnimation';
+import { useLoaded } from './learning/useLoaded';
 import { segmentSections, type Prose } from './learning/glossaryContext';
 
 const MAX_IN_PROGRESS = 8;
@@ -125,13 +128,17 @@ const PRACTICE_ORDER: { key: SDCheckKey; hint?: string }[] = [
 type Section =
     | 'definition' | 'problem' | 'idea' | 'howItWorks' | 'analogy' | 'breaks' | 'example' | 'keyPoints' | 'tradeOffs'
     | 'functional' | 'nonFunctional' | 'estimates' | 'dataModel' | 'classes' | 'patterns' | 'evolution' | 'design' | 'deepDives'
-    | 'mistakes' | 'practice' | 'interviewAnswer' | 'followUps';
+    | 'mistakes' | 'practice' | 'interviewAnswer' | 'followUps' | 'answers';
 
 /** Follow-ups as question, answer, question, answer… */
 const followUpTexts = (topic: SDTopic) => topic.followUps.flatMap(followUp => [followUp.q, followUp.a]);
 
-/** The lesson, practice and interview steps of a Learn card. */
-const learnSections = (topic: SDTopic): [Section, string[]][] => [
+/**
+ * The lesson, practice and interview steps of a Learn card. The hidden
+ * practice answers come last, so a word is never underlined only inside an
+ * answer that isn't open.
+ */
+const learnSections = (topic: SDTopic, answers: SDTopicAnswers | undefined): [Section, string[]][] => [
     ['definition', [topic.definition]],
     ['problem', [topic.problem]],
     ...(topic.kind === 'concept'
@@ -160,6 +167,7 @@ const learnSections = (topic: SDTopic): [Section, string[]][] => [
     ['practice', PRACTICE_ORDER.map(({ key }) => topic.practice[key])],
     ['interviewAnswer', [topic.interviewAnswer]],
     ['followUps', followUpTexts(topic)],
+    ['answers', PRACTICE_ORDER.map(({ key }) => answers?.[key].answer ?? '')],
 ];
 
 /** The shorter Revise card. */
@@ -243,6 +251,9 @@ const TopicAnimation = ({ topicId, accent }: { topicId: string; accent: string }
         </Block>
     );
 };
+
+/** The practice answers load as their own chunk, the first time a topic is opened. */
+const loadAnswers = () => import('../data/systemDesignAnswers').then(m => m.systemDesignAnswers);
 
 const PictureIt = ({ topic }: { topic: SDTopic }) => (
     <Block title="Picture it">
@@ -376,7 +387,8 @@ const TopicCard = ({
     );
     const core = sorted.filter(resource => resource.kind !== 'paper');
     const papers = sorted.filter(resource => resource.kind === 'paper');
-    const marked = useMemo(() => segmentSections(systemDesignGlossary, learnSections(topic)), [topic]);
+    const answers = useLoaded(loadAnswers, expanded)?.[topic.id];
+    const marked = useMemo(() => segmentSections(systemDesignGlossary, learnSections(topic, answers)), [topic, answers]);
 
     return (
         <Accordion
@@ -449,6 +461,9 @@ const TopicCard = ({
                     {/* ---- STEP 3 ---- */}
                     <SectionLabel color={accent} id={stepId(topic.id, 3)}>{STEPS[2].label}</SectionLabel>
                     <Stack spacing={2} sx={{ maxWidth: 760 }}>
+                        <Typography color="text.secondary" sx={{ fontSize: px(t.small) }}>
+                            Try each one yourself first: out loud, or on paper. Then tap Show answer to check.
+                        </Typography>
                         {PRACTICE_ORDER.map(({ key, hint }, index) => (
                             <Stack key={key} direction="row" spacing={1.5} alignItems="flex-start">
                                 <Typography sx={{ color: accent, fontWeight: 800, minWidth: 22, flexShrink: 0 }}>
@@ -466,14 +481,18 @@ const TopicCard = ({
                                     <Typography variant="body2" sx={{ color: 'text.primary' }}>
                                         <ProseText value={marked('practice')[index]} />
                                     </Typography>
+                                    {answers && (
+                                        <AnswerReveal id={`answer-${topic.id}-${key}`} text={marked('answers')[index]} accent={accent}>
+                                            {answers[key].code && <CodeBlock code={answers[key].code} language={answers[key].codeLanguage} />}
+                                        </AnswerReveal>
+                                    )}
                                 </Box>
                             </Stack>
                         ))}
-                        <Box sx={{ pt: 0.5 }}>
-                            <Typography color="text.secondary" sx={{ fontStyle: 'italic', fontSize: px(t.small) }}>
-                                No answers here, on purpose. Try first, then send Claude: "check my answer: {topic.name}".
-                            </Typography>
-                        </Box>
+                        <Typography color="text.secondary" sx={{ pt: 0.5, fontStyle: 'italic', fontSize: px(t.small) }}>
+                            Yours can use different words and still be right: compare the key points, not the wording.
+                            Not sure yours counts? Send Claude: "check my answer: {topic.name}".
+                        </Typography>
                     </Stack>
 
                     {/* ---- STEP 4 ---- say it, test yourself, then tick the checks */}

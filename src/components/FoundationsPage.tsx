@@ -40,7 +40,6 @@ import {
     type FoundationResource,
     type TopicResource,
     type CheckKey,
-    type PracticeAnswer,
 } from '../data/foundations';
 import { foundationAnimations } from '../data/foundationsAnimations';
 import { foundationAnswers } from '../data/foundationsAnswers';
@@ -74,12 +73,13 @@ import {
     CodeBlock,
     QuoteBox,
     FollowUps,
+    AnswerReveal,
 } from './learning/LearningParts';
 import { AnimatedScene } from './learning/anim/AnimatedScene';
 import { GlossaryProvider, GlossaryTopic, NewWordsBox, ProseText } from './learning/GlossaryText';
 import { GlossaryDrawer } from './learning/GlossaryDrawer';
 import { MermaidDiagram } from './learning/MermaidDiagram';
-import { segmentSections, type Prose } from './learning/glossaryContext';
+import { segmentSections } from './learning/glossaryContext';
 
 const MAX_IN_PROGRESS = 8;
 
@@ -180,60 +180,6 @@ const cardSections = (topic: FoundationTopic): [Section, string[]][] => [
     ['followUps', topic.followUps.flatMap(item => [item.q, item.a])],
     ['answers', PRACTICE_ORDER.map(({ key }) => foundationAnswers[topic.id]?.[key].answer ?? '')],
 ];
-
-/** One exercise's answer, hidden until asked for, so the exercise is tried first. */
-const PracticeAnswerReveal = ({
-    id,
-    answer,
-    text,
-    accent,
-}: {
-    id: string;
-    answer: PracticeAnswer;
-    text: Prose;
-    accent: string;
-}) => {
-    const [open, setOpen] = useState(false);
-    return (
-        <>
-            <Button
-                size="small"
-                onClick={() => setOpen(current => !current)}
-                aria-expanded={open}
-                aria-controls={id}
-                sx={{ minHeight: TAP, mt: 0.25, ml: -1, px: 1, textTransform: 'none', fontWeight: 700, color: accent }}
-            >
-                {open ? 'Hide answer' : 'Show answer'}
-            </Button>
-            {open && (
-                <Box
-                    id={id}
-                    sx={{
-                        mt: 0.5,
-                        p: 1.5,
-                        borderRadius: 2,
-                        bgcolor: 'rgba(255,255,255,0.03)',
-                        border: '1px solid rgba(255,255,255,0.08)',
-                        borderLeft: '3px solid',
-                        borderLeftColor: accent,
-                    }}
-                >
-                    <Typography variant="caption" sx={{ display: 'block', color: accent, fontWeight: 800, letterSpacing: 0.8, mb: 0.5 }}>
-                        ONE GOOD ANSWER
-                    </Typography>
-                    <Typography variant="body2" sx={{ color: 'text.primary', whiteSpace: 'pre-line', overflowWrap: 'anywhere' }}>
-                        <ProseText value={text} />
-                    </Typography>
-                    {answer.code && (
-                        <Box sx={{ mt: 1.5 }}>
-                            <CodeBlock code={answer.code} language={answer.codeLanguage} />
-                        </Box>
-                    )}
-                </Box>
-            )}
-        </>
-    );
-};
 
 /** The topic's animation, if it has one. Its frames are only worked out once the card is open. */
 const TopicAnimation = ({ topicId, accent }: { topicId: string; accent: string }) => {
@@ -400,12 +346,9 @@ const TopicCard = ({
                                         <ProseText value={marked('practice')[index]} />
                                     </Typography>
                                     {answers && (
-                                        <PracticeAnswerReveal
-                                            id={`answer-${topic.id}-${key}`}
-                                            answer={answers[key]}
-                                            text={marked('answers')[index]}
-                                            accent={accent}
-                                        />
+                                        <AnswerReveal id={`answer-${topic.id}-${key}`} text={marked('answers')[index]} accent={accent}>
+                                            {answers[key].code && <CodeBlock code={answers[key].code} language={answers[key].codeLanguage} />}
+                                        </AnswerReveal>
                                     )}
                                 </Box>
                             </Stack>

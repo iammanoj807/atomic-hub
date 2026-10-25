@@ -224,7 +224,7 @@ const ErrorBox = ({ message, hint }: { message: string; hint?: string | null }) 
 };
 
 /** What an example gives back: its rows, or — for one that is meant to fail — the database's error. */
-export const ExampleOutcome = ({ example }: { example: SqlExample }) => (
+export const ExampleOutcome = ({ example }: { example: Pick<SqlExample, 'result' | 'error'> }) => (
     <>
         <Typography variant="caption" sx={{ display: 'block', color: example.error ? ERROR : 'text.secondary', fontWeight: 800, letterSpacing: 0.8, mt: 1.5, mb: 0.75 }}>
             {example.error ? 'RESULT: THE DATABASE REFUSES IT' : 'RESULT'}
@@ -245,41 +245,53 @@ export const ExampleBlock = ({
     accent: string;
     /** The note, with its glossary words marked. */
     note?: Prose;
-}) => {
+}) => (
+    <Box>
+        <Typography variant="body1" sx={{ fontWeight: 700, color: 'text.primary', mb: 1 }}>
+            {number !== undefined && (
+                <Box component="span" sx={{ color: accent, mr: 1 }}>Example {number}.</Box>
+            )}
+            {example.title}
+        </Typography>
+        <CodeBlock code={example.sql} language="sql" />
+        <ExampleOutcome example={example} />
+        {example.note && (
+            <Typography variant="body2" sx={{ mt: 1, color: 'text.primary' }}>
+                <ProseText value={note ?? example.note} />
+            </Typography>
+        )}
+        <TryIt sql={example.sql} accent={accent} />
+    </Box>
+);
+
+/** A button that opens the query in a run box, to change it and run it. */
+const TryIt = ({ sql, accent }: { sql: string; accent: string }) => {
     const t = useTextSize();
     const [trying, setTrying] = useState(false);
-    return (
-        <Box>
-            <Typography variant="body1" sx={{ fontWeight: 700, color: 'text.primary', mb: 1 }}>
-                {number !== undefined && (
-                    <Box component="span" sx={{ color: accent, mr: 1 }}>Example {number}.</Box>
-                )}
-                {example.title}
-            </Typography>
-            <CodeBlock code={example.sql} language="sql" />
-            <ExampleOutcome example={example} />
-            {example.note && (
-                <Typography variant="body2" sx={{ mt: 1, color: 'text.primary' }}>
-                    <ProseText value={note ?? example.note} />
-                </Typography>
-            )}
-            {trying ? (
-                <Box sx={{ mt: 1.5 }}>
-                    <SqlRunBox initialSql={example.sql} accent={accent} />
-                </Box>
-            ) : (
-                <Button
-                    size="small"
-                    onClick={() => setTrying(true)}
-                    startIcon={<PlayArrowRoundedIcon />}
-                    sx={{ minHeight: TAP, mt: 0.5, px: 1, ml: -1, textTransform: 'none', fontWeight: 700, color: accent, fontSize: px(t.small) }}
-                >
-                    Try it yourself
-                </Button>
-            )}
+    return trying ? (
+        <Box sx={{ mt: 1.5 }}>
+            <SqlRunBox initialSql={sql} accent={accent} />
         </Box>
+    ) : (
+        <Button
+            size="small"
+            onClick={() => setTrying(true)}
+            startIcon={<PlayArrowRoundedIcon />}
+            sx={{ minHeight: TAP, mt: 0.5, px: 1, ml: -1, textTransform: 'none', fontWeight: 700, color: accent, fontSize: px(t.small) }}
+        >
+            Try it yourself
+        </Button>
     );
 };
+
+/** A practice answer's query: the SQL, the rows it returns, and a box to try it. */
+export const AnswerQuery = ({ query, accent }: { query: Pick<SqlExample, 'sql' | 'result' | 'error'>; accent: string }) => (
+    <Box>
+        <CodeBlock code={query.sql} language="sql" />
+        <ExampleOutcome example={query} />
+        <TryIt sql={query.sql} accent={accent} />
+    </Box>
+);
 
 /** The six practice tables: how they connect, every row, and a box to run any query. */
 export const PracticeDatabase = ({ accent }: { accent: string }) => {

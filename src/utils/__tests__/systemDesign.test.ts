@@ -6,6 +6,7 @@ import {
     SD_RESOURCE_KIND_ORDER,
     SD_PRIORITY_LABELS,
 } from '../../data/systemDesign';
+import { systemDesignAnswers } from '../../data/systemDesignAnswers';
 
 describe('system design content', () => {
     it('gives every topic a definition, interview notes, practice and resources', () => {
@@ -44,6 +45,15 @@ describe('system design content', () => {
             }
         }
         expect(problems).toEqual([]);
+    });
+
+    it('gives every practice exercise one good answer, and none to topics that do not exist', () => {
+        const ids = new Set(allSystemDesignTopics.map(t => t.id));
+        const missing = allSystemDesignTopics.flatMap(topic =>
+            SD_CHECK_KEYS.filter(key => !systemDesignAnswers[topic.id]?.[key]?.answer.trim()).map(key => `${topic.id}: no ${key} answer`)
+        );
+        expect(missing).toEqual([]);
+        expect(Object.keys(systemDesignAnswers).filter(id => !ids.has(id))).toEqual([]);
     });
 
     it('keeps ids unique, because they are the Firestore keys', () => {

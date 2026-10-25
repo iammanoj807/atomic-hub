@@ -9,7 +9,8 @@
 //   - the problem it solves, a diagram, how it works step by step, and common mistakes,
 //   - (every technical word is explained in systemDesignGlossary.ts),
 //   - free resources only, as optional extras (papers marked optional),
-//   - one practice exercise for each of the four checks. No answers, on purpose.
+//   - one practice exercise for each of the four checks, each with one good answer
+//     (systemDesignAnswers/) that stays hidden until asked for.
 //
 // Fixed content only. Ticked checks live in Firestore under study_progress/system_design.
 
@@ -136,6 +137,17 @@ export interface SDDesign extends SDTopicBase {
 }
 
 export type SDTopic = SDConcept | SDDesign;
+
+/** One good answer to a practice exercise, kept hidden until you have tried it yourself. */
+export interface SDPracticeAnswer {
+    /** The answer in plain words. A blank line starts a new paragraph. */
+    answer: string;
+    /** A sketch to compare yours with (text), a schema (sql), or code that has been run (python). */
+    code?: string;
+    codeLanguage?: 'python' | 'sql' | 'text';
+}
+
+export type SDTopicAnswers = Record<SDCheckKey, SDPracticeAnswer>;
 
 export interface SDPhase {
     id: string;

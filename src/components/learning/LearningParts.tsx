@@ -429,3 +429,57 @@ export const FollowUps = ({
         </Stack>
     );
 };
+
+/**
+ * A practice exercise's answer, hidden until asked for, so the exercise is
+ * tried first. Anything passed as children (code, a query and its rows) goes
+ * under the words.
+ */
+export const AnswerReveal = ({
+    id,
+    text,
+    accent,
+    children,
+}: {
+    id: string;
+    text: Prose;
+    accent: string;
+    children?: ReactNode;
+}) => {
+    const [open, setOpen] = useState(false);
+    return (
+        <>
+            <Button
+                size="small"
+                onClick={() => setOpen(current => !current)}
+                aria-expanded={open}
+                aria-controls={id}
+                sx={{ minHeight: TAP, mt: 0.25, ml: -1, px: 1, textTransform: 'none', fontWeight: 700, color: accent }}
+            >
+                {open ? 'Hide answer' : 'Show answer'}
+            </Button>
+            {open && (
+                <Box
+                    id={id}
+                    sx={{
+                        mt: 0.5,
+                        p: 1.5,
+                        borderRadius: 2,
+                        bgcolor: 'rgba(255,255,255,0.03)',
+                        border: '1px solid rgba(255,255,255,0.08)',
+                        borderLeft: '3px solid',
+                        borderLeftColor: accent,
+                    }}
+                >
+                    <Typography variant="caption" sx={{ display: 'block', color: accent, fontWeight: 800, letterSpacing: 0.8, mb: 0.5 }}>
+                        ONE GOOD ANSWER
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: 'text.primary', whiteSpace: 'pre-line', overflowWrap: 'anywhere' }}>
+                        <ProseText value={text} />
+                    </Typography>
+                    {children && <Box sx={{ mt: 1.5 }}>{children}</Box>}
+                </Box>
+            )}
+        </>
+    );
+};

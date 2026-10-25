@@ -12,6 +12,7 @@ import {
     type SqlTopic,
 } from '../../data/sql';
 import { practiceTables } from '../../data/sqlPracticeDb';
+import { sqlAnswers } from '../../data/sqlAnswers';
 import { runOnPracticeDb } from '../sqlRunner';
 import { sqlTopicProse } from '../sqlGlossary';
 
@@ -29,7 +30,15 @@ const examplesOf = (topic: SqlTopic): [string, SqlExample][] =>
             ...(topic.alternatives ?? []).map((example, index): [string, SqlExample] => [`${topic.id} alternative ${index + 1}`, example]),
         ];
 
-const allExamples = allSqlTopics.flatMap(examplesOf);
+/** Every practice answer's query, checked the same way as the examples. */
+const answerQueries: [string, SqlExample][] = allSqlTopics.flatMap(topic =>
+    SQL_CHECK_KEYS.flatMap((key): [string, SqlExample][] => {
+        const query = sqlAnswers[topic.id]?.[key]?.query;
+        return query ? [[`${topic.id} ${key} answer`, { title: `${key} answer`, ...query }]] : [];
+    })
+);
+
+const allExamples = [...allSqlTopics.flatMap(examplesOf), ...answerQueries];
 
 describe('the practice database', () => {
     it('loads, and every order total equals the sum of its items', () => {
@@ -112,6 +121,19 @@ describe('SQL content', () => {
             ]),
         ];
         expect(plain.filter(([, text]) => text.includes('`')).map(([where]) => where)).toEqual([]);
+    });
+
+    it('gives every practice exercise one good answer, and none to topics that do not exist', () => {
+        const ids = new Set(allSqlTopics.map(t => t.id));
+        const missing = allSqlTopics.flatMap(topic =>
+            SQL_CHECK_KEYS.filter(key => !sqlAnswers[topic.id]?.[key]?.answer.trim()).map(key => `${topic.id}: no ${key} answer`)
+        );
+        expect(missing).toEqual([]);
+        expect(Object.keys(sqlAnswers).filter(id => !ids.has(id))).toEqual([]);
+        const unbalanced = Object.entries(sqlAnswers).flatMap(([id, answers]) =>
+            SQL_CHECK_KEYS.filter(key => ((answers[key]?.answer ?? '').match(/`/g) ?? []).length % 2 !== 0).map(key => `${id} ${key}`)
+        );
+        expect(unbalanced).toEqual([]);
     });
 
     it('keeps ids unique, because they are the Firestore keys', () => {

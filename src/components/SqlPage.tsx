@@ -39,6 +39,7 @@ import {
     type SqlProblem,
     type SqlResourceKind,
     type SqlTopic,
+    type SqlTopicAnswers,
 } from '../data/sql';
 import { useSql } from '../hooks/useSql';
 import { sqlGlossary } from '../utils/sqlGlossary';
@@ -72,6 +73,7 @@ import {
     CodeBlock,
     QuoteBox,
     FollowUps,
+    AnswerReveal,
 } from './learning/LearningParts';
 import { GlossaryProvider, GlossaryTopic, NewWordsBox, ProseText } from './learning/GlossaryText';
 import { GlossaryDrawer } from './learning/GlossaryDrawer';
@@ -80,8 +82,9 @@ import { sqlInterviewSet } from '../data/interviewPrep/sql';
 import { MermaidDiagram } from './learning/MermaidDiagram';
 import { AnimatedScene } from './learning/anim/AnimatedScene';
 import { useTopicAnimation } from './learning/anim/useTopicAnimation';
+import { useLoaded } from './learning/useLoaded';
 import { segmentSections, type Prose } from './learning/glossaryContext';
-import { ExampleBlock, ExampleOutcome, MONO, PracticeDatabase, SqlRunBox } from './sql/SqlParts';
+import { AnswerQuery, ExampleBlock, ExampleOutcome, MONO, PracticeDatabase, SqlRunBox } from './sql/SqlParts';
 
 const MAX_IN_PROGRESS = 8;
 /** "Must know" stands out from the other tags at a glance. */
@@ -125,15 +128,19 @@ const PRACTICE_HINTS: Partial<Record<SqlCheckKey, string>> = {
 type Section =
     | 'definition' | 'problem' | 'idea' | 'howItWorks' | 'analogy' | 'breaks' | 'exampleNotes' | 'keyPoints' | 'dialects'
     | 'spot' | 'approach' | 'solutionNotes' | 'edgeCases'
-    | 'mistakes' | 'practice' | 'interviewAnswer' | 'followUps';
+    | 'mistakes' | 'practice' | 'interviewAnswer' | 'followUps' | 'answers';
 
 /** Follow-ups as question, answer, question, answer… */
 const followUpTexts = (topic: SqlTopic) => topic.followUps.flatMap(followUp => [followUp.q, followUp.a]);
 const practiceTexts = (topic: SqlTopic) => SQL_CHECK_KEYS.map(key => topic.practice[key]);
 const solutionNotes = (topic: SqlProblem) => [topic.solution, ...(topic.alternatives ?? [])].map(example => example.note ?? '');
 
-/** The lesson, practice and interview steps of a Learn card. */
-const learnSections = (topic: SqlTopic): [Section, string[]][] => [
+/**
+ * The lesson, practice and interview steps of a Learn card. The hidden
+ * practice answers come last, so a word is never underlined only inside an
+ * answer that isn't open.
+ */
+const learnSections = (topic: SqlTopic, answers: SqlTopicAnswers | undefined): [Section, string[]][] => [
     ['definition', [topic.definition]],
     ...(topic.kind === 'lesson'
         ? ([
@@ -159,6 +166,7 @@ const learnSections = (topic: SqlTopic): [Section, string[]][] => [
     ['practice', practiceTexts(topic)],
     ['interviewAnswer', [topic.interviewAnswer]],
     ['followUps', followUpTexts(topic)],
+    ['answers', SQL_CHECK_KEYS.map(key => answers?.[key].answer ?? '')],
 ];
 
 /** The shorter Revise card. */
@@ -255,6 +263,9 @@ const TopicAnimation = ({ topicId, accent }: { topicId: string; accent: string }
         </Block>
     );
 };
+
+/** The practice answers load as their own chunk, the first time a topic is opened. */
+const loadAnswers = () => import('../data/sqlAnswers').then(m => m.sqlAnswers);
 
 const PictureIt = ({ topic }: { topic: SqlTopic }) => (
     <Block title="Picture it">
@@ -417,7 +428,8 @@ const TopicCard = ({
         (a, b) => SQL_RESOURCE_KIND_ORDER.indexOf(a.kind) - SQL_RESOURCE_KIND_ORDER.indexOf(b.kind)
     );
     const steps = topic.kind === 'lesson' ? LESSON_STEPS : PROBLEM_STEPS;
-    const marked = useMemo(() => segmentSections(sqlGlossary, learnSections(topic)), [topic]);
+    const answers = useLoaded(loadAnswers, expanded)?.[topic.id];
+    const marked = useMemo(() => segmentSections(sqlGlossary, learnSections(topic, answers)), [topic, answers]);
 
     return (
         <Accordion
@@ -487,6 +499,9 @@ const TopicCard = ({
                     {/* ---- STEP 3 ---- */}
                     <SectionLabel color={accent} id={stepId(topic.id, 3)}>{steps[2].label}</SectionLabel>
                     <Stack spacing={2} sx={{ maxWidth: 760 }}>
+                        <Typography color="text.secondary" sx={{ fontSize: px(t.small) }}>
+                            Try each one yourself first: out loud, or written and run in the practice box below. Then tap Show answer to check.
+                        </Typography>
                         {SQL_CHECK_KEYS.map((key, index) => (
                             <Stack key={key} direction="row" spacing={1.5} alignItems="flex-start">
                                 <Typography sx={{ color: accent, fontWeight: 800, minWidth: 22, flexShrink: 0 }}>
@@ -504,6 +519,11 @@ const TopicCard = ({
                                     <Typography variant="body2" sx={{ color: 'text.primary' }}>
                                         <ProseText value={marked('practice')[index]} />
                                     </Typography>
+                                    {answers && (
+                                        <AnswerReveal id={`answer-${topic.id}-${key}`} text={marked('answers')[index]} accent={accent}>
+                                            {answers[key].query && <AnswerQuery query={answers[key].query} accent={accent} />}
+                                        </AnswerReveal>
+                                    )}
                                 </Box>
                             </Stack>
                         ))}
@@ -513,7 +533,8 @@ const TopicCard = ({
                             label="Practice box: run your answers on the practice database"
                         />
                         <Typography color="text.secondary" sx={{ fontStyle: 'italic', fontSize: px(t.small) }}>
-                            No answers here, on purpose: running your query is the first check. For feedback, send Claude your query and "check my answer: {topic.name}".
+                            Yours can look different and still be right: if it returns the same rows for the same reason, it counts.
+                            Not sure yours counts? Send Claude your query and "check my answer: {topic.name}".
                         </Typography>
                     </Stack>
 
