@@ -7,7 +7,7 @@ import { createGlossary } from './glossaryEngine';
 // code, not a word to explain.
 
 /** Inline code in the notes, written between backticks. */
-export const INLINE_CODE = /`[^`]*`/g;
+const INLINE_CODE = /`[^`]*`/g;
 
 /** Every piece of prose in a topic, in reading order (no SQL, diagrams or resource titles). */
 export const sqlTopicProse = (topic: SqlTopic): string[] => {

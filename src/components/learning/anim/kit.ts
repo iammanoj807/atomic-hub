@@ -249,10 +249,6 @@ export const chips = (
     });
 };
 
-/** Total width of a row of chips. */
-export const chipsWidth = (tokens: string[], gap = 5, size = 13) =>
-    tokens.reduce((sum, token) => sum + chipWidth(token, size), 0) + gap * Math.max(0, tokens.length - 1);
-
 /** Node centres for a layered network: one column per layer, nodes centred vertically. */
 export const layerPositions = (sizes: number[], x0: number, x1: number, yMid: number, spacing: number) =>
     sizes.map((count, layer) => {
@@ -276,10 +272,6 @@ export const layerEdges = (
     });
     return out;
 };
-
-/** A point partway along a line: for a pulse travelling down an edge. */
-export const along = (x1: number, y1: number, x2: number, y2: number, t: number): [number, number] =>
-    [x1 + (x2 - x1) * t, y1 + (y2 - y1) * t];
 
 /** Seeded random numbers, so an animation looks the same every time. */
 export const seeded = (seed: number) => {
@@ -318,15 +310,13 @@ export const toPx = (p: Plane, x: number, y: number): [number, number] => [p.cx 
 export type Mat2 = [[number, number], [number, number]];
 export const I2: Mat2 = [[1, 0], [0, 1]];
 export const apply = (m: Mat2, x: number, y: number): [number, number] => [m[0][0] * x + m[0][1] * y, m[1][0] * x + m[1][1] * y];
-export const mix = (a: Mat2, b: Mat2, t: number): Mat2 =>
-    [[a[0][0] + (b[0][0] - a[0][0]) * t, a[0][1] + (b[0][1] - a[0][1]) * t], [a[1][0] + (b[1][0] - a[1][0]) * t, a[1][1] + (b[1][1] - a[1][1]) * t]];
 export const matmul = (a: Mat2, b: Mat2): Mat2 => [
     [a[0][0] * b[0][0] + a[0][1] * b[1][0], a[0][0] * b[0][1] + a[0][1] * b[1][1]],
     [a[1][0] * b[0][0] + a[1][1] * b[1][0], a[1][0] * b[0][1] + a[1][1] * b[1][1]],
 ];
 
 /** Cut a segment to a box (Liang–Barsky). Null when it misses the box entirely. */
-export const clipSegment = (x1: number, y1: number, x2: number, y2: number, box: [number, number, number, number]): [number, number, number, number] | null => {
+const clipSegment = (x1: number, y1: number, x2: number, y2: number, box: [number, number, number, number]): [number, number, number, number] | null => {
     const [left, top, right, bottom] = box;
     let t0 = 0;
     let t1 = 1;
@@ -389,7 +379,7 @@ export const planePoly = (id: string, p: Plane, corners: [number, number][], m: 
 // ============ SMALL NUMERICS (so animations show what the algorithm really does) ============
 
 /** Solve Ax = b by Gaussian elimination with partial pivoting. */
-export const solve = (A: number[][], b: number[]): number[] => {
+const solve = (A: number[][], b: number[]): number[] => {
     const n = b.length;
     const m = A.map((row, i) => [...row, b[i]]);
     for (let col = 0; col < n; col++) {

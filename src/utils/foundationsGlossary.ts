@@ -6,7 +6,7 @@ import { createGlossary } from './glossaryEngine';
 // fed with the ML words and the Foundations topics in reading order.
 
 /** Every piece of prose in a topic, in reading order (no code, diagrams or resource titles). */
-export const foundationProse = (topic: FoundationTopic): string[] => [
+const foundationProse = (topic: FoundationTopic): string[] => [
     topic.definition,
     topic.problem,
     topic.note.idea,

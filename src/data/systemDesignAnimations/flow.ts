@@ -1,7 +1,7 @@
 import type { Frame, Shape } from '../../components/learning/anim/scene';
 import { C, flat, frame, line, rect, text, tint, type Part } from '../../components/learning/anim/kit';
 
-export { label, panel } from '../foundationsAnimations/common';
+export { label } from '../foundationsAnimations/common';
 
 // System design pictures are mostly the same thing: boxes, arrows between
 // them, and a request travelling along the arrows. A flow is that picture as

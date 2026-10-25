@@ -179,9 +179,6 @@ const createTable = (table: PracticeTable) => {
 const insertRows = (table: PracticeTable) =>
     `INSERT INTO ${table.name} VALUES\n  ${table.rows.map(row => `(${row.map(literal).join(', ')})`).join(',\n  ')};`;
 
-/** The CREATE TABLE statements alone, for reading. */
-export const practiceSchemaSql = practiceTables.map(createTable).join('\n\n');
-
 /** The whole database as one script: foreign keys switched on, every table created and filled. */
 export const practiceDbSql = [
     'PRAGMA foreign_keys = ON;',

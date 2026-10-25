@@ -1,7 +1,7 @@
 import type { RectShape, Shape } from '../../components/learning/anim/scene';
 import { C, arrow, circle, line, rect, text, tint } from '../../components/learning/anim/kit';
 
-export { label, panel } from '../foundationsAnimations/common';
+export { label } from '../foundationsAnimations/common';
 
 // Pieces the DSA animations share: array cells, pointers under them, a stack,
 // and a binary tree laid out from its level-order list.
@@ -32,12 +32,6 @@ const cellSize = (o: CellStyle) => ({ w: o.w ?? 34, h: o.h ?? 30, gap: o.gap ?? 
 export const cellX = (x: number, i: number, o: CellStyle = {}) => {
     const { w, gap } = cellSize(o);
     return x + i * (w + gap) + w / 2;
-};
-
-/** x where a row of n cells must start to be centred on cx. */
-export const rowStart = (cx: number, n: number, o: CellStyle = {}) => {
-    const { w, gap } = cellSize(o);
-    return cx - (n * w + (n - 1) * gap) / 2;
 };
 
 /** How a cell looks: its colour and how strongly it is filled. */

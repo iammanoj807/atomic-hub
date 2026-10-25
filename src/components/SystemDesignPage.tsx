@@ -406,7 +406,12 @@ const TopicCard = ({
                 scrollMarginTop: 16,
             }}
         >
-            <AccordionSummary expandIcon={<ExpandMoreRoundedIcon />} sx={{ minHeight: TAP }}>
+            <AccordionSummary
+                expandIcon={<ExpandMoreRoundedIcon />}
+                sx={{ minHeight: TAP }}
+                // The open topic's title heads the section rail.
+                {...(expanded && { 'data-nav': 'topic', 'data-nav-label': topic.name })}
+            >
                 <Stack direction="row" spacing={1.5} alignItems="center" sx={{ width: '100%', pr: 1, minWidth: 0 }} flexWrap="wrap" useFlexGap>
                     <Typography sx={{ color: accent, fontWeight: 800, minWidth: 24, fontVariantNumeric: 'tabular-nums' }}>
                         {number}

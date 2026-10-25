@@ -33,7 +33,7 @@ export interface TextSizes {
     heading: number;
 }
 
-export const TEXT_SIZES: Record<TextSize, TextSizes> = {
+const TEXT_SIZES: Record<TextSize, TextSizes> = {
     normal: { body1: 17.6, body2: 14, small: 13, label: 12, code: 13.6, heading: 1 },
     large: { body1: 19, body2: 17, small: 15, label: 13.5, code: 15, heading: 1.15 },
     xl: { body1: 21, body2: 19, small: 17, label: 15, code: 17, heading: 1.3 },
@@ -158,6 +158,24 @@ export const scrollToIdWhenSettled = (id: string) => {
 };
 
 export const stepId = (topicId: string, step: number) => `topic-${topicId}-step-${step}`;
+
+/** "STEP 3 · PRACTISE, IN THIS ORDER" → "Step 3 · Practise, in this order", for the section rail. */
+export const headingToSentence = (heading: string) =>
+    heading.toLowerCase().replace(/(^|·\s+)(\p{L})/gu, (_, before: string, letter: string) => before + letter.toUpperCase());
+
+/**
+ * The section being read: the last one whose top has scrolled above `line`
+ * (pixels from the top of the window), or -1 above the first. At the bottom
+ * of the page the last section counts, even if it is too short to reach the line.
+ */
+export const currentSection = (tops: number[], line: number, atBottom = false) => {
+    if (atBottom && tops.length > 0) return tops.length - 1;
+    let current = -1;
+    tops.forEach((top, index) => {
+        if (top <= line) current = index;
+    });
+    return current;
+};
 
 /** One step in the bar across the top of an open topic card. */
 export interface LearningStep {

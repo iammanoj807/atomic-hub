@@ -22,6 +22,7 @@ import {
     TAP,
     TEXT_SIZE_LABELS,
     TextSizeContext,
+    headingToSentence,
     px,
     scrollToId,
     stepId,
@@ -32,6 +33,7 @@ import {
     type TextSizes,
 } from './learning';
 import { ProseText } from './GlossaryText';
+import { SectionRail } from './SectionRail';
 import { dropLeadingChars, proseText, type Prose } from './glossaryContext';
 
 // The building blocks the study pages share. Everything here is sized from
@@ -48,7 +50,10 @@ export const LearningPageFrame = ({
     children: ReactNode;
 }) => (
     <TextSizeContext.Provider value={t}>
-        <ThemeProvider theme={theme}>{children}</ThemeProvider>
+        <ThemeProvider theme={theme}>
+            {children}
+            <SectionRail />
+        </ThemeProvider>
     </TextSizeContext.Provider>
 );
 
@@ -84,9 +89,11 @@ export const TextSizeControl = ({
     </Box>
 );
 
+/** A step heading. One with an id is a section in the rail down the left (SectionRail). */
 export const SectionLabel = ({ children, color = 'text.secondary', id }: { children: string; color?: string; id?: string }) => (
     <Typography
         id={id}
+        {...(id && { 'data-nav': 'step', 'data-nav-label': headingToSentence(children) })}
         variant="caption"
         sx={{ display: 'block', color, fontWeight: 800, letterSpacing: 1.2, mb: 1.5, mt: 4, scrollMarginTop: 80 }}
     >
@@ -289,9 +296,9 @@ export interface FollowUpItem {
     a: string;
 }
 
-/** A titled part of the lesson in Step 1. */
+/** A titled part of the lesson in Step 1, and a section in the rail down the left. */
 export const Block = ({ title, children }: { title: string; children: ReactNode }) => (
-    <Box>
+    <Box data-nav="part" data-nav-label={title}>
         <Typography variant="body1" sx={{ fontWeight: 800, color: 'text.primary', mb: 0.75 }}>
             {title}
         </Typography>

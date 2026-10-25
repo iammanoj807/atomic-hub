@@ -9,7 +9,7 @@ export interface InterviewTip {
     body: string;
 }
 
-export const INTERVIEW_TIPS: InterviewTip[] = [
+const INTERVIEW_TIPS: InterviewTip[] = [
     {
         heading: 'STRENGTHS QUESTIONS ARE NOT STAR',
         body: 'Strengths-based questions — "what energises you", "what do you pick up fastest" — are about self-awareness, not evidence. Answer them as natural paragraphs, the way a person talks. A case-study structure makes a strengths answer sound rehearsed and evasive.',

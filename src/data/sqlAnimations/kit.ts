@@ -2,7 +2,7 @@ import type { Shape } from '../../components/learning/anim/scene';
 import { C, rect, text, tint } from '../../components/learning/anim/kit';
 import { practiceTables, type SqlCell } from '../sqlPracticeDb';
 
-export { label, panel } from '../foundationsAnimations/common';
+export { label } from '../foundationsAnimations/common';
 
 // Pieces the SQL animations share. The data always comes from the practice
 // database, so every row drawn is a real row, and each animation's final
@@ -17,7 +17,7 @@ const cache = new Map<string, readonly Row[]>();
  * objects are the same on every call, so `rows.includes(row)` works across
  * calls; the array is a fresh copy, so sorting it is safe.
  */
-export const rowsOf = (tableName: string): Row[] => {
+const rowsOf = (tableName: string): Row[] => {
     if (!cache.has(tableName)) {
         const found = practiceTables.find(t => t.name === tableName);
         if (!found) throw new Error(`No practice table ${tableName}`);
@@ -32,9 +32,6 @@ export const customers = () => rowsOf('customers');
 export const orders = () => rowsOf('orders');
 export const products = () => rowsOf('products');
 export const orderItems = () => rowsOf('order_items');
-
-/** How a value is shown: NULL as NULL, numbers and text as they are. */
-export const show = (value: SqlCell | undefined) => (value === null || value === undefined ? 'NULL' : String(value));
 
 /** Sort like SQL's ORDER BY: NULLs first (as SQLite does), then by value. */
 export const compare = (a: SqlCell, b: SqlCell) => {
@@ -79,7 +76,7 @@ export interface TableOptions {
 }
 
 /** Total width of a table's columns. */
-export const widthOf = (cols: Column[]) => cols.reduce((s, c) => s + c.w, 0);
+const widthOf = (cols: Column[]) => cols.reduce((s, c) => s + c.w, 0);
 
 /**
  * A small table: a heading row, then one row per item. Every shape's id

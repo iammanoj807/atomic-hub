@@ -70,7 +70,7 @@ export const dueCards = (state: DrillState, today: string): string[] =>
         .map(([id]) => id);
 
 /** Problems never drilled yet, in curriculum order. */
-export const unseenCards = (state: DrillState): string[] => allDrillProblems.map(p => p.id).filter(id => !state[id]);
+const unseenCards = (state: DrillState): string[] => allDrillProblems.map(p => p.id).filter(id => !state[id]);
 
 export interface SessionOptions {
     /** Most cards in one session. */

@@ -30,4 +30,3 @@ export const auth = initializeAuth(app, {
     persistence: [indexedDBLocalPersistence, browserLocalPersistence],
 });
 
-export default app;

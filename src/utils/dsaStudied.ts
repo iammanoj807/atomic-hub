@@ -19,7 +19,7 @@ export const studiedTopicIds = (progress: SolvedByTopic): string[] =>
         .map(topic => topic.id);
 
 /** The session options for the drill: only studied topics, unless asked for every topic. */
-export const drillSessionOptions = (progress: SolvedByTopic, onlyStudied: boolean): SessionOptions =>
+const drillSessionOptions = (progress: SolvedByTopic, onlyStudied: boolean): SessionOptions =>
     onlyStudied ? { topicIds: studiedTopicIds(progress) } : {};
 
 /** Today's drill cards, exactly as the drill page builds them by default. */

@@ -8,7 +8,7 @@ import { createGlossary } from './glossaryEngine';
 export type { TextSegment } from './glossaryEngine';
 
 /** Every piece of prose in a topic, in reading order (no code, API lines or diagrams). */
-export const topicProse = (topic: SDTopic): string[] => {
+const topicProse = (topic: SDTopic): string[] => {
     const tail = [
         ...topic.mistakes,
         topic.interviewAnswer,
@@ -31,10 +31,8 @@ export const topicProse = (topic: SDTopic): string[] => {
 
 export const systemDesignGlossary = createGlossary(glossaryTerms, allSystemDesignTopics, topicProse);
 
-export const getGlossaryTerm = systemDesignGlossary.getTerm;
 export const segmentText = systemDesignGlossary.segmentText;
 export const segmentFirstMentions = systemDesignGlossary.segmentFirstMentions;
-export const termsInText = systemDesignGlossary.termsInText;
 export const termsInTopic = systemDesignGlossary.termsInTopic;
 export const newWordsForTopic = systemDesignGlossary.newWordsForTopic;
 export const findSystemDesignTopic = systemDesignGlossary.findTopic;

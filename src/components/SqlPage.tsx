@@ -42,6 +42,7 @@ import {
     type SqlTopicAnswers,
 } from '../data/sql';
 import { useSql } from '../hooks/useSql';
+import { useSqlQueries } from '../hooks/useSqlQueries';
 import { sqlGlossary } from '../utils/sqlGlossary';
 import { checksPassed, confidentCount, isTopicConfident, nextTopic, topicsInProgress } from '../utils/sqlProgress';
 import type { SqlProgress } from '../services/firebaseService';
@@ -84,7 +85,8 @@ import { AnimatedScene } from './learning/anim/AnimatedScene';
 import { useTopicAnimation } from './learning/anim/useTopicAnimation';
 import { useLoaded } from './learning/useLoaded';
 import { segmentSections, type Prose } from './learning/glossaryContext';
-import { AnswerQuery, ExampleBlock, ExampleOutcome, MONO, PracticeDatabase, SqlRunBox } from './sql/SqlParts';
+import { AnswerQuery, ExampleBlock, ExampleOutcome, MONO, PracticeDatabase, SavedQueriesPanel, SqlRunBox } from './sql/SqlParts';
+import { SqlQueriesContext, SqlTopicContext } from './sql/sqlContext';
 
 const MAX_IN_PROGRESS = 8;
 /** "Must know" stands out from the other tags at a glance. */
@@ -323,6 +325,10 @@ const LessonBody = ({ topic, accent, marked }: { topic: SqlLesson; accent: strin
                         number={topic.examples.length > 1 ? index + 1 : undefined}
                         accent={accent}
                         note={marked('exampleNotes')[index]}
+                        saveAs={{
+                            key: `example-${index + 1}`,
+                            place: topic.examples.length > 1 ? `Step 1 · Example ${index + 1}: ${example.title}` : `Step 1 · Worked example: ${example.title}`,
+                        }}
                     />
                 ))}
             </Stack>
@@ -364,12 +370,24 @@ const ProblemBody = ({ topic, accent, marked }: { topic: SqlProblem; accent: str
                 initialSql={`-- Tables: ${topic.tables.join(', ')}\n-- Write your answer here, run it, then compare with the solution.\nSELECT `}
                 accent={accent}
                 label="Your turn: write it before you look"
+                saveAs={{ key: 'your-turn', place: 'Step 1 · Your turn', restore: true }}
             />
             {solutionShown ? (
                 <Stack spacing={3}>
-                    <ExampleBlock example={topic.solution} accent={accent} note={notes[0]} />
+                    <ExampleBlock
+                        example={topic.solution}
+                        accent={accent}
+                        note={notes[0]}
+                        saveAs={{ key: 'solution', place: 'Step 1 · Solution' }}
+                    />
                     {(topic.alternatives ?? []).map((example, index) => (
-                        <ExampleBlock key={example.title} example={example} accent={accent} note={notes[index + 1]} />
+                        <ExampleBlock
+                            key={example.title}
+                            example={example}
+                            accent={accent}
+                            note={notes[index + 1]}
+                            saveAs={{ key: `alternative-${index + 1}`, place: `Step 1 · Another way: ${example.title}` }}
+                        />
                     ))}
                     <Block title="Edge cases to say out loud">
                         <Bullets items={marked('edgeCases')} marker={accent} />
@@ -429,6 +447,7 @@ const TopicCard = ({
     );
     const steps = topic.kind === 'lesson' ? LESSON_STEPS : PROBLEM_STEPS;
     const answers = useLoaded(loadAnswers, expanded)?.[topic.id];
+    const where = useMemo(() => ({ topicId: topic.id, topicName: topic.name }), [topic]);
     const marked = useMemo(() => segmentSections(sqlGlossary, learnSections(topic, answers)), [topic, answers]);
 
     return (
@@ -447,7 +466,12 @@ const TopicCard = ({
                 scrollMarginTop: 16,
             }}
         >
-            <AccordionSummary expandIcon={<ExpandMoreRoundedIcon />} sx={{ minHeight: TAP }}>
+            <AccordionSummary
+                expandIcon={<ExpandMoreRoundedIcon />}
+                sx={{ minHeight: TAP }}
+                // The open topic's title heads the section rail.
+                {...(expanded && { 'data-nav': 'topic', 'data-nav-label': topic.name })}
+            >
                 <Stack direction="row" spacing={1.5} alignItems="center" sx={{ width: '100%', pr: 1, minWidth: 0 }} flexWrap="wrap" useFlexGap>
                     <Typography sx={{ color: accent, fontWeight: 800, minWidth: 24, fontVariantNumeric: 'tabular-nums' }}>
                         {number}
@@ -465,127 +489,137 @@ const TopicCard = ({
             </AccordionSummary>
 
             <AccordionDetails sx={{ pt: 0, pb: 3, px: { xs: 2, sm: 3 } }}>
-                <GlossaryTopic topicId={topic.id}>
-                    <StepBar topicId={topic.id} accent={accent} steps={steps} />
+                <SqlTopicContext.Provider value={where}>
+                    <GlossaryTopic topicId={topic.id}>
+                        <StepBar topicId={topic.id} accent={accent} steps={steps} />
 
-                    {/* ---- STEP 1 ---- the lesson, or the problem to solve */}
-                    <SectionLabel color={accent} id={stepId(topic.id, 1)}>{steps[0].label}</SectionLabel>
-                    <Stack spacing={3} sx={{ maxWidth: 760 }}>
-                        <QuoteBox accent={accent}>
-                            <Typography variant="body1">
-                                <strong style={{ color: accent }}>{topic.kind === 'lesson' ? 'Definition.' : 'The question.'}</strong>{' '}
-                                <ProseText value={marked('definition')[0]} />
-                            </Typography>
-                        </QuoteBox>
-                        <NewWordsBox topicId={topic.id} accent={accent} />
-                        {topic.kind === 'lesson' ? (
-                            <LessonBody topic={topic} accent={accent} marked={marked} />
-                        ) : (
-                            <ProblemBody topic={topic} accent={accent} marked={marked} />
-                        )}
-                    </Stack>
-
-                    {/* ---- STEP 2 ---- */}
-                    <SectionLabel color={accent} id={stepId(topic.id, 2)}>{steps[1].label}</SectionLabel>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1.75, maxWidth: 760 }}>
-                        The notes above are enough on their own. Use these for a second explanation or more practice.
-                    </Typography>
-                    <Stack spacing={1.75} sx={{ maxWidth: 760 }}>
-                        {resources.map((resource, index) => (
-                            <TopicResourceRow key={`${resource.kind}-${resource.title}`} resource={resource} accent={accent} number={index + 1} kindLabels={KIND_LABELS} />
-                        ))}
-                    </Stack>
-
-                    {/* ---- STEP 3 ---- */}
-                    <SectionLabel color={accent} id={stepId(topic.id, 3)}>{steps[2].label}</SectionLabel>
-                    <Stack spacing={2} sx={{ maxWidth: 760 }}>
-                        <Typography color="text.secondary" sx={{ fontSize: px(t.small) }}>
-                            Try each one yourself first: out loud, or written and run in the practice box below. Then tap Show answer to check.
-                        </Typography>
-                        {SQL_CHECK_KEYS.map((key, index) => (
-                            <Stack key={key} direction="row" spacing={1.5} alignItems="flex-start">
-                                <Typography sx={{ color: accent, fontWeight: 800, minWidth: 22, flexShrink: 0 }}>
-                                    {index + 1}
-                                </Typography>
-                                <Box sx={{ minWidth: 0 }}>
-                                    <Typography variant="caption" sx={{ display: 'block', color: accent, fontWeight: 800, letterSpacing: 0.8 }}>
-                                        {SQL_CHECK_LABELS[key].toUpperCase()}
-                                        {PRACTICE_HINTS[key] && (
-                                            <Box component="span" sx={{ color: 'text.secondary', fontWeight: 600, letterSpacing: 0 }}>
-                                                {' '}({PRACTICE_HINTS[key]})
-                                            </Box>
-                                        )}
-                                    </Typography>
-                                    <Typography variant="body2" sx={{ color: 'text.primary' }}>
-                                        <ProseText value={marked('practice')[index]} />
-                                    </Typography>
-                                    {answers && (
-                                        <AnswerReveal id={`answer-${topic.id}-${key}`} text={marked('answers')[index]} accent={accent}>
-                                            {answers[key].query && <AnswerQuery query={answers[key].query} accent={accent} />}
-                                        </AnswerReveal>
-                                    )}
-                                </Box>
-                            </Stack>
-                        ))}
-                        <SqlRunBox
-                            initialSql={'-- Write and run your answers here.\nSELECT '}
-                            accent={accent}
-                            label="Practice box: run your answers on the practice database"
-                        />
-                        <Typography color="text.secondary" sx={{ fontStyle: 'italic', fontSize: px(t.small) }}>
-                            Yours can look different and still be right: if it returns the same rows for the same reason, it counts.
-                            Not sure yours counts? Send Claude your query and "check my answer: {topic.name}".
-                        </Typography>
-                    </Stack>
-
-                    {/* ---- STEP 4 ---- say it, test yourself, then tick the checks */}
-                    <SectionLabel color={accent} id={stepId(topic.id, 4)}>{steps[3].label}</SectionLabel>
-                    <Stack spacing={3} sx={{ maxWidth: 760 }}>
-                        <Block title="Your interview answer">
+                        {/* ---- STEP 1 ---- the lesson, or the problem to solve */}
+                        <SectionLabel color={accent} id={stepId(topic.id, 1)}>{steps[0].label}</SectionLabel>
+                        <Stack spacing={3} sx={{ maxWidth: 760 }}>
                             <QuoteBox accent={accent}>
-                                <Typography variant="body1" sx={{ fontStyle: 'italic' }}>"<ProseText value={marked('interviewAnswer')[0]} />"</Typography>
+                                <Typography variant="body1">
+                                    <strong style={{ color: accent }}>{topic.kind === 'lesson' ? 'Definition.' : 'The question.'}</strong>{' '}
+                                    <ProseText value={marked('definition')[0]} />
+                                </Typography>
                             </QuoteBox>
-                            <Typography color="text.secondary" sx={{ mt: 0.75, fontSize: px(t.small) }}>
-                                Say this out loud.
+                            <NewWordsBox topicId={topic.id} accent={accent} />
+                            {topic.kind === 'lesson' ? (
+                                <LessonBody topic={topic} accent={accent} marked={marked} />
+                            ) : (
+                                <ProblemBody topic={topic} accent={accent} marked={marked} />
+                            )}
+                        </Stack>
+
+                        {/* ---- STEP 2 ---- */}
+                        <SectionLabel color={accent} id={stepId(topic.id, 2)}>{steps[1].label}</SectionLabel>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1.75, maxWidth: 760 }}>
+                            The notes above are enough on their own. Use these for a second explanation or more practice.
+                        </Typography>
+                        <Stack spacing={1.75} sx={{ maxWidth: 760 }}>
+                            {resources.map((resource, index) => (
+                                <TopicResourceRow key={`${resource.kind}-${resource.title}`} resource={resource} accent={accent} number={index + 1} kindLabels={KIND_LABELS} />
+                            ))}
+                        </Stack>
+
+                        {/* ---- STEP 3 ---- */}
+                        <SectionLabel color={accent} id={stepId(topic.id, 3)}>{steps[2].label}</SectionLabel>
+                        <Stack spacing={2} sx={{ maxWidth: 760 }}>
+                            <Typography color="text.secondary" sx={{ fontSize: px(t.small) }}>
+                                Try each one yourself first: out loud, or written and run in the practice box below, which saves every query you run.
+                                Then tap Show answer to check.
                             </Typography>
-                        </Block>
-                        <Block title="Follow-up questions">
-                            <FollowUps topic={topic} accent={accent} marked={marked} />
-                        </Block>
-                        <Box>
-                            <Typography variant="body2" sx={{ color: 'text.primary', mb: 1.5 }}>
-                                Do this the next day with your notes closed. Tick only what you can do from memory.
+                            {SQL_CHECK_KEYS.map((key, index) => (
+                                <Stack key={key} direction="row" spacing={1.5} alignItems="flex-start">
+                                    <Typography sx={{ color: accent, fontWeight: 800, minWidth: 22, flexShrink: 0 }}>
+                                        {index + 1}
+                                    </Typography>
+                                    <Box sx={{ minWidth: 0 }}>
+                                        <Typography variant="caption" sx={{ display: 'block', color: accent, fontWeight: 800, letterSpacing: 0.8 }}>
+                                            {SQL_CHECK_LABELS[key].toUpperCase()}
+                                            {PRACTICE_HINTS[key] && (
+                                                <Box component="span" sx={{ color: 'text.secondary', fontWeight: 600, letterSpacing: 0 }}>
+                                                    {' '}({PRACTICE_HINTS[key]})
+                                                </Box>
+                                            )}
+                                        </Typography>
+                                        <Typography variant="body2" sx={{ color: 'text.primary' }}>
+                                            <ProseText value={marked('practice')[index]} />
+                                        </Typography>
+                                        {answers && (
+                                            <AnswerReveal id={`answer-${topic.id}-${key}`} text={marked('answers')[index]} accent={accent}>
+                                                {answers[key].query && (
+                                                    <AnswerQuery
+                                                        query={answers[key].query}
+                                                        accent={accent}
+                                                        saveAs={{ key: `answer-${key}`, place: `Step 3 · ${SQL_CHECK_LABELS[key]} answer` }}
+                                                    />
+                                                )}
+                                            </AnswerReveal>
+                                        )}
+                                    </Box>
+                                </Stack>
+                            ))}
+                            <SqlRunBox
+                                initialSql={'-- Write and run your answers here.\nSELECT '}
+                                accent={accent}
+                                label="Practice box: run your answers on the practice database"
+                                saveAs={{ key: 'practice', place: 'Step 3 · Practice box', restore: true }}
+                            />
+                            <Typography color="text.secondary" sx={{ fontStyle: 'italic', fontSize: px(t.small) }}>
+                                Yours can look different and still be right: if it returns the same rows for the same reason, it counts.
+                                Not sure yours counts? Send Claude your query and "check my answer: {topic.name}".
                             </Typography>
-                            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                                {SQL_CHECK_KEYS.map(key => {
-                                    const done = progress.checks[topic.id]?.[key] === true;
-                                    const fill = confident ? CONFIDENT : accent;
-                                    return (
-                                        <Tooltip key={key} title={SQL_CHECK_MEANINGS[key]} arrow>
-                                            <Chip
-                                                label={SQL_CHECK_LABELS[key]}
-                                                onClick={() => onToggleCheck(key)}
-                                                aria-pressed={done}
-                                                sx={{
-                                                    height: TAP,
-                                                    px: 1,
-                                                    borderRadius: TAP / 2,
-                                                    fontSize: px(t.small),
-                                                    fontWeight: 700,
-                                                    color: done ? '#0b0f14' : 'text.secondary',
-                                                    bgcolor: done ? fill : 'rgba(255,255,255,0.05)',
-                                                    border: '1px solid',
-                                                    borderColor: done ? 'transparent' : 'rgba(255,255,255,0.14)',
-                                                    '&:hover': { bgcolor: done ? fill : 'rgba(255,255,255,0.1)' },
-                                                }}
-                                            />
-                                        </Tooltip>
-                                    );
-                                })}
-                            </Stack>
-                        </Box>
-                    </Stack>
-                </GlossaryTopic>
+                        </Stack>
+
+                        {/* ---- STEP 4 ---- say it, test yourself, then tick the checks */}
+                        <SectionLabel color={accent} id={stepId(topic.id, 4)}>{steps[3].label}</SectionLabel>
+                        <Stack spacing={3} sx={{ maxWidth: 760 }}>
+                            <Block title="Your interview answer">
+                                <QuoteBox accent={accent}>
+                                    <Typography variant="body1" sx={{ fontStyle: 'italic' }}>"<ProseText value={marked('interviewAnswer')[0]} />"</Typography>
+                                </QuoteBox>
+                                <Typography color="text.secondary" sx={{ mt: 0.75, fontSize: px(t.small) }}>
+                                    Say this out loud.
+                                </Typography>
+                            </Block>
+                            <Block title="Follow-up questions">
+                                <FollowUps topic={topic} accent={accent} marked={marked} />
+                            </Block>
+                            <Box>
+                                <Typography variant="body2" sx={{ color: 'text.primary', mb: 1.5 }}>
+                                    Do this the next day with your notes closed. Tick only what you can do from memory.
+                                </Typography>
+                                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                                    {SQL_CHECK_KEYS.map(key => {
+                                        const done = progress.checks[topic.id]?.[key] === true;
+                                        const fill = confident ? CONFIDENT : accent;
+                                        return (
+                                            <Tooltip key={key} title={SQL_CHECK_MEANINGS[key]} arrow>
+                                                <Chip
+                                                    label={SQL_CHECK_LABELS[key]}
+                                                    onClick={() => onToggleCheck(key)}
+                                                    aria-pressed={done}
+                                                    sx={{
+                                                        height: TAP,
+                                                        px: 1,
+                                                        borderRadius: TAP / 2,
+                                                        fontSize: px(t.small),
+                                                        fontWeight: 700,
+                                                        color: done ? '#0b0f14' : 'text.secondary',
+                                                        bgcolor: done ? fill : 'rgba(255,255,255,0.05)',
+                                                        border: '1px solid',
+                                                        borderColor: done ? 'transparent' : 'rgba(255,255,255,0.14)',
+                                                        '&:hover': { bgcolor: done ? fill : 'rgba(255,255,255,0.1)' },
+                                                    }}
+                                                />
+                                            </Tooltip>
+                                        );
+                                    })}
+                                </Stack>
+                            </Box>
+                        </Stack>
+                    </GlossaryTopic>
+                </SqlTopicContext.Provider>
             </AccordionDetails>
         </Accordion>
     );
@@ -728,6 +762,8 @@ const CheatSheet = () => {
  */
 const SqlPage = () => {
     const { progress, toggleCheck } = useSql();
+    const savedQueries = useSqlQueries();
+    const savedCount = Object.keys(savedQueries.queries).length;
     const next = nextTopic(progress);
     const inProgress = topicsInProgress(progress).filter(topic => topic.id !== next?.id);
     const { textSize, t, theme, changeTextSize } = useTextSizeChoice();
@@ -810,341 +846,346 @@ const SqlPage = () => {
 
     return (
         <LearningPageFrame t={t} theme={theme}>
-            <GlossaryProvider source={sqlGlossary} openTopic={openTopic}>
-                <Box sx={{ width: '100%', maxWidth: 940, mx: 'auto', minWidth: 0 }}>
-                    {/* ---- HEADER ---- */}
-                    <Box sx={{ mb: 3 }}>
-                        <Stack
-                            direction={{ xs: 'column', sm: 'row' }}
-                            justifyContent="space-between"
-                            alignItems={{ xs: 'flex-start', sm: 'center' }}
-                            spacing={2}
-                            sx={{ pb: 3, mb: 4, borderBottom: 1, borderColor: 'rgba(255,255,255,0.1)' }}
-                        >
-                            <Box>
-                                <Typography variant="caption" color="text.secondary" fontWeight="bold" sx={{ letterSpacing: 1.5, display: 'block', mb: 0.5 }}>
-                                    SQL
-                                </Typography>
-                                <Typography variant="body1" fontWeight="medium" color="text.primary">
-                                    Self-paced · {sqlPhases.length} phases · {allSqlTopics.length - problemCount} lessons · {problemCount} interview problems
-                                </Typography>
-                            </Box>
-                            <TextSizeControl value={textSize} onChange={changeTextSize} />
-                        </Stack>
-                        <Typography
-                            variant="h2"
-                            fontWeight="bold"
-                            sx={{ color: 'text.primary', mb: 1, fontSize: { xs: `${2 * t.heading}rem`, sm: `${3 * t.heading}rem` } }}
-                        >
-                            Ask the data anything
-                        </Typography>
-                        <Typography variant="body1" color="text.secondary">
-                            SQL from your first SELECT to interview problems — one small step at a time, with every example runnable right here.
-                        </Typography>
-                    </Box>
-
-                    {/* ---- MODE, AND THE GLOSSARY ---- */}
-                    <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" useFlexGap sx={{ mb: 3 }}>
-                        <ToggleButtonGroup
-                            exclusive
-                            value={mode}
-                            onChange={(_, value: Mode | null) => changeMode(value)}
-                            aria-label="Mode"
-                        >
-                            {MODES.map(value => (
-                                <ToggleButton
-                                    key={value}
-                                    value={value}
-                                    sx={{ minHeight: TAP, px: 3, textTransform: 'none', fontWeight: 700, '&:focus': { outline: 'none' } }}
-                                >
-                                    {MODE_LABELS[value]}
-                                </ToggleButton>
-                            ))}
-                        </ToggleButtonGroup>
-                        <Button
-                            variant="outlined"
-                            startIcon={<MenuBookRoundedIcon />}
-                            onClick={() => setGlossaryOpen(true)}
-                            aria-haspopup="dialog"
-                            sx={{ minHeight: TAP, px: 2, textTransform: 'none', fontWeight: 700, color: 'text.primary', borderColor: 'rgba(255,255,255,0.2)' }}
-                        >
-                            Glossary
-                        </Button>
-                    </Stack>
-                    <GlossaryDrawer open={glossaryOpen} onClose={() => setGlossaryOpen(false)} onOpenTopic={openTopic} />
-
-                    {mode === 'interview' ? (
-                        <InterviewQuestionsView
-                            sets={[sqlInterviewSet]}
-                            glossary={sqlGlossary}
-                            accent={CYAN}
-                            topicName={id => allSqlTopics.find(topic => topic.id === id)?.name}
-                            openTopic={openTopic}
-                        />
-                    ) : (
-                        <>
-                        {/* ---- STATS ---- */}
-                        <Stack direction="row" spacing={4} sx={{ mb: 3 }} flexWrap="wrap" useFlexGap>
-                            {[
-                                { value: confident, total: allSqlTopics.length, label: 'TOPICS CONFIDENT', color: CONFIDENT },
-                                { value: checksDone, total: allSqlTopics.length * SQL_CHECK_KEYS.length, label: 'CHECKS PASSED', color: CYAN },
-                                { value: mustConfident, total: mustTopics.length, label: 'MUST-KNOW CONFIDENT', color: MUST },
-                            ].map(stat => (
-                                <Box key={stat.label}>
-                                    <Typography variant="h3" fontWeight="bold" sx={{ color: stat.color, lineHeight: 1 }}>
-                                        {stat.value}
-                                        <Typography component="span" variant="h5" color="text.secondary"> / {stat.total}</Typography>
+            <SqlQueriesContext.Provider value={savedQueries}>
+                <GlossaryProvider source={sqlGlossary} openTopic={openTopic}>
+                    <Box sx={{ width: '100%', maxWidth: 940, mx: 'auto', minWidth: 0 }}>
+                        {/* ---- HEADER ---- */}
+                        <Box sx={{ mb: 3 }}>
+                            <Stack
+                                direction={{ xs: 'column', sm: 'row' }}
+                                justifyContent="space-between"
+                                alignItems={{ xs: 'flex-start', sm: 'center' }}
+                                spacing={2}
+                                sx={{ pb: 3, mb: 4, borderBottom: 1, borderColor: 'rgba(255,255,255,0.1)' }}
+                            >
+                                <Box>
+                                    <Typography variant="caption" color="text.secondary" fontWeight="bold" sx={{ letterSpacing: 1.5, display: 'block', mb: 0.5 }}>
+                                        SQL
                                     </Typography>
-                                    <Typography variant="caption" color="text.secondary" sx={{ letterSpacing: 1.2, fontWeight: 700 }}>
-                                        {stat.label}
+                                    <Typography variant="body1" fontWeight="medium" color="text.primary">
+                                        Self-paced · {sqlPhases.length} phases · {allSqlTopics.length - problemCount} lessons · {problemCount} interview problems
                                     </Typography>
                                 </Box>
-                            ))}
-                        </Stack>
+                                <TextSizeControl value={textSize} onChange={changeTextSize} />
+                            </Stack>
+                            <Typography
+                                variant="h2"
+                                fontWeight="bold"
+                                sx={{ color: 'text.primary', mb: 1, fontSize: { xs: `${2 * t.heading}rem`, sm: `${3 * t.heading}rem` } }}
+                            >
+                                Ask the data anything
+                            </Typography>
+                            <Typography variant="body1" color="text.secondary">
+                                SQL from your first SELECT to interview problems — one small step at a time, with every example runnable right here.
+                            </Typography>
+                        </Box>
 
-                        {/* ---- NEXT UP ---- Learn mode only */}
-                        {mode === 'learn' && (
-                            <Box sx={{ p: 2.5, borderRadius: 3, mb: 3, bgcolor: 'rgba(102,187,106,0.06)', border: '1px solid rgba(102,187,106,0.3)' }}>
-                                {next ? (
-                                    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'flex-start', sm: 'center' }}>
-                                        <Box sx={{ flex: 1 }}>
-                                            <Typography variant="caption" sx={{ display: 'block', color: CONFIDENT, fontWeight: 800, letterSpacing: 1.2 }}>
-                                                NEXT UP · PHASE {phaseOf(next.id).number}
-                                            </Typography>
-                                            <Typography variant="h6" fontWeight="bold" color="text.primary">
-                                                {next.name}
-                                            </Typography>
-                                            <Typography variant="body2" color="text.secondary">
-                                                {checksPassed(progress, next.id)} of 4 checks passed
-                                            </Typography>
-                                            <Typography variant="body2" sx={{ color: 'text.primary', mt: 1 }}>
-                                                Open the topic and follow Steps 1 → 4.
-                                            </Typography>
-                                        </Box>
-                                        <Button
-                                            variant="contained"
-                                            onClick={() => openTopic(next.id)}
-                                            sx={{ minHeight: TAP, px: 2.5, textTransform: 'none', fontWeight: 700 }}
-                                        >
-                                            Open topic
-                                        </Button>
-                                    </Stack>
-                                ) : (
-                                    <Typography variant="body1" color="text.primary" fontWeight={700}>
-                                        Every topic is confident. Keep re-testing old ones every two weeks, and untick any you fail.
-                                    </Typography>
-                                )}
-                                {inProgress.length > 0 && (
-                                    <>
-                                        <Typography variant="body2" color="text.secondary" sx={{ mt: 2.5, mb: 1 }}>
-                                            Also started, not finished:
+                        {/* ---- MODE, AND THE GLOSSARY ---- */}
+                        <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" useFlexGap sx={{ mb: 3 }}>
+                            <ToggleButtonGroup
+                                exclusive
+                                value={mode}
+                                onChange={(_, value: Mode | null) => changeMode(value)}
+                                aria-label="Mode"
+                            >
+                                {MODES.map(value => (
+                                    <ToggleButton
+                                        key={value}
+                                        value={value}
+                                        sx={{ minHeight: TAP, px: 3, textTransform: 'none', fontWeight: 700, '&:focus': { outline: 'none' } }}
+                                    >
+                                        {MODE_LABELS[value]}
+                                    </ToggleButton>
+                                ))}
+                            </ToggleButtonGroup>
+                            <Button
+                                variant="outlined"
+                                startIcon={<MenuBookRoundedIcon />}
+                                onClick={() => setGlossaryOpen(true)}
+                                aria-haspopup="dialog"
+                                sx={{ minHeight: TAP, px: 2, textTransform: 'none', fontWeight: 700, color: 'text.primary', borderColor: 'rgba(255,255,255,0.2)' }}
+                            >
+                                Glossary
+                            </Button>
+                        </Stack>
+                        <GlossaryDrawer open={glossaryOpen} onClose={() => setGlossaryOpen(false)} onOpenTopic={openTopic} />
+
+                        {mode === 'interview' ? (
+                            <InterviewQuestionsView
+                                sets={[sqlInterviewSet]}
+                                glossary={sqlGlossary}
+                                accent={CYAN}
+                                topicName={id => allSqlTopics.find(topic => topic.id === id)?.name}
+                                openTopic={openTopic}
+                            />
+                        ) : (
+                            <>
+                            {/* ---- STATS ---- */}
+                            <Stack direction="row" spacing={4} sx={{ mb: 3 }} flexWrap="wrap" useFlexGap>
+                                {[
+                                    { value: confident, total: allSqlTopics.length, label: 'TOPICS CONFIDENT', color: CONFIDENT },
+                                    { value: checksDone, total: allSqlTopics.length * SQL_CHECK_KEYS.length, label: 'CHECKS PASSED', color: CYAN },
+                                    { value: mustConfident, total: mustTopics.length, label: 'MUST-KNOW CONFIDENT', color: MUST },
+                                ].map(stat => (
+                                    <Box key={stat.label}>
+                                        <Typography variant="h3" fontWeight="bold" sx={{ color: stat.color, lineHeight: 1 }}>
+                                            {stat.value}
+                                            <Typography component="span" variant="h5" color="text.secondary"> / {stat.total}</Typography>
                                         </Typography>
-                                        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                                            {inProgress.slice(0, MAX_IN_PROGRESS).map(topicChip)}
-                                            {inProgress.length > MAX_IN_PROGRESS && (
-                                                <Typography variant="body2" color="text.secondary" sx={{ alignSelf: 'center' }}>
-                                                    and {inProgress.length - MAX_IN_PROGRESS} more
+                                        <Typography variant="caption" color="text.secondary" sx={{ letterSpacing: 1.2, fontWeight: 700 }}>
+                                            {stat.label}
+                                        </Typography>
+                                    </Box>
+                                ))}
+                            </Stack>
+
+                            {/* ---- NEXT UP ---- Learn mode only */}
+                            {mode === 'learn' && (
+                                <Box sx={{ p: 2.5, borderRadius: 3, mb: 3, bgcolor: 'rgba(102,187,106,0.06)', border: '1px solid rgba(102,187,106,0.3)' }}>
+                                    {next ? (
+                                        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'flex-start', sm: 'center' }}>
+                                            <Box sx={{ flex: 1 }}>
+                                                <Typography variant="caption" sx={{ display: 'block', color: CONFIDENT, fontWeight: 800, letterSpacing: 1.2 }}>
+                                                    NEXT UP · PHASE {phaseOf(next.id).number}
                                                 </Typography>
+                                                <Typography variant="h6" fontWeight="bold" color="text.primary">
+                                                    {next.name}
+                                                </Typography>
+                                                <Typography variant="body2" color="text.secondary">
+                                                    {checksPassed(progress, next.id)} of 4 checks passed
+                                                </Typography>
+                                                <Typography variant="body2" sx={{ color: 'text.primary', mt: 1 }}>
+                                                    Open the topic and follow Steps 1 → 4.
+                                                </Typography>
+                                            </Box>
+                                            <Button
+                                                variant="contained"
+                                                onClick={() => openTopic(next.id)}
+                                                sx={{ minHeight: TAP, px: 2.5, textTransform: 'none', fontWeight: 700 }}
+                                            >
+                                                Open topic
+                                            </Button>
+                                        </Stack>
+                                    ) : (
+                                        <Typography variant="body1" color="text.primary" fontWeight={700}>
+                                            Every topic is confident. Keep re-testing old ones every two weeks, and untick any you fail.
+                                        </Typography>
+                                    )}
+                                    {inProgress.length > 0 && (
+                                        <>
+                                            <Typography variant="body2" color="text.secondary" sx={{ mt: 2.5, mb: 1 }}>
+                                                Also started, not finished:
+                                            </Typography>
+                                            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                                                {inProgress.slice(0, MAX_IN_PROGRESS).map(topicChip)}
+                                                {inProgress.length > MAX_IN_PROGRESS && (
+                                                    <Typography variant="body2" color="text.secondary" sx={{ alignSelf: 'center' }}>
+                                                        and {inProgress.length - MAX_IN_PROGRESS} more
+                                                    </Typography>
+                                                )}
+                                            </Stack>
+                                        </>
+                                    )}
+                                </Box>
+                            )}
+
+                            {/* ---- REFERENCE ---- how to study, the practice tables, the cheat sheet */}
+                            <Stack spacing={1.5} sx={{ mb: 3 }}>
+                                <ReferencePanel title="How to study SQL (read once)" tint="rgba(77,208,225,0.07)" border="rgba(77,208,225,0.25)">
+                                    <Stack component="ol" spacing={1} sx={{ pl: 2.5, m: 0 }}>
+                                        {sqlHowToStudy.map(line => (
+                                            <Typography key={line} component="li" variant="body2" sx={{ color: 'text.primary' }}>
+                                                {line}
+                                            </Typography>
+                                        ))}
+                                    </Stack>
+                                    <Typography variant="body1" sx={{ color: 'text.primary', mt: 2.5 }}>
+                                        {SQL_CONFIDENT_RULE}
+                                    </Typography>
+                                    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5, mt: 2.5 }}>
+                                        {SQL_CHECK_KEYS.map((key, index) => (
+                                            <Box key={key} sx={{ p: 1.5, borderRadius: 2, bgcolor: 'rgba(0,0,0,0.2)' }}>
+                                                <Typography variant="body2" fontWeight={800} color="text.primary">
+                                                    {index + 1}. {SQL_CHECK_LABELS[key]}
+                                                </Typography>
+                                                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
+                                                    {SQL_CHECK_MEANINGS[key]}
+                                                </Typography>
+                                            </Box>
+                                        ))}
+                                    </Box>
+                                </ReferencePanel>
+                                <ReferencePanel title="The practice database: six tables, and a box to run any query" tint="rgba(255,202,40,0.06)" border="rgba(255,202,40,0.25)">
+                                    <PracticeDatabase accent={MUST} />
+                                </ReferencePanel>
+                                <ReferencePanel title={`My saved queries (${savedCount})`} tint="rgba(102,187,106,0.05)" border="rgba(102,187,106,0.25)">
+                                    <SavedQueriesPanel accent={CONFIDENT} openTopic={openTopic} />
+                                </ReferencePanel>
+                                <ReferencePanel title="SQL cheat sheet: the shapes to know by heart" tint="rgba(255,255,255,0.03)" border="rgba(255,255,255,0.12)">
+                                    <CheatSheet />
+                                </ReferencePanel>
+                            </Stack>
+
+                            {/* ---- FILTERS ---- */}
+                            <Stack
+                                direction={{ xs: 'column', sm: 'row' }}
+                                spacing={1.5}
+                                alignItems={{ xs: 'stretch', sm: 'center' }}
+                                justifyContent="space-between"
+                                sx={{ mb: 2 }}
+                                useFlexGap
+                            >
+                                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap role="group" aria-label="Filter by priority">
+                                    {PRIORITY_FILTERS.map(filter => {
+                                        const selected = priority === filter.value;
+                                        const color = filter.value === 'must' ? MUST : CYAN;
+                                        return (
+                                            <Chip
+                                                key={filter.value}
+                                                label={filter.label}
+                                                onClick={() => setPriority(filter.value)}
+                                                aria-pressed={selected}
+                                                sx={{
+                                                    height: TAP,
+                                                    px: 0.5,
+                                                    borderRadius: TAP / 2,
+                                                    fontSize: px(t.small),
+                                                    fontWeight: 700,
+                                                    color: selected ? '#0b0f14' : 'text.secondary',
+                                                    bgcolor: selected ? color : 'rgba(255,255,255,0.05)',
+                                                    border: '1px solid',
+                                                    borderColor: selected ? 'transparent' : 'rgba(255,255,255,0.14)',
+                                                    '&:hover': { bgcolor: selected ? color : 'rgba(255,255,255,0.1)' },
+                                                }}
+                                            />
+                                        );
+                                    })}
+                                </Stack>
+                                <TextField
+                                    type="search"
+                                    value={query}
+                                    onChange={event => setQuery(event.target.value)}
+                                    placeholder="Search topics"
+                                    sx={{ width: { xs: '100%', sm: 280 }, '& .MuiInputBase-root': { minHeight: TAP } }}
+                                    slotProps={{
+                                        htmlInput: { 'aria-label': 'Search topics by name, definition or pattern' },
+                                        input: {
+                                            startAdornment: (
+                                                <InputAdornment position="start">
+                                                    <SearchRoundedIcon sx={{ color: 'text.secondary' }} />
+                                                </InputAdornment>
+                                            ),
+                                        },
+                                    }}
+                                />
+                            </Stack>
+
+                            {/* ---- PHASES ---- */}
+                            <Tabs
+                                value={tab}
+                                onChange={(_, value: TabValue) => { setChosenTab(value); setExpanded(null); }}
+                                variant="scrollable"
+                                scrollButtons="auto"
+                                allowScrollButtonsMobile
+                                sx={{
+                                    mb: 3,
+                                    borderBottom: 1,
+                                    borderColor: 'rgba(255,255,255,0.08)',
+                                    '& .MuiTab-root': { minHeight: TAP, textTransform: 'none', fontWeight: 700, fontSize: px(t.small), '&:focus': { outline: 'none' } },
+                                }}
+                            >
+                                {mode === 'revise' && <Tab value="all" label="All phases" />}
+                                {sqlPhases.map(p => (
+                                    <Tab key={p.id} value={p.number} label={`${p.number} ${p.short} · ${confidentCount(progress, p.topics)}/${p.topics.length}`} />
+                                ))}
+                            </Tabs>
+
+                            {mode === 'learn' ? (
+                                <Box sx={{ pb: 6 }}>
+                                    {/* Title and goal */}
+                                    <Typography variant="caption" sx={{ color: phase.accent, fontWeight: 800, letterSpacing: 1.2 }}>
+                                        PHASE {phase.number}
+                                    </Typography>
+                                    <Typography variant="h4" fontWeight="bold" color="text.primary" sx={{ mt: 0.5, mb: 1 }}>
+                                        {phase.title}
+                                    </Typography>
+                                    <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 760 }}>
+                                        {phase.goal}
+                                    </Typography>
+
+                                    <Stack direction="row" spacing={2} alignItems="center" sx={{ mt: 2.5, maxWidth: 760 }}>
+                                        <LinearProgress
+                                            variant="determinate"
+                                            value={(phaseConfident / phase.topics.length) * 100}
+                                            sx={{ flex: 1, height: 4, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.06)', '& .MuiLinearProgress-bar': { bgcolor: CONFIDENT } }}
+                                        />
+                                        <Typography color="text.secondary" sx={{ whiteSpace: 'nowrap', fontSize: px(t.small) }}>
+                                            {phaseConfident} of {phase.topics.length} confident
+                                        </Typography>
+                                    </Stack>
+
+                                    {/* Big picture */}
+                                    <Box sx={{ mt: 3, p: 2, borderRadius: 2, maxWidth: 760, bgcolor: `${phase.accent}14`, borderLeft: '3px solid', borderColor: phase.accent }}>
+                                        <Typography variant="body1">
+                                            <strong style={{ color: phase.accent }}>The big picture.</strong> {phase.bigPicture}
+                                        </Typography>
+                                    </Box>
+
+                                    {/* Topics */}
+                                    <SectionLabel>TOPICS, IN ORDER</SectionLabel>
+                                    {phase.topics.some(matches) ? (
+                                        <Stack spacing={1.25}>
+                                            {phase.topics.map((topic, index) =>
+                                                matches(topic) && (
+                                                    <TopicCard
+                                                        key={topic.id}
+                                                        topic={topic}
+                                                        number={index + 1}
+                                                        accent={phase.accent}
+                                                        progress={progress}
+                                                        expanded={expanded === topic.id}
+                                                        onExpand={open => setExpanded(open ? topic.id : null)}
+                                                        onToggleCheck={check => { void toggleCheck(topic.id, check); }}
+                                                    />
+                                                )
                                             )}
                                         </Stack>
-                                    </>
-                                )}
-                            </Box>
-                        )}
-
-                        {/* ---- REFERENCE ---- how to study, the practice tables, the cheat sheet */}
-                        <Stack spacing={1.5} sx={{ mb: 3 }}>
-                            <ReferencePanel title="How to study SQL (read once)" tint="rgba(77,208,225,0.07)" border="rgba(77,208,225,0.25)">
-                                <Stack component="ol" spacing={1} sx={{ pl: 2.5, m: 0 }}>
-                                    {sqlHowToStudy.map(line => (
-                                        <Typography key={line} component="li" variant="body2" sx={{ color: 'text.primary' }}>
-                                            {line}
-                                        </Typography>
-                                    ))}
-                                </Stack>
-                                <Typography variant="body1" sx={{ color: 'text.primary', mt: 2.5 }}>
-                                    {SQL_CONFIDENT_RULE}
-                                </Typography>
-                                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5, mt: 2.5 }}>
-                                    {SQL_CHECK_KEYS.map((key, index) => (
-                                        <Box key={key} sx={{ p: 1.5, borderRadius: 2, bgcolor: 'rgba(0,0,0,0.2)' }}>
-                                            <Typography variant="body2" fontWeight={800} color="text.primary">
-                                                {index + 1}. {SQL_CHECK_LABELS[key]}
-                                            </Typography>
-                                            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
-                                                {SQL_CHECK_MEANINGS[key]}
-                                            </Typography>
-                                        </Box>
-                                    ))}
+                                    ) : (
+                                        noMatches
+                                    )}
                                 </Box>
-                            </ReferencePanel>
-                            <ReferencePanel title="The practice database: six tables, and a box to run any query" tint="rgba(255,202,40,0.06)" border="rgba(255,202,40,0.25)">
-                                <PracticeDatabase accent={MUST} />
-                            </ReferencePanel>
-                            <ReferencePanel title="SQL cheat sheet: the shapes to know by heart" tint="rgba(255,255,255,0.03)" border="rgba(255,255,255,0.12)">
-                                <CheatSheet />
-                            </ReferencePanel>
-                        </Stack>
-
-                        {/* ---- FILTERS ---- */}
-                        <Stack
-                            direction={{ xs: 'column', sm: 'row' }}
-                            spacing={1.5}
-                            alignItems={{ xs: 'stretch', sm: 'center' }}
-                            justifyContent="space-between"
-                            sx={{ mb: 2 }}
-                            useFlexGap
-                        >
-                            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap role="group" aria-label="Filter by priority">
-                                {PRIORITY_FILTERS.map(filter => {
-                                    const selected = priority === filter.value;
-                                    const color = filter.value === 'must' ? MUST : CYAN;
-                                    return (
-                                        <Chip
-                                            key={filter.value}
-                                            label={filter.label}
-                                            onClick={() => setPriority(filter.value)}
-                                            aria-pressed={selected}
-                                            sx={{
-                                                height: TAP,
-                                                px: 0.5,
-                                                borderRadius: TAP / 2,
-                                                fontSize: px(t.small),
-                                                fontWeight: 700,
-                                                color: selected ? '#0b0f14' : 'text.secondary',
-                                                bgcolor: selected ? color : 'rgba(255,255,255,0.05)',
-                                                border: '1px solid',
-                                                borderColor: selected ? 'transparent' : 'rgba(255,255,255,0.14)',
-                                                '&:hover': { bgcolor: selected ? color : 'rgba(255,255,255,0.1)' },
-                                            }}
-                                        />
-                                    );
-                                })}
-                            </Stack>
-                            <TextField
-                                type="search"
-                                value={query}
-                                onChange={event => setQuery(event.target.value)}
-                                placeholder="Search topics"
-                                sx={{ width: { xs: '100%', sm: 280 }, '& .MuiInputBase-root': { minHeight: TAP } }}
-                                slotProps={{
-                                    htmlInput: { 'aria-label': 'Search topics by name, definition or pattern' },
-                                    input: {
-                                        startAdornment: (
-                                            <InputAdornment position="start">
-                                                <SearchRoundedIcon sx={{ color: 'text.secondary' }} />
-                                            </InputAdornment>
-                                        ),
-                                    },
-                                }}
-                            />
-                        </Stack>
-
-                        {/* ---- PHASES ---- */}
-                        <Tabs
-                            value={tab}
-                            onChange={(_, value: TabValue) => { setChosenTab(value); setExpanded(null); }}
-                            variant="scrollable"
-                            scrollButtons="auto"
-                            allowScrollButtonsMobile
-                            sx={{
-                                mb: 3,
-                                borderBottom: 1,
-                                borderColor: 'rgba(255,255,255,0.08)',
-                                '& .MuiTab-root': { minHeight: TAP, textTransform: 'none', fontWeight: 700, fontSize: px(t.small), '&:focus': { outline: 'none' } },
-                            }}
-                        >
-                            {mode === 'revise' && <Tab value="all" label="All phases" />}
-                            {sqlPhases.map(p => (
-                                <Tab key={p.id} value={p.number} label={`${p.number} ${p.short} · ${confidentCount(progress, p.topics)}/${p.topics.length}`} />
-                            ))}
-                        </Tabs>
-
-                        {mode === 'learn' ? (
-                            <Box sx={{ pb: 6 }}>
-                                {/* Title and goal */}
-                                <Typography variant="caption" sx={{ color: phase.accent, fontWeight: 800, letterSpacing: 1.2 }}>
-                                    PHASE {phase.number}
-                                </Typography>
-                                <Typography variant="h4" fontWeight="bold" color="text.primary" sx={{ mt: 0.5, mb: 1 }}>
-                                    {phase.title}
-                                </Typography>
-                                <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 760 }}>
-                                    {phase.goal}
-                                </Typography>
-
-                                <Stack direction="row" spacing={2} alignItems="center" sx={{ mt: 2.5, maxWidth: 760 }}>
-                                    <LinearProgress
-                                        variant="determinate"
-                                        value={(phaseConfident / phase.topics.length) * 100}
-                                        sx={{ flex: 1, height: 4, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.06)', '& .MuiLinearProgress-bar': { bgcolor: CONFIDENT } }}
-                                    />
-                                    <Typography color="text.secondary" sx={{ whiteSpace: 'nowrap', fontSize: px(t.small) }}>
-                                        {phaseConfident} of {phase.topics.length} confident
-                                    </Typography>
-                                </Stack>
-
-                                {/* Big picture */}
-                                <Box sx={{ mt: 3, p: 2, borderRadius: 2, maxWidth: 760, bgcolor: `${phase.accent}14`, borderLeft: '3px solid', borderColor: phase.accent }}>
-                                    <Typography variant="body1">
-                                        <strong style={{ color: phase.accent }}>The big picture.</strong> {phase.bigPicture}
-                                    </Typography>
+                            ) : (
+                                <Box sx={{ pb: 6 }}>
+                                    {visiblePhases.some(p => p.topics.some(matches)) ? (
+                                        visiblePhases.map(p => {
+                                            const shown = p.topics.filter(matches);
+                                            if (shown.length === 0) return null;
+                                            return (
+                                                <Box key={p.id} sx={{ mb: 4 }}>
+                                                    <Typography variant="caption" sx={{ display: 'block', color: p.accent, fontWeight: 800, letterSpacing: 1.2 }}>
+                                                        PHASE {p.number}
+                                                    </Typography>
+                                                    <Typography variant="h5" fontWeight="bold" color="text.primary" sx={{ mt: 0.25, mb: 2 }}>
+                                                        {p.title}
+                                                    </Typography>
+                                                    <Stack spacing={2}>
+                                                        {shown.map(topic => (
+                                                            <ReviseCard key={topic.id} topic={topic} accent={p.accent} onOpen={() => openTopic(topic.id)} />
+                                                        ))}
+                                                    </Stack>
+                                                </Box>
+                                            );
+                                        })
+                                    ) : (
+                                        noMatches
+                                    )}
                                 </Box>
-
-                                {/* Topics */}
-                                <SectionLabel>TOPICS, IN ORDER</SectionLabel>
-                                {phase.topics.some(matches) ? (
-                                    <Stack spacing={1.25}>
-                                        {phase.topics.map((topic, index) =>
-                                            matches(topic) && (
-                                                <TopicCard
-                                                    key={topic.id}
-                                                    topic={topic}
-                                                    number={index + 1}
-                                                    accent={phase.accent}
-                                                    progress={progress}
-                                                    expanded={expanded === topic.id}
-                                                    onExpand={open => setExpanded(open ? topic.id : null)}
-                                                    onToggleCheck={check => { void toggleCheck(topic.id, check); }}
-                                                />
-                                            )
-                                        )}
-                                    </Stack>
-                                ) : (
-                                    noMatches
-                                )}
-                            </Box>
-                        ) : (
-                            <Box sx={{ pb: 6 }}>
-                                {visiblePhases.some(p => p.topics.some(matches)) ? (
-                                    visiblePhases.map(p => {
-                                        const shown = p.topics.filter(matches);
-                                        if (shown.length === 0) return null;
-                                        return (
-                                            <Box key={p.id} sx={{ mb: 4 }}>
-                                                <Typography variant="caption" sx={{ display: 'block', color: p.accent, fontWeight: 800, letterSpacing: 1.2 }}>
-                                                    PHASE {p.number}
-                                                </Typography>
-                                                <Typography variant="h5" fontWeight="bold" color="text.primary" sx={{ mt: 0.25, mb: 2 }}>
-                                                    {p.title}
-                                                </Typography>
-                                                <Stack spacing={2}>
-                                                    {shown.map(topic => (
-                                                        <ReviseCard key={topic.id} topic={topic} accent={p.accent} onOpen={() => openTopic(topic.id)} />
-                                                    ))}
-                                                </Stack>
-                                            </Box>
-                                        );
-                                    })
-                                ) : (
-                                    noMatches
-                                )}
-                            </Box>
+                            )}
+                            </>
                         )}
-                        </>
-                    )}
-                </Box>
-            </GlossaryProvider>
+                    </Box>
+                </GlossaryProvider>
+            </SqlQueriesContext.Provider>
         </LearningPageFrame>
     );
 };

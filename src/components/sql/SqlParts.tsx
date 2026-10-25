@@ -1,8 +1,10 @@
-import { useState, type KeyboardEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { Box, Button, CircularProgress, Stack, TextField, Typography } from '@mui/material';
 import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
 import RestartAltRoundedIcon from '@mui/icons-material/RestartAltRounded';
-import { TAP, px, useTextSize } from '../learning/learning';
+import HistoryRoundedIcon from '@mui/icons-material/HistoryRounded';
+import { format } from 'date-fns';
+import { CONFIDENT, TAP, px, useTextSize } from '../learning/learning';
 import { CodeBlock } from '../learning/LearningParts';
 import { ProseText } from '../learning/GlossaryText';
 import type { Prose } from '../learning/glossaryContext';
@@ -11,6 +13,18 @@ import { practiceDbDiagram, practiceTables, type SqlCell } from '../../data/sqlP
 import type { SqlExample, SqlResultTable } from '../../data/sql';
 import { loadSqlEngine } from '../../utils/sqlEngine';
 import { runOnPracticeDb, type QueryResult } from '../../utils/sqlRunner';
+import {
+    DATABASE_BOX,
+    MAX_SAVED_QUERIES,
+    groupByTopic,
+    outcomeOf,
+    readSqlDraft,
+    savedNewestFirst,
+    sqlToRun,
+    writeSqlDraft,
+    type SavedSqlQueryEntry,
+} from '../../utils/sqlQueries';
+import { useSqlQueriesStore, useSqlTopic } from './sqlContext';
 
 // The SQL page's own pieces: result tables, the box that runs a query on the
 // practice database, worked examples, and the practice database itself.
@@ -22,7 +36,7 @@ const ERROR = '#ef9a9a';
 const cellText = (cell: SqlCell) => (cell === null ? 'NULL' : String(cell));
 
 /** A query's result as a small table. NULL is shown as a grey NULL, never as an empty cell. */
-export const ResultTable = ({
+const ResultTable = ({
     result,
     keys,
     showCount = true,
@@ -99,8 +113,8 @@ export const ResultTable = ({
 type RunState =
     | { status: 'idle' }
     | { status: 'running' }
-    | { status: 'done'; result: QueryResult }
-    | { status: 'failed'; message: string };
+    | { status: 'done'; result: QueryResult; partial: boolean }
+    | { status: 'failed'; message: string; partial: boolean };
 
 /** A plain-English hint for the database errors beginners meet most. */
 const errorHint = (message: string) => {
@@ -113,23 +127,98 @@ const errorHint = (message: string) => {
     return null;
 };
 
+/** Where a run box saves the queries you run in it. */
+export interface SqlRunBoxSave {
+    /** Unique within the topic: "practice", "your-turn", "example-2", "answer-write". */
+    key: string;
+    /** Shown next to each saved query, in words: "Step 3 · Practice box". */
+    place: string;
+    /** Start with the last query you ran here, instead of the starter query. */
+    restore?: boolean;
+}
+
 /**
  * Edit a query and run it on a fresh copy of the practice database. The SQLite
  * engine loads the first time Run is pressed; every run starts from clean tables.
+ * With something selected, only the selection runs. With `saveAs`, every query
+ * you wrote or changed is saved when it runs, with the topic and place.
  */
-export const SqlRunBox = ({ initialSql, accent, label = 'Try it: edit the query, then run it' }: { initialSql: string; accent: string; label?: string }) => {
+export const SqlRunBox = ({
+    initialSql,
+    accent,
+    label = 'Try it: edit the query, then run it',
+    saveAs,
+}: {
+    initialSql: string;
+    accent: string;
+    label?: string;
+    saveAs?: SqlRunBoxSave;
+}) => {
     const t = useTextSize();
-    const [query, setQuery] = useState(initialSql);
+    const store = useSqlQueriesStore();
+    const topic = useSqlTopic();
+    const box = saveAs ? `${topic?.topicId ?? DATABASE_BOX}/${saveAs.key}` : null;
+    const history = useMemo(() => (store && box ? savedNewestFirst(store.queries, box) : []), [store, box]);
+    // A box that restores shows what you last typed in it on this device, else the last query you ran
+    // there (once the list has loaded, so on any device), else the starter query.
+    const draftBox = saveAs?.restore ? box : null;
+    const [draft, setDraft] = useState<string | null>(() => (draftBox ? readSqlDraft(draftBox) : null));
+    const query = draft ?? (saveAs?.restore ? history[0]?.sql : undefined) ?? initialSql;
     const [state, setState] = useState<RunState>({ status: 'idle' });
+    const [hasSelection, setHasSelection] = useState(false);
+    const [saved, setSaved] = useState(false);
+    const [showHistory, setShowHistory] = useState(false);
+    const inputRef = useRef<HTMLTextAreaElement>(null);
+
+    const checkSelection = useCallback(() => {
+        const el = inputRef.current;
+        setHasSelection(el !== null && sqlToRun(el.value, el.selectionStart, el.selectionEnd).partial);
+    }, []);
+
+    // Selections made by touch (dragging the handles on a phone) only show up as selectionchange.
+    useEffect(() => {
+        const onSelectionChange = () => {
+            if (document.activeElement === inputRef.current) checkSelection();
+        };
+        document.addEventListener('selectionchange', onSelectionChange);
+        return () => document.removeEventListener('selectionchange', onSelectionChange);
+    }, [checkSelection]);
+
+    const changeText = (sql: string) => {
+        setDraft(sql);
+        if (draftBox) writeSqlDraft(draftBox, sql);
+    };
+
+    const replaceText = (sql: string) => {
+        changeText(sql);
+        setState({ status: 'idle' });
+        setHasSelection(false);
+        setSaved(false);
+    };
 
     const run = async () => {
+        const el = inputRef.current;
+        const { sql, partial } = sqlToRun(query, el?.selectionStart ?? 0, el?.selectionEnd ?? 0);
         setState({ status: 'running' });
+        setSaved(false);
+        let outcome: string;
+        let ok: boolean;
         try {
             const engine = await loadSqlEngine();
-            setState({ status: 'done', result: runOnPracticeDb(engine, query) });
+            const result = runOnPracticeDb(engine, sql);
+            setState({ status: 'done', result, partial });
+            outcome = outcomeOf(result);
+            ok = true;
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
-            setState({ status: 'failed', message });
+            setState({ status: 'failed', message, partial });
+            outcome = message;
+            ok = false;
+        }
+        // Only what you wrote or changed is saved: an untouched example isn't yours.
+        if (store && box && saveAs && query.trim() !== initialSql.trim()) {
+            store.save({ sql, box, place: saveAs.place, topicId: topic?.topicId, topicName: topic?.topicName, ranAt: Date.now(), outcome, ok });
+            setSaved(true);
         }
     };
 
@@ -139,6 +228,8 @@ export const SqlRunBox = ({ initialSql, accent, label = 'Try it: edit the query,
             void run();
         }
     };
+
+    const ran = state.status === 'done' || state.status === 'failed';
 
     return (
         <Box sx={{ p: { xs: 1.5, sm: 2 }, borderRadius: 2, border: '1px dashed', borderColor: `${accent}66`, bgcolor: 'rgba(255,255,255,0.02)' }}>
@@ -150,7 +241,11 @@ export const SqlRunBox = ({ initialSql, accent, label = 'Try it: edit the query,
                 fullWidth
                 minRows={3}
                 value={query}
-                onChange={event => setQuery(event.target.value)}
+                inputRef={inputRef}
+                onChange={event => {
+                    changeText(event.target.value);
+                    checkSelection();
+                }}
                 onKeyDown={onKeyDown}
                 slotProps={{
                     htmlInput: {
@@ -158,6 +253,10 @@ export const SqlRunBox = ({ initialSql, accent, label = 'Try it: edit the query,
                         autoCapitalize: 'off',
                         autoCorrect: 'off',
                         'aria-label': 'SQL query',
+                        onSelect: checkSelection,
+                        onKeyUp: checkSelection,
+                        onMouseUp: checkSelection,
+                        onTouchEnd: checkSelection,
                         style: { fontFamily: MONO, fontSize: px(t.code), lineHeight: 1.55 },
                     },
                 }}
@@ -167,27 +266,32 @@ export const SqlRunBox = ({ initialSql, accent, label = 'Try it: edit the query,
                 <Button
                     variant="contained"
                     onClick={() => void run()}
+                    // Keep the focus, and so the highlighted selection, in the box.
+                    onMouseDown={event => event.preventDefault()}
                     disabled={state.status === 'running'}
                     startIcon={state.status === 'running' ? <CircularProgress size={16} color="inherit" /> : <PlayArrowRoundedIcon />}
                     sx={{ minHeight: TAP, px: 2, textTransform: 'none', fontWeight: 700 }}
                 >
-                    Run
+                    {hasSelection ? 'Run selection' : 'Run'}
                 </Button>
                 <Button
-                    onClick={() => {
-                        setQuery(initialSql);
-                        setState({ status: 'idle' });
-                    }}
+                    onClick={() => replaceText(initialSql)}
                     startIcon={<RestartAltRoundedIcon />}
                     sx={{ minHeight: TAP, px: 1.5, textTransform: 'none', fontWeight: 700, color: 'text.secondary' }}
                 >
                     Reset
                 </Button>
-                <Typography color="text.secondary" sx={{ fontSize: px(t.small), display: { xs: 'none', sm: 'block' } }}>
-                    Ctrl or ⌘ + Enter runs it
+                <Typography color="text.secondary" sx={{ fontSize: px(t.small) }}>
+                    Select part of it to run only that part.
+                    <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}> Ctrl or ⌘ + Enter runs it.</Box>
                 </Typography>
             </Stack>
             <Box aria-live="polite" sx={{ mt: state.status === 'idle' ? 0 : 1.5 }}>
+                {ran && state.partial && (
+                    <Typography color="text.secondary" sx={{ fontSize: px(t.small), mb: 1 }}>
+                        Ran only the part you selected, on a fresh copy of the database: anything you didn't select (a CREATE, an INSERT) didn't run.
+                    </Typography>
+                )}
                 {state.status === 'running' && (
                     <Typography color="text.secondary" sx={{ fontSize: px(t.small) }}>Running…</Typography>
                 )}
@@ -201,7 +305,168 @@ export const SqlRunBox = ({ initialSql, accent, label = 'Try it: edit the query,
                     )
                 )}
                 {state.status === 'failed' && <ErrorBox message={state.message} hint={errorHint(state.message)} />}
+                {ran && saved && (
+                    <Typography color="text.secondary" sx={{ fontSize: px(t.small), mt: 1 }}>
+                        Saved, with where you ran it. Find it below, or in "My saved queries" at the top of the page.
+                    </Typography>
+                )}
             </Box>
+            {history.length > 0 && (
+                <Box sx={{ mt: 1 }}>
+                    <Button
+                        size="small"
+                        onClick={() => setShowHistory(open => !open)}
+                        aria-expanded={showHistory}
+                        startIcon={<HistoryRoundedIcon />}
+                        sx={{ minHeight: TAP, px: 1, ml: -1, textTransform: 'none', fontWeight: 700, color: 'text.secondary', fontSize: px(t.small) }}
+                    >
+                        {showHistory ? 'Hide' : 'Show'} your queries here ({history.length})
+                    </Button>
+                    {showHistory && (
+                        <Stack spacing={1} sx={{ mt: 0.5 }}>
+                            {history.map(entry => (
+                                <SavedQueryCard key={entry.id} entry={entry}>
+                                    <Button
+                                        size="small"
+                                        onClick={() => {
+                                            replaceText(entry.sql);
+                                            inputRef.current?.focus();
+                                        }}
+                                        sx={{ minHeight: TAP, px: 1, ml: -1, textTransform: 'none', fontWeight: 700, color: accent, fontSize: px(t.small) }}
+                                    >
+                                        Put it back in the box
+                                    </Button>
+                                </SavedQueryCard>
+                            ))}
+                        </Stack>
+                    )}
+                </Box>
+            )}
+        </Box>
+    );
+};
+
+/** Every saved query, grouped by topic, newest first, with a way back to where it was run. */
+export const SavedQueriesPanel = ({ accent, openTopic }: { accent: string; openTopic: (topicId: string) => void }) => {
+    const t = useTextSize();
+    const store = useSqlQueriesStore();
+    const [search, setSearch] = useState('');
+    const all = useMemo(() => store?.queries ?? {}, [store]);
+    const groups = useMemo(() => {
+        const q = search.trim().toLowerCase();
+        const matching = Object.fromEntries(
+            Object.entries(all).filter(([, saved]) =>
+                !q || [saved.sql, saved.place, saved.topicName ?? 'the practice database'].some(text => text.toLowerCase().includes(q))
+            )
+        );
+        return groupByTopic(matching);
+    }, [all, search]);
+
+    if (Object.keys(all).length === 0) {
+        return (
+            <Typography variant="body2" sx={{ color: 'text.primary' }}>
+                Nothing saved yet. Every query you write (or change) and run, in a topic's boxes or the practice database box,
+                is saved here automatically, with the topic and the step you ran it in.
+            </Typography>
+        );
+    }
+
+    return (
+        <Stack spacing={2.5}>
+            <Typography variant="body2" sx={{ color: 'text.primary' }}>
+                Every query you wrote (or changed) and ran is saved here automatically, newest first, with the topic and the step
+                you ran it in. Running the same query again in the same place moves it to the top instead of saving a copy.
+                The newest {MAX_SAVED_QUERIES} are kept.
+            </Typography>
+            <TextField
+                size="small"
+                placeholder="Search your queries"
+                value={search}
+                onChange={event => setSearch(event.target.value)}
+                slotProps={{ htmlInput: { 'aria-label': 'Search your saved queries' } }}
+                sx={{ maxWidth: 420 }}
+            />
+            {groups.length === 0 && (
+                <Typography variant="body2" color="text.secondary">No saved queries match.</Typography>
+            )}
+            {groups.map(group => (
+                <Box key={group.topicId ?? DATABASE_BOX}>
+                    <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap sx={{ mb: 1 }}>
+                        <Typography fontWeight={800} color="text.primary" sx={{ flex: 1, minWidth: 160, overflowWrap: 'anywhere' }}>
+                            {group.title}
+                        </Typography>
+                        {group.topicId && (
+                            <Button
+                                size="small"
+                                onClick={() => openTopic(group.topicId!)}
+                                sx={{ minHeight: TAP, px: 1, textTransform: 'none', fontWeight: 700, color: accent, fontSize: px(t.small) }}
+                            >
+                                Open topic
+                            </Button>
+                        )}
+                    </Stack>
+                    <Stack spacing={1}>
+                        {group.entries.map(entry => (
+                            <SavedQueryCard key={entry.id} entry={entry} showPlace>
+                                <SavedQueryActions sql={entry.sql} accent={accent} onDelete={() => store?.remove(entry.id)} />
+                            </SavedQueryCard>
+                        ))}
+                    </Stack>
+                </Box>
+            ))}
+        </Stack>
+    );
+};
+
+/** Run a saved query again (without saving it a second time), or delete it after a second tap. */
+const SavedQueryActions = ({ sql, accent, onDelete }: { sql: string; accent: string; onDelete: () => void }) => {
+    const t = useTextSize();
+    const [trying, setTrying] = useState(false);
+    const [confirming, setConfirming] = useState(false);
+    const buttonSx = { minHeight: TAP, px: 1, textTransform: 'none', fontWeight: 700, fontSize: px(t.small) } as const;
+    return (
+        <>
+            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mt: 0.5, ml: -1 }}>
+                {!trying && (
+                    <Button size="small" onClick={() => setTrying(true)} startIcon={<PlayArrowRoundedIcon />} sx={{ ...buttonSx, color: accent }}>
+                        Try it yourself
+                    </Button>
+                )}
+                <Button
+                    size="small"
+                    onClick={() => (confirming ? onDelete() : setConfirming(true))}
+                    onBlur={() => setConfirming(false)}
+                    sx={{ ...buttonSx, color: confirming ? ERROR : 'text.secondary' }}
+                >
+                    {confirming ? 'Tap again to delete' : 'Delete'}
+                </Button>
+            </Stack>
+            {trying && (
+                <Box sx={{ mt: 1 }}>
+                    <SqlRunBox initialSql={sql} accent={accent} />
+                </Box>
+            )}
+        </>
+    );
+};
+
+/** One saved query: when and where it ran, what it gave, and the SQL. Actions go underneath. */
+const SavedQueryCard = ({ entry, showPlace = false, children }: { entry: SavedSqlQueryEntry; showPlace?: boolean; children?: ReactNode }) => {
+    const t = useTextSize();
+    return (
+        <Box sx={{ p: 1.25, borderRadius: 2, bgcolor: 'rgba(0,0,0,0.25)', border: '1px solid rgba(255,255,255,0.08)', minWidth: 0 }}>
+            <Typography color="text.secondary" sx={{ fontSize: px(t.small) }}>
+                {showPlace && <Box component="span" sx={{ color: 'text.primary', fontWeight: 700 }}>{entry.place} · </Box>}
+                {format(entry.ranAt, 'd MMM yyyy, HH:mm')} ·{' '}
+                <Box component="span" sx={{ color: entry.ok ? CONFIDENT : ERROR }}>{entry.outcome}</Box>
+            </Typography>
+            <Box
+                component="pre"
+                sx={{ m: 0, mt: 0.75, fontFamily: MONO, fontSize: px(t.code), lineHeight: 1.5, color: 'text.primary', whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', maxHeight: '12em', overflowY: 'auto' }}
+            >
+                {entry.sql}
+            </Box>
+            {children}
         </Box>
     );
 };
@@ -239,12 +504,15 @@ export const ExampleBlock = ({
     number,
     accent,
     note,
+    saveAs,
 }: {
     example: SqlExample;
     number?: number;
     accent: string;
     /** The note, with its glossary words marked. */
     note?: Prose;
+    /** Where queries changed in "Try it yourself" are saved. */
+    saveAs?: SqlRunBoxSave;
 }) => (
     <Box>
         <Typography variant="body1" sx={{ fontWeight: 700, color: 'text.primary', mb: 1 }}>
@@ -260,17 +528,17 @@ export const ExampleBlock = ({
                 <ProseText value={note ?? example.note} />
             </Typography>
         )}
-        <TryIt sql={example.sql} accent={accent} />
+        <TryIt sql={example.sql} accent={accent} saveAs={saveAs} />
     </Box>
 );
 
 /** A button that opens the query in a run box, to change it and run it. */
-const TryIt = ({ sql, accent }: { sql: string; accent: string }) => {
+const TryIt = ({ sql, accent, saveAs }: { sql: string; accent: string; saveAs?: SqlRunBoxSave }) => {
     const t = useTextSize();
     const [trying, setTrying] = useState(false);
     return trying ? (
         <Box sx={{ mt: 1.5 }}>
-            <SqlRunBox initialSql={sql} accent={accent} />
+            <SqlRunBox initialSql={sql} accent={accent} saveAs={saveAs} />
         </Box>
     ) : (
         <Button
@@ -285,11 +553,19 @@ const TryIt = ({ sql, accent }: { sql: string; accent: string }) => {
 };
 
 /** A practice answer's query: the SQL, the rows it returns, and a box to try it. */
-export const AnswerQuery = ({ query, accent }: { query: Pick<SqlExample, 'sql' | 'result' | 'error'>; accent: string }) => (
+export const AnswerQuery = ({
+    query,
+    accent,
+    saveAs,
+}: {
+    query: Pick<SqlExample, 'sql' | 'result' | 'error'>;
+    accent: string;
+    saveAs?: SqlRunBoxSave;
+}) => (
     <Box>
         <CodeBlock code={query.sql} language="sql" />
         <ExampleOutcome example={query} />
-        <TryIt sql={query.sql} accent={accent} />
+        <TryIt sql={query.sql} accent={accent} saveAs={saveAs} />
     </Box>
 );
 
@@ -323,6 +599,7 @@ export const PracticeDatabase = ({ accent }: { accent: string }) => {
                 initialSql={'SELECT *\nFROM employees\nORDER BY emp_id;'}
                 accent={accent}
                 label="Run any query on the practice database"
+                saveAs={{ key: 'database', place: 'The practice database', restore: true }}
             />
         </Stack>
     );

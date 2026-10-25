@@ -20,6 +20,7 @@ import { db } from '../firebase';
 import type { SDCheckKey } from '../data/systemDesign';
 import type { SqlCheckKey } from '../data/sql';
 import type { DrillCardState, DrillState } from '../utils/patternDrill';
+import type { SavedSqlQueries, SavedSqlQuery } from '../utils/sqlQueries';
 
 // Collection names
 const TASKS_COLLECTION = 'tasks';
@@ -429,61 +430,6 @@ export interface DSATopicProgress {
     updatedAt: Timestamp;
 }
 
-export const addDSAReviewLog = async (topicId: string, text: string) => {
-    try {
-        const { getDoc, setDoc, updateDoc, arrayUnion } = await import('firebase/firestore');
-        const topicRef = doc(db, DSA_PROGRESS_COLLECTION, topicId);
-        const docSnap = await getDoc(topicRef);
-        
-        const newLog: DSAReviewLog = {
-            id: crypto.randomUUID(),
-            date: Timestamp.now(),
-            text
-        };
-
-        if (docSnap.exists()) {
-            await updateDoc(topicRef, {
-                reviewLogs: arrayUnion(newLog),
-                updatedAt: Timestamp.now()
-            });
-        } else {
-            await setDoc(topicRef, {
-                topicId,
-                completedProblems: [],
-                reviewLogs: [newLog],
-                updatedAt: Timestamp.now()
-            });
-        }
-    } catch (caught) {
-        const error = caught as FirebaseError;
-        console.error('❌ Failed to add DSA review log:', error.code, error.message);
-        throw error;
-    }
-};
-
-export const deleteDSAReviewLog = async (topicId: string, logId: string) => {
-    try {
-        const { getDoc, updateDoc } = await import('firebase/firestore');
-        const topicRef = doc(db, DSA_PROGRESS_COLLECTION, topicId);
-        const docSnap = await getDoc(topicRef);
-        
-        if (docSnap.exists()) {
-            const data = docSnap.data() as DSATopicProgress;
-            if (data.reviewLogs) {
-                const newLogs = data.reviewLogs.filter(log => log.id !== logId);
-                await updateDoc(topicRef, {
-                    reviewLogs: newLogs,
-                    updatedAt: Timestamp.now()
-                });
-            }
-        }
-    } catch (caught) {
-        const error = caught as FirebaseError;
-        console.error('❌ Failed to delete DSA review log:', error.code, error.message);
-        throw error;
-    }
-};
-
 export const subscribeToDSAProgress = (
     callback: (progress: Record<string, DSATopicProgress>) => void
 ) => {
@@ -498,25 +444,6 @@ export const subscribeToDSAProgress = (
     }, (error) => {
         console.error('❌ DSA Progress subscription error:', error.code, error.message);
     });
-};
-
-export const updateDSATopicProgress = async (
-    topicId: string,
-    updates: Partial<Omit<DSATopicProgress, 'topicId' | 'updatedAt'>>
-) => {
-    try {
-        const { setDoc } = await import('firebase/firestore');
-        const topicRef = doc(db, DSA_PROGRESS_COLLECTION, topicId);
-        await setDoc(topicRef, {
-            topicId,
-            ...updates,
-            updatedAt: Timestamp.now()
-        }, { merge: true });
-    } catch (caught) {
-        const error = caught as FirebaseError;
-        console.error('❌ Failed to update DSA progress:', error.code, error.message);
-        throw error;
-    }
 };
 
 export const toggleDSAProblemCompletion = async (
@@ -600,52 +527,6 @@ export const setPracticeDateForProblem = async (
     } catch (caught) {
         const error = caught as FirebaseError;
         console.error('❌ Failed to set practice date:', error.code, error.message);
-        throw error;
-    }
-};
-
-// ============ JOB OUTREACH TRACKER ============
-
-const JOB_OUTREACH_COLLECTION = 'job_outreach_logs';
-
-export interface OutreachEntry {
-    name: string;
-    note: string;
-    type: 'linkedin' | 'company';
-}
-
-export interface DailyOutreachLog {
-    entries: OutreachEntry[];
-    updatedAt?: Timestamp;
-}
-
-export const subscribeToDailyOutreach = (
-    date: string,
-    callback: (log: DailyOutreachLog | null) => void
-) => {
-    const docRef = doc(db, JOB_OUTREACH_COLLECTION, date);
-
-    return onSnapshot(docRef, (docSnap) => {
-        if (docSnap.exists()) {
-            callback(docSnap.data() as DailyOutreachLog);
-        } else {
-            callback(null);
-        }
-    }, (error) => {
-        console.error('❌ Outreach subscription error:', error.code, error.message);
-    });
-};
-
-export const saveDailyOutreach = async (date: string, entries: OutreachEntry[]) => {
-    try {
-        const docRef = doc(db, JOB_OUTREACH_COLLECTION, date);
-        await setDoc(docRef, {
-            entries,
-            updatedAt: Timestamp.now(),
-        }, { merge: true });
-    } catch (caught) {
-        const error = caught as FirebaseError;
-        console.error('❌ Failed to save outreach:', error.code, error.message);
         throw error;
     }
 };
@@ -891,6 +772,38 @@ export const saveSqlCheck = async (
         console.error('❌ Failed to save SQL check:', error);
         throw error;
     }
+};
+
+// ============ SQL SAVED QUERIES ============
+//
+// study_progress/sql_queries: every query you wrote (or changed) and ran on the
+// SQL page, with the topic and step it was run in, keyed by a random id. Which
+// part runs, de-duplication and the size limit live in utils/sqlQueries.ts.
+
+const SQL_QUERIES_DOC = 'sql_queries';
+
+export const subscribeToSqlQueries = (
+    callback: (queries: SavedSqlQueries) => void
+) => {
+    return onSnapshot(doc(db, STUDY_PROGRESS_COLLECTION, SQL_QUERIES_DOC), (docSnap) => {
+        const data = docSnap.exists() ? docSnap.data() : {};
+        callback((data.queries ?? {}) as SavedSqlQueries);
+    }, (error) => {
+        console.error('❌ SQL saved queries subscription error:', error.code, error.message);
+    });
+};
+
+/** Save one run, and remove the given older ones, in a single write. */
+export const saveSqlQuery = async (id: string, query: SavedSqlQuery, removeIds: string[] = []) => {
+    const queries: Record<string, unknown> = { [id]: query };
+    for (const old of removeIds) queries[old] = deleteField();
+    const docRef = doc(db, STUDY_PROGRESS_COLLECTION, SQL_QUERIES_DOC);
+    await setDoc(docRef, { queries, updatedAt: Timestamp.now() }, { merge: true });
+};
+
+export const deleteSqlQuery = async (id: string) => {
+    const docRef = doc(db, STUDY_PROGRESS_COLLECTION, SQL_QUERIES_DOC);
+    await setDoc(docRef, { queries: { [id]: deleteField() }, updatedAt: Timestamp.now() }, { merge: true });
 };
 
 // ============ DSA PATTERN DRILL ============

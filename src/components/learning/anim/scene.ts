@@ -118,7 +118,7 @@ export const holdFor = (frame: Frame) =>
 
 // ============ TWEENING ============
 
-export const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
 /** Smooth start and stop. */
 export const easeInOut = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);

@@ -28,8 +28,6 @@ import type {
     PracticeRecord,
 } from '../services/firebaseService';
 import { usePomodoro, type PomodoroState } from '../hooks/usePomodoro';
-// Re-exported so existing imports of PomodoroState from this file keep working.
-export type { PomodoroState };
 import { useEvidenceLog } from '../hooks/useEvidenceLog';
 import { usePractice } from '../hooks/usePractice';
 import { deleteField } from 'firebase/firestore';
@@ -139,7 +137,7 @@ interface TaskContextType {
 
 const TaskContext = createContext<TaskContextType | undefined>(undefined);
 
-export const ALL_CATEGORIES: Category[] = [
+const ALL_CATEGORIES: Category[] = [
     'Personal Background',
     'Career Decisions',
     'Tech Achievements',
