@@ -116,6 +116,15 @@ A global Pomodoro timer that keeps running as you move between pages, daily habi
 streaks and a year of history, and a DSA hub tracking NeetCode 150, with pattern guides and
 a "Which pattern?" drill.
 
+### DSA that stays learnt
+Each NeetCode topic's lesson ends with its problems, each as a question (what it asks,
+without naming the pattern) with its answer (technique, clue, trick) behind **Show answer**.
+A problem ticked solved comes back in the hub's **Review today** the next day, to be solved
+again from a blank editor, then after 3, 7, 14 and 30 days, then every month. "Solved it"
+widens the gap, "Struggled" repeats it, "Couldn't" starts again tomorrow. At most three a day
+are offered, longest overdue first, mixed across topics. Reviews live in
+`study_progress/dsa_reviews`; dates set with the old 3d/7d buttons carry over.
+
 ---
 
 ## Sign-in and privacy

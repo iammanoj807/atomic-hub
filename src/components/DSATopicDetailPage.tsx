@@ -27,14 +27,18 @@ import { dsaCurriculum, type DSAProblem } from '../data/dsaCurriculum';
 import { getPatternGuide, type TracedExample } from '../data/dsaPatterns';
 import { dsaProblemCards } from '../data/dsaProblemCards';
 import { mergedMistakes } from '../data/dsaMistakeOverlaps';
-import { toggleDSAProblemCompletion } from '../services/firebaseService';
+import { saveDSAReview, toggleDSAProblemCompletion } from '../services/firebaseService';
 import { useDSAProgress } from '../hooks/useDSAProgress';
+import { saveRating, useDSAReviews } from '../hooks/useDSAReviews';
+import { firstReview, reviewOf, reviewStatus, type ProblemReview } from '../utils/dsaReview';
+import { getLondonDateString } from '../utils/date';
 import { useTaskContext } from '../context/TaskContext';
 import { CONFIDENT, CYAN, TAP, px, stepId, useTextSize, useTextSizeChoice, type LearningStep } from './learning/learning';
 import { LearningPageFrame, TextSizeControl, SectionLabel, StepBar, ReferencePanel } from './learning/LearningParts';
 import { MermaidDiagram } from './learning/MermaidDiagram';
 import { AnimatedScene } from './learning/anim/AnimatedScene';
 import { useTopicAnimation } from './learning/anim/useTopicAnimation';
+import { ProblemAnswer, RateReview } from './dsa/DSAReviewParts';
 
 /** The 3-second gut check stands out from everything else on the page. */
 const GUT_CHECK = '#ffca28';
@@ -210,23 +214,32 @@ const Trace = ({ label, example, fallbackCode }: { label: string; example: Trace
     );
 };
 
-/** One practice problem: its solved tick, a link to LeetCode, and its recognition card behind a button. */
+/**
+ * One practice problem as a question and answer: its solved tick, a link to
+ * LeetCode, the question, the answer behind a tap, and once solved, when it
+ * comes back for review (rated here too when it is due).
+ */
 const ProblemRow = ({
     problem,
     leetcodeNum,
     solved,
     canTick,
     onToggle,
+    review,
+    today,
 }: {
     problem: DSAProblem;
     leetcodeNum?: number;
     solved: boolean;
     canTick: boolean;
     onToggle: () => void;
+    /** Set once solved and the reviews have loaded. */
+    review?: ProblemReview;
+    today: string;
 }) => {
-    const [showWhy, setShowWhy] = useState(false);
+    const t = useTextSize();
     const card = dsaProblemCards[problem.id];
-    const cardId = `why-${problem.id}`;
+    const due = review !== undefined && review.due <= today;
     return (
         <Box sx={{ py: 1, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
             <Stack direction="row" spacing={1} alignItems="flex-start">
@@ -259,36 +272,19 @@ const ProblemRow = ({
                         </Typography>
                     )}
                     {card && (
-                        <Box>
-                            <Button
-                                size="small"
-                                onClick={() => setShowWhy(value => !value)}
-                                aria-expanded={showWhy}
-                                aria-controls={cardId}
-                                sx={{ minHeight: TAP, px: 1, ml: -1, textTransform: 'none', fontWeight: 700, color: CYAN }}
-                            >
-                                {showWhy ? 'Hide' : 'Why this pattern?'}
-                            </Button>
-                            {showWhy && (
-                                <Box id={cardId} sx={{ mt: 0.5, p: 1.5, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                                    <Stack spacing={0.75}>
-                                        {[
-                                            { label: 'TECHNIQUE', text: card.technique },
-                                            { label: 'THE CLUE', text: card.clue },
-                                            { label: 'THE TRICK', text: card.trick },
-                                        ].map(line => (
-                                            <Box key={line.label}>
-                                                <Typography variant="caption" sx={{ display: 'block', color: CYAN, fontWeight: 800, letterSpacing: 1 }}>
-                                                    {line.label}
-                                                </Typography>
-                                                <Typography variant="body2" sx={{ color: 'text.primary' }}>
-                                                    {line.text}
-                                                </Typography>
-                                            </Box>
-                                        ))}
-                                    </Stack>
-                                </Box>
-                            )}
+                        <Typography variant="body2" sx={{ mt: 0.5, color: 'text.primary' }}>
+                            {card.summary}
+                        </Typography>
+                    )}
+                    {review && (
+                        <Typography sx={{ mt: 0.5, fontSize: px(t.small), fontWeight: 700, color: due ? CONFIDENT : 'text.secondary' }}>
+                            {reviewStatus(review, today)}
+                        </Typography>
+                    )}
+                    <ProblemAnswer problemId={problem.id} />
+                    {review && due && canTick && (
+                        <Box sx={{ mt: 0.5, mb: 1 }}>
+                            <RateReview review={review} onRate={rating => saveRating(problem.id, review, rating, today)} />
                         </Box>
                     )}
                 </Box>
@@ -308,6 +304,7 @@ const DSATopicDetailPage = () => {
     const navigate = useNavigate();
     const { isAdmin } = useTaskContext();
     const { progress } = useDSAProgress();
+    const { reviews, loaded: reviewsLoaded } = useDSAReviews();
     const { textSize, t, theme, changeTextSize } = useTextSizeChoice();
     const [language, setLanguage] = useState<'python' | 'java'>('python');
 
@@ -327,10 +324,20 @@ const DSATopicDetailPage = () => {
     }
 
     const solved = progress[topicId]?.completedProblems ?? [];
+    const today = getLondonDateString();
     const toggleSolved = (problemId: string) => {
         if (!isAdmin) return;
         void toggleDSAProblemCompletion(topicId, problemId, solved);
+        // Solved for the first time, a problem joins the reviews and comes back tomorrow. Unticking
+        // keeps its review (unsolved problems are never offered), so a slip doesn't undo months of spacing.
+        if (!solved.includes(problemId) && reviewsLoaded && !reviews[problemId]) {
+            saveDSAReview(problemId, firstReview(today)).catch(() => {});
+        }
     };
+    const reviewFor = (problemId: string) =>
+        solved.includes(problemId) && reviewsLoaded
+            ? reviewOf(reviews, problemId, progress[topicId]?.practiceSchedule?.[problemId], today)
+            : undefined;
 
     // The topic's problems by difficulty. The notes and the curriculum list the
     // same problems by title; the curriculum has the ids that progress is saved under.
@@ -559,7 +566,8 @@ const DSATopicDetailPage = () => {
                 <SectionLabel color={CYAN} id={stepId(topicId, 5)}>{steps[4].label}</SectionLabel>
                 <Box sx={{ maxWidth: 760 }}>
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                        Before you open "Why this pattern?", name the pattern yourself and say what in the question gave it away.
+                        Read each question and say the pattern and the trick before you Show answer. Tick a problem once you've
+                        solved it: it comes back for review tomorrow, then after 3, 7, 14 and 30 days, then every month.
                     </Typography>
                     <Stack spacing={2.5}>
                         {groups.map(group => (
@@ -577,6 +585,8 @@ const DSATopicDetailPage = () => {
                                         solved={solved.includes(problem.id)}
                                         canTick={isAdmin}
                                         onToggle={() => toggleSolved(problem.id)}
+                                        review={reviewFor(problem.id)}
+                                        today={today}
                                     />
                                 ))}
                             </Box>
@@ -590,6 +600,8 @@ const DSATopicDetailPage = () => {
                                         solved={solved.includes(problem.id)}
                                         canTick={isAdmin}
                                         onToggle={() => toggleSolved(problem.id)}
+                                        review={reviewFor(problem.id)}
+                                        today={today}
                                     />
                                 ))}
                             </Box>

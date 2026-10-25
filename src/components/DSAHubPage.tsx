@@ -4,22 +4,15 @@ import {
     Box,
     Typography,
     Stack,
-    Checkbox,
-    Chip,
-    Collapse,
     Tooltip,
     Button,
+    Collapse,
     LinearProgress,
-    TextField,
-    Popover,
     ButtonBase,
 } from '@mui/material';
-import CheckCircleOutlineRoundedIcon from '@mui/icons-material/CheckCircleOutlineRounded';
-import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
+import ChevronRightRoundedIcon from '@mui/icons-material/ChevronRightRounded';
 import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
 import ExpandLessRoundedIcon from '@mui/icons-material/ExpandLessRounded';
-import MenuBookRoundedIcon from '@mui/icons-material/MenuBookRounded';
-import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded';
 import SchoolRoundedIcon from '@mui/icons-material/SchoolRounded';
 import LocalFireDepartmentRoundedIcon from '@mui/icons-material/LocalFireDepartmentRounded';
 import StyleRoundedIcon from '@mui/icons-material/StyleRounded';
@@ -28,285 +21,48 @@ import RecordVoiceOverRoundedIcon from '@mui/icons-material/RecordVoiceOverRound
 
 import { dsaCurriculum, getTotalTopics, getTotalProblems } from '../data/dsaCurriculum';
 import type { DSATopic } from '../data/dsaCurriculum';
-import { dsaTopicContent } from '../data/dsaContent';
 import { getPatternGuide } from '../data/dsaPatterns';
-import {
-    toggleDSAProblemCompletion,
-    setPracticeDateForProblem,
-    type DSATopicProgress
-} from '../services/firebaseService';
 import { useTaskContext } from '../context/TaskContext';
 import { useDSAProgress } from '../hooks/useDSAProgress';
 import { usePatternDrill } from '../hooks/usePatternDrill';
 import { todaysDrill } from '../utils/dsaStudied';
 import { getLondonDateString } from '../utils/date';
+import { ReviewToday } from './dsa/DSAReviewParts';
 
-// Extract all Hard problem titles from dsaTopicContent for difficulty display
-const hardProblemTitles = new Set<string>();
-Object.values(dsaTopicContent).forEach(category => {
-    category.practiceProblems.hard.forEach(problem => {
-        if (problem.title) hardProblemTitles.add(problem.title);
-    });
-});
+const topics = dsaCurriculum.flatMap(phase => phase.sections.flatMap(section => section.topics));
 
-// Each entry is either a single topic or a group of topics displayed as one
-interface DisplayEntry {
-    label: string;           // Display name
-    topicIds: string[];      // One or more topic IDs from curriculum
-}
-
-const displayEntries: DisplayEntry[] = dsaCurriculum.flatMap(phase =>
-    phase.sections.flatMap(sec =>
-        sec.topics.map(topic => ({
-            label: topic.title,
-            topicIds: [topic.id]
-        }))
-    )
-);
-
-function findTopicById(topicId: string): DSATopic | null {
-    for (const phase of dsaCurriculum) {
-        for (const section of phase.sections) {
-            for (const topic of section.topics) {
-                if (topic.id === topicId) return topic;
-            }
-        }
-    }
-    return null;
-}
-
-function getEntryProgress(entry: DisplayEntry, progress: Record<string, DSATopicProgress>) {
-    let completed = 0, total = 0;
-    entry.topicIds.forEach(topicId => {
-        const topic = findTopicById(topicId);
-        if (!topic) return;
-        const completedList = progress[topicId]?.completedProblems || [];
-        const problemIds = new Set(topic.problems.map(p => p.id));
-        completed += completedList.filter(id => problemIds.has(id)).length;
-        total += topic.problems.length;
-    });
-    return { completed, total, percentage: total > 0 ? Math.round((completed / total) * 100) : 0 };
-}
-
-/** Returns ISO date string N days from now. */
-function addDays(days: number): string {
-    const d = new Date();
-    d.setDate(d.getDate() + days);
-    return d.toISOString().slice(0, 10);
-}
-
-/** Formats an ISO date string as e.g. "Aug 10" */
-function formatDate(iso: string): string {
-    const d = new Date(iso + 'T00:00:00');
-    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-}
-
-/** Returns how many days until a date. Negative = overdue. */
-function daysUntil(iso: string): number {
-    const target = new Date(iso + 'T00:00:00');
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return Math.round((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-}
-
-/** Practice buttons shown next to each problem. */
-const PracticeButtons = ({
-    topicId,
-    problemId,
-    scheduledDate,
-    isAdmin,
-    isCompleted,
-    onCompleteProblem,
-}: {
-    topicId: string;
-    problemId: string;
-    scheduledDate?: string;
-    isAdmin: boolean;
-    isCompleted: boolean;
-    onCompleteProblem: (topicId: string, problemId: string) => void;
-}) => {
-    const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
-    const [customDays, setCustomDays] = useState('');
-
-    let activeTab = 'none';
-    let remaining = 0;
-    if (scheduledDate) {
-        remaining = daysUntil(scheduledDate);
-        if (remaining <= 4) activeTab = '3';
-        else if (remaining <= 8) activeTab = '7';
-        else activeTab = 'custom';
-    }
-
-    if (!isAdmin) return null;
-
-    const handleSet = async (days: number) => {
-        if (activeTab === String(days)) {
-            // Already active, so toggle it off
-            await setPracticeDateForProblem(topicId, problemId, null);
-        } else {
-            await setPracticeDateForProblem(topicId, problemId, addDays(days));
-            if (!isCompleted) {
-                onCompleteProblem(topicId, problemId);
-            }
-        }
-    };
-
-    const handleCustom = async () => {
-        const d = parseInt(customDays, 10);
-        if (d > 0) {
-            if (activeTab === 'custom' && scheduledDate && daysUntil(scheduledDate) === d) {
-                // If they set exactly the same custom days again, toggle off
-                await setPracticeDateForProblem(topicId, problemId, null);
-            } else {
-                await setPracticeDateForProblem(topicId, problemId, addDays(d));
-                if (!isCompleted) {
-                    onCompleteProblem(topicId, problemId);
-                }
-            }
-            setCustomDays('');
-            setAnchorEl(null);
-        }
-    };
-
-
-
-    const renderTooltip = (child: React.ReactElement, isActive: boolean) => {
-        if (!isActive || !scheduledDate) return child;
-        const isOverdue = remaining <= 0;
-        const title = isOverdue ? 'Due now!' : `Practice: ${formatDate(scheduledDate)} (${remaining}d)`;
-        return (
-            <Tooltip title={title} arrow placement="top">
-                {child}
-            </Tooltip>
-        );
-    };
-
-    return (
-        <Stack direction="row" spacing={0.5} alignItems="center">
-            {[3, 7].map(d => {
-                const isActive = activeTab === String(d);
-                return renderTooltip(
-                    <Chip
-                        key={d}
-                        label={`${d}d`}
-                        size="small"
-                        onClick={() => handleSet(d)}
-                        sx={{
-                            height: 22,
-                            fontSize: '0.68rem',
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            color: isActive ? '#fff' : 'text.secondary',
-                            bgcolor: isActive ? '#4caf50' : 'rgba(255,255,255,0.05)',
-                            border: '1px solid',
-                            borderColor: isActive ? '#388e3c' : 'rgba(255,255,255,0.1)',
-                            '&:hover': { 
-                                bgcolor: isActive ? '#43a047' : 'rgba(74,144,226,0.15)', 
-                                borderColor: isActive ? '#388e3c' : 'primary.main', 
-                                color: isActive ? '#fff' : 'primary.main' 
-                            },
-                            transition: 'all 0.15s',
-                        }}
-                    />,
-                    isActive
-                );
-            })}
-            
-            {renderTooltip(
-                <Chip
-                    label="…"
-                    size="small"
-                    onClick={(e) => setAnchorEl(e.currentTarget)}
-                    sx={{
-                        height: 22,
-                        fontSize: '0.68rem',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        color: activeTab === 'custom' ? '#fff' : 'text.secondary',
-                        bgcolor: activeTab === 'custom' ? '#4caf50' : 'rgba(255,255,255,0.05)',
-                        border: '1px solid',
-                        borderColor: activeTab === 'custom' ? '#388e3c' : 'rgba(255,255,255,0.1)',
-                        '&:hover': { 
-                            bgcolor: activeTab === 'custom' ? '#43a047' : 'rgba(74,144,226,0.15)', 
-                            borderColor: activeTab === 'custom' ? '#388e3c' : 'primary.main', 
-                            color: activeTab === 'custom' ? '#fff' : 'primary.main' 
-                        },
-                        transition: 'all 0.15s',
-                    }}
-                />,
-                activeTab === 'custom'
-            )}
-            <Popover
-                open={Boolean(anchorEl)}
-                anchorEl={anchorEl}
-                onClose={() => setAnchorEl(null)}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-            >
-                <Stack direction="row" spacing={1} sx={{ p: 1.5, alignItems: 'center' }}>
-                    <TextField
-                        size="small"
-                        type="number"
-                        placeholder="days"
-                        value={customDays}
-                        onChange={e => setCustomDays(e.target.value)}
-                        onKeyDown={e => { if (e.key === 'Enter') handleCustom(); }}
-                        sx={{ width: 80, '& input': { py: 0.5, fontSize: '0.85rem' } }}
-                    />
-                    <Button size="small" variant="contained" onClick={handleCustom} disabled={!customDays || parseInt(customDays) <= 0} sx={{ minWidth: 50, py: 0.3 }}>
-                        Set
-                    </Button>
-                </Stack>
-            </Popover>
-        </Stack>
-    );
-};
-
+/** How to learn with this hub so it stays learnt, behind a button until asked for. */
+const HOW_TO_LEARN = [
+    'One topic at a time: read steps 1 to 4 of its lesson (the idea, the words that signal it, the template, the traced examples).',
+    'Solve two or three of its problems, easiest first. Read the question, say the pattern and the trick out loud, and only then Show answer. Give each problem 20 to 30 minutes before you look at a solution.',
+    "Tick a problem once you've solved it. It comes back in Review today tomorrow, then after 3, 7, 14 and 30 days, then every month. Each time, solve it again from a blank editor: reading your old code doesn't count.",
+    "Do today's reviews before anything new. They mix topics on purpose: an interview never tells you which pattern a question is.",
+    'Five minutes of the pattern drill a day keeps "which pattern is this?" quick, across every topic you have studied.',
+];
 
 const DSAHubPage = () => {
     const navigate = useNavigate();
-    const { isAdmin } = useTaskContext();
+    const { isAdmin, dsaStreak } = useTaskContext();
     const { progress, loaded: progressLoaded } = useDSAProgress();
     const { cards: drillCards, loaded: drillLoaded } = usePatternDrill();
+    const today = getLondonDateString();
     // Counted exactly as the drill counts its default session, so the two always agree.
-    const dueToday = progressLoaded && drillLoaded ? todaysDrill(drillCards, progress, getLondonDateString()).length : null;
-    const [expandedTopics, setExpandedTopics] = useState<Set<string>>(new Set());
+    const drillToday = progressLoaded && drillLoaded ? todaysDrill(drillCards, progress, today).length : null;
+    const [showHow, setShowHow] = useState(false);
 
-    const toggleTopic = (topicId: string) => {
-        setExpandedTopics(prev => {
-            const next = new Set(prev);
-            if (next.has(topicId)) next.delete(topicId);
-            else next.add(topicId);
-            return next;
-        });
-    };
-
-    // Calculate stats
-    const totalTopics = getTotalTopics();
-    const dynamicTotalProblems = getTotalProblems();
+    const openTopic = (topicId: string) => navigate(`/dsa/${topicId}`);
 
     // Only count completions for problems that still exist in the curriculum
-    let completedProblemsCount = 0;
-    dsaCurriculum.forEach(phase => {
-        phase.sections.forEach(section => {
-            section.topics.forEach(topic => {
-                const completedList = progress[topic.id]?.completedProblems || [];
-                const topicProblemIds = new Set(topic.problems.map(p => p.id));
-                completedProblemsCount += completedList.filter(id => topicProblemIds.has(id)).length;
-            });
-        });
-    });
-    const overallProgress = dynamicTotalProblems > 0
-        ? Math.round((completedProblemsCount / dynamicTotalProblems) * 100)
-        : 0;
-
-    // Handle problem toggle (Complete/Incomplete)
-    const handleProblemToggle = async (topicId: string, problemId: string) => {
-        if (!isAdmin) return;
-        const currentCompleted = progress[topicId]?.completedProblems || [];
-        await toggleDSAProblemCompletion(topicId, problemId, currentCompleted);
+    const solvedIn = (topic: DSATopic) => {
+        const solved = progress[topic.id]?.completedProblems ?? [];
+        return topic.problems.filter(problem => solved.includes(problem.id)).length;
     };
-
-    const { dsaStreak } = useTaskContext();
+    const totalTopics = getTotalTopics();
+    const totalProblems = getTotalProblems();
+    const completedProblemsCount = topics.reduce((sum, topic) => sum + solvedIn(topic), 0);
+    const overallProgress = totalProblems > 0
+        ? Math.round((completedProblemsCount / totalProblems) * 100)
+        : 0;
 
     return (
         <Box sx={{ width: '100%', maxWidth: 1000, mx: 'auto', pb: 4, px: { xs: 1, sm: 0 }, overflowX: 'hidden' }}>
@@ -359,14 +115,38 @@ const DSAHubPage = () => {
                 </Box>
             </Stack>
 
+            {/* Solved problems coming back to be solved again */}
+            <ReviewToday progress={progress} progressLoaded={progressLoaded} today={today} canRate={isAdmin} onOpenTopic={openTopic} />
+
+            {/* How to learn it so it stays learnt */}
+            <Box sx={{ mb: 2, mt: -1.5 }}>
+                <Button
+                    onClick={() => setShowHow(open => !open)}
+                    aria-expanded={showHow}
+                    endIcon={showHow ? <ExpandLessRoundedIcon /> : <ExpandMoreRoundedIcon />}
+                    sx={{ minHeight: 44, px: 1, ml: -1, textTransform: 'none', fontWeight: 700, color: 'text.secondary' }}
+                >
+                    The best way to learn DSA here
+                </Button>
+                <Collapse in={showHow}>
+                    <Stack component="ol" spacing={1} sx={{ m: 0, mt: 0.5, pl: 3, maxWidth: 760 }}>
+                        {HOW_TO_LEARN.map(step => (
+                            <Typography key={step} component="li" variant="body2" sx={{ color: 'text.primary', lineHeight: 1.6 }}>
+                                {step}
+                            </Typography>
+                        ))}
+                    </Stack>
+                </Collapse>
+            </Box>
+
             {/* Recognition: the drill and the cheat sheet */}
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr' }, gap: 1.5, mb: 3 }}>
                 {[
                     {
                         to: '/dsa/drill',
                         icon: <StyleRoundedIcon />,
-                        title: dueToday === null ? 'Pattern drill' : `Pattern drill — ${dueToday} due today`,
-                        note: 'Read a problem, name the pattern. Spaced repetition.',
+                        title: drillToday === null ? 'Pattern drill' : `Pattern drill — ${drillToday} cards today`,
+                        note: 'Read a problem, name the pattern. Five minutes a day.',
                         colour: '#4dd0e1',
                     },
                     {
@@ -428,7 +208,7 @@ const DSAHubPage = () => {
                 }}
             >
                 <Box sx={{ textAlign: 'center' }}>
-                    <Typography variant="h6" fontWeight="bold" color="text.primary">{getTotalProblems()}</Typography>
+                    <Typography variant="h6" fontWeight="bold" color="text.primary">{totalProblems}</Typography>
                     <Typography variant="caption" color="text.secondary">Problems</Typography>
                 </Box>
                 <Box sx={{ textAlign: 'center' }}>
@@ -445,7 +225,7 @@ const DSAHubPage = () => {
                 </Box>
             </Box>
 
-            {/* Topic List */}
+            {/* Topic List: each opens its lesson, where its problems are */}
             <Box sx={{
                 borderRadius: 3,
                 border: 1,
@@ -453,202 +233,74 @@ const DSAHubPage = () => {
                 bgcolor: 'rgba(255,255,255,0.02)',
                 overflow: 'hidden',
             }}>
-                {displayEntries.map(entry => {
-                    const prog = getEntryProgress(entry, progress);
-                    const isExpanded = expandedTopics.has(entry.label);
-                    const isComplete = prog.percentage === 100 && prog.total > 0;
+                {topics.map(topic => {
+                    const completed = solvedIn(topic);
+                    const total = topic.problems.length;
+                    const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+                    const isComplete = percentage === 100 && total > 0;
+                    const hook = getPatternGuide(topic.id)?.hook;
 
                     return (
-                        <Box key={entry.label}>
-                            {/* Topic Header */}
-                            <Box
-                                onClick={() => toggleTopic(entry.label)}
-                                sx={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    py: { xs: 1.5, sm: 2 },
-                                    px: { xs: 1.5, sm: 3 },
-                                    cursor: 'pointer',
-                                    borderBottom: '1px solid rgba(255,255,255,0.06)',
-                                    transition: 'background 0.15s',
-                                    '&:hover': { bgcolor: 'rgba(255,255,255,0.035)' },
-                                }}
-                            >
-                                <Box sx={{ color: 'text.secondary', mr: { xs: 1, sm: 2 }, display: 'flex', alignItems: 'center' }}>
-                                    {isExpanded
-                                        ? <ExpandLessRoundedIcon sx={{ fontSize: 24 }} />
-                                        : <ExpandMoreRoundedIcon sx={{ fontSize: 24 }} />
-                                    }
-                                </Box>
-                                <Box sx={{ flex: 1, minWidth: 0, pr: 1 }}>
-                                    <Typography
-                                        sx={{
-                                            fontWeight: 700,
-                                            color: isComplete ? 'success.main' : 'text.primary',
-                                            fontSize: { xs: '1.1rem', sm: '1.3rem' },
-                                            letterSpacing: '-0.01em',
-                                        }}
-                                    >
-                                        {entry.label}
-                                    </Typography>
-                                    {getPatternGuide(entry.topicIds[0]) && (
-                                        <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.8rem', sm: '0.85rem' }, lineHeight: 1.4 }}>
-                                            {getPatternGuide(entry.topicIds[0])?.hook}
-                                        </Typography>
-                                    )}
-                                </Box>
+                        <ButtonBase
+                            key={topic.id}
+                            onClick={() => openTopic(topic.id)}
+                            sx={{
+                                width: '100%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                textAlign: 'left',
+                                py: { xs: 1.5, sm: 2 },
+                                px: { xs: 1.5, sm: 3 },
+                                borderBottom: '1px solid rgba(255,255,255,0.06)',
+                                transition: 'background 0.15s',
+                                '&:hover': { bgcolor: 'rgba(255,255,255,0.035)' },
+                            }}
+                        >
+                            <Box sx={{ flex: 1, minWidth: 0, pr: 1 }}>
                                 <Typography
                                     sx={{
-                                        color: isComplete ? 'success.main' : 'text.secondary',
                                         fontWeight: 700,
-                                        mr: { xs: 1.5, sm: 3 },
-                                        fontSize: { xs: '0.9rem', sm: '1rem' },
-                                        whiteSpace: 'nowrap',
+                                        color: isComplete ? 'success.main' : 'text.primary',
+                                        fontSize: { xs: '1.1rem', sm: '1.3rem' },
+                                        letterSpacing: '-0.01em',
                                     }}
                                 >
-                                    {prog.completed} / {prog.total}
+                                    {topic.title}
                                 </Typography>
-                                <Box sx={{ width: { xs: 70, sm: 180 }, flexShrink: 0 }}>
-                                    <LinearProgress
-                                        variant="determinate"
-                                        value={prog.percentage}
-                                        sx={{
-                                            height: 7,
-                                            borderRadius: 4,
-                                            bgcolor: 'rgba(255,255,255,0.08)',
-                                            '& .MuiLinearProgress-bar': {
-                                                borderRadius: 4,
-                                                bgcolor: isComplete ? '#4caf50' : '#ff9800',
-                                            },
-                                        }}
-                                    />
-                                </Box>
+                                {hook && (
+                                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.8rem', sm: '0.85rem' }, lineHeight: 1.4 }}>
+                                        {hook}
+                                    </Typography>
+                                )}
                             </Box>
-
-                            {/* Expanded Problem Table */}
-                            <Collapse in={isExpanded}>
-                                <Box sx={{ bgcolor: 'rgba(0,0,0,0.12)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                                    <Box sx={{ px: { xs: 2, sm: 3.5 }, pt: 1.5, pb: 0.5, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                                        {entry.topicIds.map(topicId => {
-                                            const topic = findTopicById(topicId);
-                                            if (!topic) return null;
-                                            return (
-                                                <Button
-                                                    key={topicId}
-                                                    size="small"
-                                                    variant="outlined"
-                                                    startIcon={<MenuBookRoundedIcon />}
-                                                    onClick={() => navigate(`/dsa/${topicId}`)}
-                                                    sx={{
-                                                        borderColor: 'rgba(255,255,255,0.15)',
-                                                        color: 'text.secondary',
-                                                        textTransform: 'none',
-                                                        fontSize: '0.8rem',
-                                                        borderRadius: 2,
-                                                        '&:hover': { borderColor: 'primary.main', color: 'primary.main', bgcolor: 'rgba(33, 150, 243, 0.06)' },
-                                                    }}
-                                                >
-                                                    Learn: {topic.title}
-                                                </Button>
-                                            );
-                                        })}
-                                    </Box>
-                                    <Box sx={{ display: 'flex', alignItems: 'center', px: { xs: 2, sm: 3.5 }, py: 1, borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                                        <Typography variant="caption" color="text.secondary" sx={{ width: 44, fontWeight: 700, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>Status</Typography>
-                                        <Typography variant="caption" color="text.secondary" sx={{ flex: 1, fontWeight: 700, pl: 1, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>Problem</Typography>
-                                        <Typography variant="caption" color="text.secondary" sx={{ width: 80, textAlign: 'center', fontWeight: 700, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>Difficulty</Typography>
-                                        <Typography variant="caption" color="text.secondary" sx={{ width: { xs: 80, sm: 140 }, textAlign: 'center', fontWeight: 700, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>Practice</Typography>
-                                    </Box>
-                                    {entry.topicIds.flatMap(topicId => {
-                                        const topic = findTopicById(topicId);
-                                        if (!topic) return [];
-                                        return topic.problems.map(problem => ({ topicId, problem }));
-                                    })
-                                        .map(({ topicId, problem }, idx) => {
-                                            const isCompleted = progress[topicId]?.completedProblems?.includes(problem.id) || false;
-                                            const scheduledDate = progress[topicId]?.practiceSchedule?.[problem.id];
-                                            let difficulty: 'Easy' | 'Medium' | 'Hard' = 'Medium';
-                                            const contentKey = topicId as keyof typeof dsaTopicContent;
-                                            if (dsaTopicContent[contentKey]) {
-                                                const cat = dsaTopicContent[contentKey];
-                                                if (cat.practiceProblems.easy.some(p => p.title === problem.title)) difficulty = 'Easy';
-                                                else if (cat.practiceProblems.hard.some(p => p.title === problem.title)) difficulty = 'Hard';
-                                            }
-                                            const diffColor = difficulty === 'Easy' ? '#43a047' : difficulty === 'Hard' ? '#ef5350' : '#ffa726';
-                                            return (
-                                                <Box
-                                                    key={problem.id}
-                                                    sx={{
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        px: { xs: 2, sm: 3.5 },
-                                                        py: { xs: 0.7, sm: 0.8 },
-                                                        bgcolor: idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)',
-                                                        transition: 'background 0.1s',
-                                                        '&:hover': { bgcolor: 'rgba(255,255,255,0.04)' },
-                                                    }}
-                                                >
-                                                    <Box sx={{ width: 44, display: 'flex', justifyContent: 'center' }}>
-                                                        <Tooltip title={!isAdmin ? 'Unlock to toggle' : (isCompleted ? (scheduledDate ? `Practice: ${formatDate(scheduledDate)}` : 'Completed') : 'Mark as complete')}>
-                                                            <span>
-                                                                <Checkbox
-                                                                    checked={isCompleted}
-                                                                    onChange={() => handleProblemToggle(topicId, problem.id)}
-                                                                    disabled={!isAdmin}
-                                                                    icon={<CheckCircleOutlineRoundedIcon sx={{ fontSize: 22 }} />}
-                                                                    checkedIcon={<CheckCircleRoundedIcon sx={{ fontSize: 22, color: '#4caf50' }} />}
-                                                                    sx={{ p: 0.3, color: 'rgba(255,255,255,0.2)', '&.Mui-checked': { color: '#4caf50' } }}
-                                                                />
-                                                            </span>
-                                                        </Tooltip>
-                                                    </Box>
-                                                    <Typography
-                                                        component="a"
-                                                        href={problem.url}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        sx={{
-                                                            flex: 1,
-                                                            pl: 1,
-                                                            color: isCompleted ? 'text.secondary' : 'text.primary',
-                                                            opacity: isCompleted ? 0.55 : 1,
-                                                            fontSize: { xs: '1rem', sm: '1.12rem' },
-                                                            fontWeight: 500,
-                                                            textDecoration: 'none',
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            gap: 0.5,
-                                                            transition: 'color 0.15s',
-                                                            '&:hover': {
-                                                                color: isCompleted ? 'text.secondary' : '#4caf50',
-                                                            },
-                                                        }}
-                                                    >
-                                                        {problem.title}
-                                                        <OpenInNewRoundedIcon sx={{ fontSize: 14, opacity: 0.4 }} />
-                                                    </Typography>
-                                                    <Box sx={{ width: 80, textAlign: 'center' }}>
-                                                        <Typography sx={{ color: diffColor, fontWeight: 700, fontSize: '0.78rem' }}>
-                                                            {difficulty}
-                                                        </Typography>
-                                                    </Box>
-                                                    <Box sx={{ width: { xs: 80, sm: 140 }, display: 'flex', justifyContent: 'center' }}>
-                                                        <PracticeButtons
-                                                            topicId={topicId}
-                                                            problemId={problem.id}
-                                                            scheduledDate={scheduledDate}
-                                                            isAdmin={isAdmin}
-                                                            isCompleted={isCompleted}
-                                                            onCompleteProblem={handleProblemToggle}
-                                                        />
-                                                    </Box>
-                                                </Box>
-                                            );
-                                        })}
-                                    <Box sx={{ height: 10 }} />
-                                </Box>
-                            </Collapse>
-                        </Box>
+                            <Typography
+                                sx={{
+                                    color: isComplete ? 'success.main' : 'text.secondary',
+                                    fontWeight: 700,
+                                    mr: { xs: 1.5, sm: 3 },
+                                    fontSize: { xs: '0.9rem', sm: '1rem' },
+                                    whiteSpace: 'nowrap',
+                                }}
+                            >
+                                {completed} / {total}
+                            </Typography>
+                            <Box sx={{ width: { xs: 60, sm: 180 }, flexShrink: 0 }}>
+                                <LinearProgress
+                                    variant="determinate"
+                                    value={percentage}
+                                    sx={{
+                                        height: 7,
+                                        borderRadius: 4,
+                                        bgcolor: 'rgba(255,255,255,0.08)',
+                                        '& .MuiLinearProgress-bar': {
+                                            borderRadius: 4,
+                                            bgcolor: isComplete ? '#4caf50' : '#ff9800',
+                                        },
+                                    }}
+                                />
+                            </Box>
+                            <ChevronRightRoundedIcon sx={{ color: 'text.secondary', ml: { xs: 0.5, sm: 1.5 }, flexShrink: 0 }} />
+                        </ButtonBase>
                     );
                 })}
             </Box>

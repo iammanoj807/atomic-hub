@@ -55,7 +55,7 @@ export const getTopicContent = (id: string): DSAContentCategory | undefined => {
     return dsaTopicContent[id];
 };
 
-export const dsaTopicContent: Record<string, DSAContentCategory> = {
+const dsaTopicContent: Record<string, DSAContentCategory> = {
     'arrays-hashing': {
         categoryId: 'arrays-hashing',
         title: 'Arrays & Hashing',

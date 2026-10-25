@@ -21,6 +21,7 @@ import type { SDCheckKey } from '../data/systemDesign';
 import type { SqlCheckKey } from '../data/sql';
 import type { DrillCardState, DrillState } from '../utils/patternDrill';
 import type { SavedSqlQueries, SavedSqlQuery } from '../utils/sqlQueries';
+import type { ProblemReview, ProblemReviews } from '../utils/dsaReview';
 
 // Collection names
 const TASKS_COLLECTION = 'tasks';
@@ -425,7 +426,7 @@ export interface DSATopicProgress {
     completed: boolean;
     completedProblems: string[]; // Array of problem IDs
     reviewLogs?: DSAReviewLog[];
-    /** Maps problemId → ISO date string for the next practice date */
+    /** problemId → YYYY-MM-DD, from the old 3d/7d practice buttons. Only read now: each one starts that problem's reviews. */
     practiceSchedule?: Record<string, string>;
     updatedAt: Timestamp;
 }
@@ -490,43 +491,6 @@ export const toggleDSAProblemCompletion = async (
     } catch (caught) {
         const error = caught as FirebaseError;
         console.error('❌ Failed to toggle DSA problem:', error.code, error.message);
-        throw error;
-    }
-};
-
-/**
- * Set or clear a practice date for a specific problem.
- * @param dateISO Pass an ISO date string to set, or null to clear.
- */
-export const setPracticeDateForProblem = async (
-    topicId: string,
-    problemId: string,
-    dateISO: string | null
-) => {
-    try {
-        const { getDoc, setDoc, updateDoc } = await import('firebase/firestore');
-        const topicRef = doc(db, DSA_PROGRESS_COLLECTION, topicId);
-        const docSnap = await getDoc(topicRef);
-
-        const fieldKey = `practiceSchedule.${problemId}`;
-
-        if (docSnap.exists()) {
-            if (dateISO) {
-                await updateDoc(topicRef, { [fieldKey]: dateISO, updatedAt: Timestamp.now() });
-            } else {
-                await updateDoc(topicRef, { [fieldKey]: deleteField(), updatedAt: Timestamp.now() });
-            }
-        } else {
-            await setDoc(topicRef, {
-                topicId,
-                completedProblems: [],
-                practiceSchedule: dateISO ? { [problemId]: dateISO } : {},
-                updatedAt: Timestamp.now(),
-            });
-        }
-    } catch (caught) {
-        const error = caught as FirebaseError;
-        console.error('❌ Failed to set practice date:', error.code, error.message);
         throw error;
     }
 };
@@ -831,6 +795,36 @@ export const savePatternDrillCard = async (problemId: string, card: DrillCardSta
         await setDoc(docRef, { cards: { [problemId]: card }, updatedAt: Timestamp.now() }, { merge: true });
     } catch (error) {
         console.error('❌ Failed to save pattern drill card:', error);
+        throw error;
+    }
+};
+
+// ============ DSA PROBLEM REVIEWS ============
+//
+// Solved problems come back to be solved again, further apart each time (see
+// utils/dsaReview.ts). One entry per problem ever solved, all in
+// study_progress/dsa_reviews. An unticked problem keeps its entry but is not offered.
+
+const DSA_REVIEWS_DOC = 'dsa_reviews';
+
+export const subscribeToDSAReviews = (
+    callback: (reviews: ProblemReviews) => void
+) => {
+    return onSnapshot(doc(db, STUDY_PROGRESS_COLLECTION, DSA_REVIEWS_DOC), (docSnap) => {
+        const data = docSnap.exists() ? docSnap.data() : {};
+        callback((data.problems ?? {}) as ProblemReviews);
+    }, (error) => {
+        console.error('❌ DSA reviews subscription error:', error.code, error.message);
+    });
+};
+
+/** Save one problem's review. A nested object with merge touches only this one problem. */
+export const saveDSAReview = async (problemId: string, review: ProblemReview) => {
+    try {
+        const docRef = doc(db, STUDY_PROGRESS_COLLECTION, DSA_REVIEWS_DOC);
+        await setDoc(docRef, { problems: { [problemId]: review }, updatedAt: Timestamp.now() }, { merge: true });
+    } catch (error) {
+        console.error('❌ Failed to save DSA review:', error);
         throw error;
     }
 };

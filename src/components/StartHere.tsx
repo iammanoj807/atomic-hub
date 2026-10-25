@@ -46,8 +46,8 @@ const STAGES = [
         step: '3',
         title: 'Prove it',
         colour: '#66bb6a',
-        text: 'The next day, with notes closed, tick each of a topic\'s four checks only if you can do it from memory. Re-test old topics every two weeks and untick what you fail. Use Revise mode the night before an interview.',
-        links: [],
+        text: 'The next day, with notes closed, tick each of a topic\'s four checks only if you can do it from memory. Re-test old topics every two weeks and untick what you fail. Solved NeetCode problems come back by themselves in Review today, to solve again. Use Revise mode the night before an interview.',
+        links: [{ label: 'Review today', to: '/dsa' }],
     },
     {
         step: '4',
