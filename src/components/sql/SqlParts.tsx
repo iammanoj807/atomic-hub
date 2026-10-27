@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
-import { Box, Button, CircularProgress, IconButton, Stack, TextField, Typography } from '@mui/material';
+import { Box, Button, CircularProgress, Fab, IconButton, Paper, Stack, TextField, Typography } from '@mui/material';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
+import TableChartRoundedIcon from '@mui/icons-material/TableChartRounded';
+import TerminalRoundedIcon from '@mui/icons-material/TerminalRounded';
 import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
 import RestartAltRoundedIcon from '@mui/icons-material/RestartAltRounded';
 import HistoryRoundedIcon from '@mui/icons-material/HistoryRounded';
@@ -149,11 +151,14 @@ export const SqlRunBox = ({
     accent,
     label = 'Try it: edit the query, then run it',
     saveAs,
+    bare = false,
 }: {
     initialSql: string;
     accent: string;
     label?: string;
     saveAs?: SqlRunBoxSave;
+    /** Without its frame and label, for a box that sits in a panel of its own. */
+    bare?: boolean;
 }) => {
     const t = useTextSize();
     const store = useSqlQueriesStore();
@@ -239,10 +244,12 @@ export const SqlRunBox = ({
     const ran = state.status === 'done' || state.status === 'failed';
 
     return (
-        <Box sx={{ p: { xs: 1.5, sm: 2 }, borderRadius: 2, border: '1px dashed', borderColor: `${accent}66`, bgcolor: 'rgba(255,255,255,0.02)' }}>
-            <Typography variant="caption" sx={{ display: 'block', color: accent, fontWeight: 800, letterSpacing: 0.8, mb: 1 }}>
-                {label.toUpperCase()}
-            </Typography>
+        <Box sx={bare ? undefined : { p: { xs: 1.5, sm: 2 }, borderRadius: 2, border: '1px dashed', borderColor: `${accent}66`, bgcolor: 'rgba(255,255,255,0.02)' }}>
+            {!bare && (
+                <Typography variant="caption" sx={{ display: 'block', color: accent, fontWeight: 800, letterSpacing: 0.8, mb: 1 }}>
+                    {label.toUpperCase()}
+                </Typography>
+            )}
             <TextField
                 multiline
                 fullWidth
@@ -609,5 +616,146 @@ export const PracticeDatabase = ({ accent }: { accent: string }) => {
                 saveAs={{ key: 'database', place: 'The practice database', restore: true }}
             />
         </Stack>
+    );
+};
+
+const KEY_COLOURS = { PK: '#ffca28', FK: '#4dd0e1' };
+
+/** Every practice table and its columns, one line each, to glance at while writing a query. */
+const TableColumns = () => {
+    const t = useTextSize();
+    return (
+        <Box sx={{ mb: 1.5, p: 1.25, borderRadius: 2, bgcolor: 'rgba(0,0,0,0.25)', border: '1px solid rgba(255,255,255,0.08)' }}>
+            {practiceTables.map(table => (
+                <Typography key={table.name} sx={{ fontFamily: MONO, fontSize: px(t.code), lineHeight: 1.6, overflowWrap: 'anywhere' }}>
+                    <Box component="span" sx={{ color: 'text.primary', fontWeight: 800 }}>{table.name}</Box>
+                    <Box component="span" sx={{ color: 'text.secondary' }}>(</Box>
+                    {table.columns.map((column, index) => (
+                        <Box component="span" key={column.name}>
+                            {index > 0 && <Box component="span" sx={{ color: 'text.secondary' }}>, </Box>}
+                            <Box component="span" sx={{ color: column.key ? KEY_COLOURS[column.key] : 'text.secondary' }}>{column.name}</Box>
+                        </Box>
+                    ))}
+                    <Box component="span" sx={{ color: 'text.secondary' }}>)</Box>
+                </Typography>
+            ))}
+            <Typography color="text.secondary" sx={{ mt: 0.75, fontSize: px(t.small) }}>
+                <Box component="span" sx={{ color: KEY_COLOURS.PK, fontWeight: 700 }}>Yellow</Box> is a primary key,{' '}
+                <Box component="span" sx={{ color: KEY_COLOURS.FK, fontWeight: 700 }}>blue</Box> a foreign key.
+            </Typography>
+        </Box>
+    );
+};
+
+/**
+ * A run box that floats over the page, so a question can be read and answered
+ * without scrolling down to a box. A button in the corner opens it. It doesn't
+ * block the page: you can keep scrolling and reading while it is open. Hiding
+ * it keeps the query and its result for when it opens again.
+ */
+export const FloatingSqlBox = ({ accent }: { accent: string }) => {
+    const t = useTextSize();
+    const [open, setOpen] = useState(false);
+    // Built on first open, then only hidden, so the query and its result stay.
+    const [opened, setOpened] = useState(false);
+    const [showTables, setShowTables] = useState(false);
+    const panelRef = useRef<HTMLDivElement>(null);
+    const buttonRef = useRef<HTMLButtonElement>(null);
+    // On a phone, focusing the box would raise the keyboard over the question.
+    const [canHover] = useState(() => window.matchMedia?.('(hover: hover)').matches ?? true);
+
+    useEffect(() => {
+        if (open && canHover) panelRef.current?.querySelector<HTMLTextAreaElement>('textarea[aria-label="SQL query"]')?.focus();
+    }, [open, canHover]);
+
+    const hide = () => {
+        setOpen(false);
+        window.requestAnimationFrame(() => buttonRef.current?.focus());
+    };
+
+    return (
+        <>
+            <Fab
+                ref={buttonRef}
+                variant="extended"
+                onClick={() => {
+                    setOpen(true);
+                    setOpened(true);
+                }}
+                aria-expanded={open}
+                sx={{
+                    display: open ? 'none' : 'inline-flex',
+                    position: 'fixed',
+                    right: { xs: 16, sm: 24 },
+                    bottom: { xs: 'calc(16px + env(safe-area-inset-bottom))', sm: 24 },
+                    zIndex: 1250,
+                    textTransform: 'none',
+                    fontWeight: 800,
+                    color: '#0b0f14',
+                    bgcolor: accent,
+                    '&:hover': { bgcolor: accent, filter: 'brightness(1.1)' },
+                }}
+            >
+                <TerminalRoundedIcon sx={{ mr: 1 }} />
+                Run SQL
+            </Fab>
+            <Paper
+                ref={panelRef}
+                role="region"
+                aria-label="Quick query box"
+                elevation={12}
+                onKeyDown={event => {
+                    if (event.key === 'Escape') hide();
+                }}
+                sx={{
+                    display: open ? 'flex' : 'none',
+                    flexDirection: 'column',
+                    position: 'fixed',
+                    zIndex: 1250,
+                    left: { xs: 0, sm: 'auto' },
+                    right: { xs: 0, sm: 24 },
+                    bottom: { xs: 0, sm: 24 },
+                    width: { sm: 500 },
+                    maxWidth: { sm: 'calc(100vw - 48px)' },
+                    maxHeight: { xs: '55vh', sm: '75vh' },
+                    pb: { xs: 'env(safe-area-inset-bottom)', sm: 0 },
+                    bgcolor: '#151921',
+                    backgroundImage: 'none',
+                    border: '1px solid rgba(255,255,255,0.12)',
+                    borderRadius: { xs: '16px 16px 0 0', sm: 3 },
+                }}
+            >
+                <Stack direction="row" alignItems="center" spacing={0.5} sx={{ pl: 2, pr: 0.5, py: 0.5, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                    <Typography variant="caption" sx={{ flex: 1, color: accent, fontWeight: 800, letterSpacing: 0.8 }}>
+                        QUICK QUERY BOX
+                    </Typography>
+                    <Button
+                        size="small"
+                        onClick={() => setShowTables(shown => !shown)}
+                        aria-expanded={showTables}
+                        startIcon={<TableChartRoundedIcon />}
+                        sx={{ minHeight: TAP, px: 1, textTransform: 'none', fontWeight: 700, color: 'text.secondary', fontSize: px(t.small) }}
+                    >
+                        {showTables ? 'Hide tables' : 'Tables'}
+                    </Button>
+                    <IconButton onClick={hide} aria-label="Hide the query box" title="Hide (Esc)" sx={{ width: TAP, height: TAP, color: 'text.secondary' }}>
+                        <CloseRoundedIcon />
+                    </IconButton>
+                </Stack>
+                {opened && (
+                    <Box sx={{ overflowY: 'auto', p: 1.5 }}>
+                        {showTables && <TableColumns />}
+                        <SqlRunBox
+                            bare
+                            initialSql={'-- Runs on the practice database. Tap Tables to see every column.\nSELECT *\nFROM departments;'}
+                            accent={accent}
+                            saveAs={{ key: 'quick', place: 'Quick query box', restore: true }}
+                        />
+                    </Box>
+                )}
+            </Paper>
+            {/* Room at the end of the page, so the button, or the panel on a phone, never covers the last lines. */}
+            <Box aria-hidden sx={{ height: open ? { xs: '55vh', sm: 96 } : 96 }} />
+        </>
     );
 };

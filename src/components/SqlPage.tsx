@@ -85,7 +85,7 @@ import { AnimatedScene } from './learning/anim/AnimatedScene';
 import { useTopicAnimation } from './learning/anim/useTopicAnimation';
 import { useLoaded } from './learning/useLoaded';
 import { segmentSections, type Prose } from './learning/glossaryContext';
-import { AnswerQuery, ExampleBlock, ExampleOutcome, MONO, PracticeDatabase, SavedQueriesPanel, SqlRunBox } from './sql/SqlParts';
+import { AnswerQuery, ExampleBlock, ExampleOutcome, FloatingSqlBox, MONO, PracticeDatabase, SavedQueriesPanel, SqlRunBox } from './sql/SqlParts';
 import { SqlQueriesContext, SqlTopicContext } from './sql/sqlContext';
 
 const MAX_IN_PROGRESS = 8;
@@ -1184,6 +1184,8 @@ const SqlPage = () => {
                             </>
                         )}
                     </Box>
+                    {/* A run box always one tap away, so a question can be answered where it is read. */}
+                    <FloatingSqlBox accent={CYAN} />
                 </GlossaryProvider>
             </SqlQueriesContext.Provider>
         </LearningPageFrame>
