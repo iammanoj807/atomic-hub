@@ -28,6 +28,7 @@ import {
     type SavedSqlQueryEntry,
 } from '../../utils/sqlQueries';
 import { useSqlQueriesStore, useSqlTopic } from './sqlContext';
+import { QUICK_BOX_EDGE, QUICK_BOX_WIDTH } from './quickBoxLayout';
 
 // The SQL page's own pieces: result tables, the box that runs a query on the
 // practice database, worked examples, and the practice database itself.
@@ -648,14 +649,24 @@ const TableColumns = () => {
 };
 
 /**
- * A run box that floats over the page, so a question can be read and answered
- * without scrolling down to a box. A button in the corner opens it. It doesn't
- * block the page: you can keep scrolling and reading while it is open. Hiding
- * it keeps the query and its result for when it opens again.
+ * A run box always one tap away, so a question can be read and answered
+ * without scrolling down to a box. A button in the corner opens it. On a wide
+ * screen it takes a column on the right and the page narrows beside it (give
+ * the page column roomForQuickBox while it is open), so nothing being read is
+ * under it; on a narrower one it is a sheet along the bottom. It doesn't block
+ * the page: you can keep scrolling and reading while it is open. Hiding it
+ * keeps the query and its result for when it opens again.
  */
-export const FloatingSqlBox = ({ accent }: { accent: string }) => {
+export const FloatingSqlBox = ({
+    accent,
+    open,
+    onOpenChange,
+}: {
+    accent: string;
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+}) => {
     const t = useTextSize();
-    const [open, setOpen] = useState(false);
     // Built on first open, then only hidden, so the query and its result stay.
     const [opened, setOpened] = useState(false);
     const [showTables, setShowTables] = useState(false);
@@ -669,7 +680,7 @@ export const FloatingSqlBox = ({ accent }: { accent: string }) => {
     }, [open, canHover]);
 
     const hide = () => {
-        setOpen(false);
+        onOpenChange(false);
         window.requestAnimationFrame(() => buttonRef.current?.focus());
     };
 
@@ -679,7 +690,7 @@ export const FloatingSqlBox = ({ accent }: { accent: string }) => {
                 ref={buttonRef}
                 variant="extended"
                 onClick={() => {
-                    setOpen(true);
+                    onOpenChange(true);
                     setOpened(true);
                 }}
                 aria-expanded={open}
@@ -712,17 +723,16 @@ export const FloatingSqlBox = ({ accent }: { accent: string }) => {
                     flexDirection: 'column',
                     position: 'fixed',
                     zIndex: 1250,
-                    left: { xs: 0, sm: 'auto' },
-                    right: { xs: 0, sm: 24 },
-                    bottom: { xs: 0, sm: 24 },
-                    width: { sm: 500 },
-                    maxWidth: { sm: 'calc(100vw - 48px)' },
-                    maxHeight: { xs: '55vh', sm: '75vh' },
-                    pb: { xs: 'env(safe-area-inset-bottom)', sm: 0 },
+                    left: { xs: 0, lg: 'auto' },
+                    right: { xs: 0, lg: QUICK_BOX_EDGE },
+                    bottom: { xs: 0, lg: QUICK_BOX_EDGE },
+                    width: { lg: QUICK_BOX_WIDTH },
+                    maxHeight: { xs: '55vh', lg: '75vh' },
+                    pb: { xs: 'env(safe-area-inset-bottom)', lg: 0 },
                     bgcolor: '#151921',
                     backgroundImage: 'none',
                     border: '1px solid rgba(255,255,255,0.12)',
-                    borderRadius: { xs: '16px 16px 0 0', sm: 3 },
+                    borderRadius: { xs: '16px 16px 0 0', lg: 3 },
                 }}
             >
                 <Stack direction="row" alignItems="center" spacing={0.5} sx={{ pl: 2, pr: 0.5, py: 0.5, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
@@ -754,8 +764,8 @@ export const FloatingSqlBox = ({ accent }: { accent: string }) => {
                     </Box>
                 )}
             </Paper>
-            {/* Room at the end of the page, so the button, or the panel on a phone, never covers the last lines. */}
-            <Box aria-hidden sx={{ height: open ? { xs: '55vh', sm: 96 } : 96 }} />
+            {/* Room at the end of the page, so the button, or the sheet below lg, never covers the last lines. */}
+            <Box aria-hidden sx={{ height: open ? { xs: '55vh', lg: 96 } : 96 }} />
         </>
     );
 };

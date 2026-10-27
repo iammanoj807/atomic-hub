@@ -86,6 +86,7 @@ import { useTopicAnimation } from './learning/anim/useTopicAnimation';
 import { useLoaded } from './learning/useLoaded';
 import { segmentSections, type Prose } from './learning/glossaryContext';
 import { AnswerQuery, ExampleBlock, ExampleOutcome, FloatingSqlBox, MONO, PracticeDatabase, SavedQueriesPanel, SqlRunBox } from './sql/SqlParts';
+import { roomForQuickBox } from './sql/quickBoxLayout';
 import { SqlQueriesContext, SqlTopicContext } from './sql/sqlContext';
 
 const MAX_IN_PROGRESS = 8;
@@ -722,7 +723,8 @@ const ReviseCard = ({ topic, accent, onOpen }: { topic: SqlTopic; accent: string
 const CheatSheet = () => {
     const t = useTextSize();
     return (
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
+        // Two columns, down to one when the page narrows beside the quick query box.
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))' }, gap: 2 }}>
             {sqlCheatSheet.map(item => (
                 <Box key={item.title} sx={{ minWidth: 0 }}>
                     <Typography variant="body2" fontWeight={800} color="text.primary" sx={{ mb: 0.75 }}>
@@ -789,6 +791,7 @@ const SqlPage = () => {
             : (chosenTab ?? 'all');
     const [expanded, setExpanded] = useState<string | null>(null);
     const [glossaryOpen, setGlossaryOpen] = useState(false);
+    const [quickBoxOpen, setQuickBoxOpen] = useState(false);
 
     const openTopic = (topicId: string) => {
         const topic = allSqlTopics.find(item => item.id === topicId);
@@ -848,7 +851,8 @@ const SqlPage = () => {
         <LearningPageFrame t={t} theme={theme}>
             <SqlQueriesContext.Provider value={savedQueries}>
                 <GlossaryProvider source={sqlGlossary} openTopic={openTopic}>
-                    <Box sx={{ width: '100%', maxWidth: 940, mx: 'auto', minWidth: 0 }}>
+                    {/* With the quick query box open on a wide screen, the page narrows beside it rather than under it. */}
+                    <Box sx={{ width: '100%', maxWidth: 940, mx: 'auto', minWidth: 0, ...(quickBoxOpen && roomForQuickBox(940)) }}>
                         {/* ---- HEADER ---- */}
                         <Box sx={{ mb: 3 }}>
                             <Stack
@@ -1185,7 +1189,7 @@ const SqlPage = () => {
                         )}
                     </Box>
                     {/* A run box always one tap away, so a question can be answered where it is read. */}
-                    <FloatingSqlBox accent={CYAN} />
+                    <FloatingSqlBox accent={CYAN} open={quickBoxOpen} onOpenChange={setQuickBoxOpen} />
                 </GlossaryProvider>
             </SqlQueriesContext.Provider>
         </LearningPageFrame>
